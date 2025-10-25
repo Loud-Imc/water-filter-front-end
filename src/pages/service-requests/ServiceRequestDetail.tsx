@@ -24,7 +24,7 @@ import {
   IconButton,
   Stack,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
@@ -56,7 +56,7 @@ import LocationCapture from "../../components/location/LocationCapture";
 
 const ServiceRequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedRequest, loading } = useAppSelector(
     (state) => state.requests
@@ -127,19 +127,20 @@ const ServiceRequestDetail: React.FC = () => {
   }, [isWorking, startTime]);
 
   // Auto-start timer if status is IN_PROGRESS
-  useEffect(() => {
-    if (
-      selectedRequest?.status === "IN_PROGRESS" &&
-      selectedRequest.workLogs?.length > 0
-    ) {
-      const lastWorkLog =
-        selectedRequest.workLogs[selectedRequest.workLogs.length - 1];
-      if (lastWorkLog.startTime && !lastWorkLog.endTime) {
-        setStartTime(new Date(lastWorkLog.startTime));
-        setIsWorking(true);
-      }
+useEffect(() => {
+  if (
+    selectedRequest?.status === "IN_PROGRESS" &&
+    selectedRequest.workLogs &&  // ✅ Check exists first
+    selectedRequest.workLogs.length > 0
+  ) {
+    const lastWorkLog =
+      selectedRequest.workLogs[selectedRequest.workLogs.length - 1];
+    if (lastWorkLog.startTime && !lastWorkLog.endTime) {
+      setStartTime(new Date(lastWorkLog.startTime));
+      setIsWorking(true);
     }
-  }, [selectedRequest]);
+  }
+}, [selectedRequest]);
 
   // ✅ Early return AFTER all hooks
   if (loading || !selectedRequest) {

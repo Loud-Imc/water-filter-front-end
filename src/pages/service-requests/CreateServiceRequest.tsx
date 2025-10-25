@@ -14,7 +14,7 @@ import { customerService } from '../../api/services/customerService';
 import type { Region, Customer } from '../../types';
 
 interface FormData {
-  type: 'SERVICE' | 'INSTALLATION' | 'COMPLAINT';
+  type: 'SERVICE' | 'INSTALLATION' | 'COMPLAINT' | 'ENQUIRY';
   description: string;
   customerId: string;
   regionId: string;
@@ -114,6 +114,8 @@ const CreateServiceRequest: React.FC = () => {
                       <MenuItem value="SERVICE">Service</MenuItem>
                       <MenuItem value="INSTALLATION">Installation</MenuItem>
                       <MenuItem value="COMPLAINT">Complaint</MenuItem>
+                      {/* <MenuItem value="ENQUIRY">Enquiry</MenuItem> */}
+
                     </TextField>
                   )}
                 />

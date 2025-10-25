@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
-  Typography,
+  // Card,
+  // CardContent,
+  // Typography,
   LinearProgress,
 } from "@mui/material";
 import { fetchDashboardStats } from "../../app/slices/dashboardSlice";

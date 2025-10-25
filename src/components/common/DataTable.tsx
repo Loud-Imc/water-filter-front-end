@@ -8,7 +8,7 @@ import {
   TableRow,
   Paper,
   TablePagination,
-  Box,
+  // Box,
 } from '@mui/material';
 
 interface Column {
@@ -16,7 +16,7 @@ interface Column {
   label: string;
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
-  format?: (value: any) => string | React.ReactNode;
+  format?: (value: any, row?: any) => string | React.ReactNode;  // ✅ Add optional row parameter
 }
 
 interface DataTableProps {

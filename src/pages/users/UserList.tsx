@@ -58,7 +58,7 @@ const UserList: React.FC = () => {
   };
 
   const paginatedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
+ 
   const columns = [
     { id: 'name', label: 'Name', minWidth: 150 },
     { id: 'email', label: 'Email', minWidth: 200 },

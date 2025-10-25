@@ -1,24 +1,25 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
-import ProtectedRoute from '../components/layout/ProtectedRoute';
-import Login from '../pages/auth/Login';
-import Dashboard from '../pages/dashboard/Dashboard';
-import UserList from '../pages/users/UserList';
-import CreateUser from '../pages/users/CreateUser';
-import EditUser from '../pages/users/EditUser';
-import RoleManagement from '../pages/roles/RoleManagement';
-import RegionManagement from '../pages/regions/RegionManagement';
-import CustomerManagement from '../pages/customers/CustomerManagement';
-import ServiceRequestList from '../pages/service-requests/ServiceRequestList';
-import CreateServiceRequest from '../pages/service-requests/CreateServiceRequest';
-import ServiceRequestDetail from '../pages/service-requests/ServiceRequestDetail';
-import MyTasks from '../pages/technician/MyTasks';
-import TaskHistory from '../pages/technician/TaskHistory';
-import NotificationList from '../pages/notifications/NotificationList';
-import Unauthorized from '../pages/Unauthorized';
-import NotFound from '../pages/NotFound';
-import { useAppSelector } from '../app/hooks';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Layout from "../components/layout/Layout";
+import ProtectedRoute from "../components/layout/ProtectedRoute";
+import Login from "../pages/auth/Login";
+import Dashboard from "../pages/dashboard/Dashboard";
+import UserList from "../pages/users/UserList";
+import CreateUser from "../pages/users/CreateUser";
+import EditUser from "../pages/users/EditUser";
+import RoleManagement from "../pages/roles/RoleManagement";
+import RegionManagement from "../pages/regions/RegionManagement";
+import CustomerManagement from "../pages/customers/CustomerManagement";
+import ServiceRequestList from "../pages/service-requests/ServiceRequestList";
+import CreateServiceRequest from "../pages/service-requests/CreateServiceRequest";
+import ServiceRequestDetail from "../pages/service-requests/ServiceRequestDetail";
+import MyTasks from "../pages/technician/MyTasks";
+import TaskHistory from "../pages/technician/TaskHistory";
+import NotificationList from "../pages/notifications/NotificationList";
+import Unauthorized from "../pages/Unauthorized";
+import NotFound from "../pages/NotFound";
+import { useAppSelector } from "../app/hooks";
+import CustomerProfile from "../pages/customers/CustomerProfile";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -26,7 +27,10 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
+      />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
@@ -45,7 +49,15 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/users"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager']}>
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Sales Admin",
+              "Service Manager",
+              "Sales Manager",
+            ]}
+          >
             <Layout>
               <UserList />
             </Layout>
@@ -55,7 +67,15 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/users/create"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager']}>
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Sales Admin",
+              "Service Manager",
+              "Sales Manager",
+            ]}
+          >
             <Layout>
               <CreateUser />
             </Layout>
@@ -65,7 +85,15 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/users/edit/:id"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager']}>
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Sales Admin",
+              "Service Manager",
+              "Sales Manager",
+            ]}
+          >
             <Layout>
               <EditUser />
             </Layout>
@@ -77,7 +105,9 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/roles"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin']}>
+          <ProtectedRoute
+            allowedRoles={["Super Admin", "Service Admin", "Sales Admin"]}
+          >
             <Layout>
               <RoleManagement />
             </Layout>
@@ -89,7 +119,9 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/regions"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin']}>
+          <ProtectedRoute
+            allowedRoles={["Super Admin", "Service Admin", "Sales Admin"]}
+          >
             <Layout>
               <RegionManagement />
             </Layout>
@@ -101,9 +133,36 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/customers"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager']}>
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Sales Admin",
+              "Service Manager",
+              "Sales Manager",
+            ]}
+          >
             <Layout>
               <CustomerManagement />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/customers/:id"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Service Manager",
+              "Sales Manager",
+              "Sales Team Lead",
+            ]}
+          >
+            <Layout>
+              <CustomerProfile />
             </Layout>
           </ProtectedRoute>
         }
@@ -113,7 +172,15 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/service-requests"
         element={
-          <ProtectedRoute allowedRoles={['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager']}>
+          <ProtectedRoute
+            allowedRoles={[
+              "Super Admin",
+              "Service Admin",
+              "Sales Admin",
+              "Service Manager",
+              "Sales Manager",
+            ]}
+          >
             <Layout>
               <ServiceRequestList />
             </Layout>
@@ -145,7 +212,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/technician/my-tasks"
         element={
-          <ProtectedRoute allowedRoles={['Technician']}>
+          <ProtectedRoute allowedRoles={["Technician"]}>
             <Layout>
               <MyTasks />
             </Layout>
@@ -155,7 +222,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/technician/task-history"
         element={
-          <ProtectedRoute allowedRoles={['Technician']}>
+          <ProtectedRoute allowedRoles={["Technician"]}>
             <Layout>
               <TaskHistory />
             </Layout>
