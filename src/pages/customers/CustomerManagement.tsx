@@ -15,11 +15,13 @@ import {
   ListItemSecondaryAction,
   IconButton,
   Typography,
+  Avatar,
 } from "@mui/material";
 import { Grid } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+// import DeleteIcon from "@mui/icons-material/Delete";
 import PageHeader from "../../components/common/PageHeader";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
@@ -29,9 +31,10 @@ import PhoneNumberInput from "../../components/customer/PhoneNumberInput";
 import { customerService } from "../../api/services/customerService";
 import { regionService } from "../../api/services/regionService";
 import type { Customer, Region, CreateCustomerDto } from "../../types";
-import LocationCapture from "../../components/location/LocationCapture"; 
+import LocationCapture from "../../components/location/LocationCapture";
 
 const CustomerManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +44,6 @@ const CustomerManagement: React.FC = () => {
     null
   );
 
-  // ✅ Updated form data with new fields
   const [formData, setFormData] = useState<CreateCustomerDto>({
     name: "",
     address: "",
@@ -84,7 +86,6 @@ const CustomerManagement: React.FC = () => {
   const handleOpenDialog = (customer?: Customer) => {
     if (customer) {
       setSelectedCustomer(customer);
-      // ✅ Updated to use new field names
       setFormData({
         name: customer.name,
         address: customer.address,
@@ -92,6 +93,8 @@ const CustomerManagement: React.FC = () => {
         phoneNumbers: customer.phoneNumbers || [],
         email: customer.email || "",
         regionId: customer.regionId,
+        latitude: customer.latitude,
+        longitude: customer.longitude,
       });
     } else {
       setSelectedCustomer(null);
@@ -199,62 +202,95 @@ const CustomerManagement: React.FC = () => {
               <ListItem
                 key={customer.id}
                 divider={index < customers.length - 1}
+                sx={{
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
               >
-                <ListItemText
-                  primary={
-                    <Typography variant="body1" fontWeight={600}>
-                      {customer.name}
-                    </Typography>
-                  }
-                  secondary={
-                    <Box component="span">
-                      <Typography
-                        variant="body2"
-                        component="span"
-                        color="text.secondary"
-                      >
-                        {customer.region?.name || "N/A"} •{" "}
-                        {customer.primaryPhone}
-                        {/* ✅ Display additional phones */}
-                        {customer.phoneNumbers &&
-                          customer.phoneNumbers.length > 0 && (
-                            <>, {customer.phoneNumbers.join(", ")}</>
-                          )}
+                {/* ✅ Clickable Customer Info with Avatar */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    flex: 1,
+                  }}
+                  onClick={() => navigate(`/customers/${customer.id}`)}
+                >
+                  <Avatar
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      mr: 2,
+                      bgcolor: 'primary.main',
+                      fontSize: '1.2rem',
+                    }}
+                  >
+                    {customer.name.charAt(0).toUpperCase()}
+                  </Avatar>
+                  
+                  <ListItemText
+                    primary={
+                      <Typography variant="body1" fontWeight={600}>
+                        {customer.name}
                       </Typography>
-                      <br />
-                      <Typography variant="caption" color="text.secondary">
-                        {customer.address}
-                      </Typography>
-                      {customer.email && (
-                        <>
-                          <br />
-                          <Typography variant="caption" color="text.secondary">
-                            📧 {customer.email}
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  }
-                />
+                    }
+                    secondary={
+                      <Box component="span">
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          color="text.secondary"
+                        >
+                          {customer.region?.name || "N/A"} •{" "}
+                          {customer.primaryPhone}
+                          {customer.phoneNumbers &&
+                            customer.phoneNumbers.length > 0 && (
+                              <>, {customer.phoneNumbers.join(", ")}</>
+                            )}
+                        </Typography>
+                        <br />
+                        <Typography variant="caption" color="text.secondary">
+                          {customer.address}
+                        </Typography>
+                        {customer.email && (
+                          <>
+                            <br />
+                            <Typography variant="caption" color="text.secondary">
+                              📧 {customer.email}
+                            </Typography>
+                          </>
+                        )}
+                      </Box>
+                    }
+                  />
+                </Box>
+
+                {/* ✅ Action Buttons */}
                 <ListItemSecondaryAction>
                   <IconButton
                     edge="end"
-                    onClick={() => handleOpenDialog(customer)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenDialog(customer);
+                    }}
                     sx={{ mr: 1 }}
                     color="primary"
                   >
                     <EditIcon />
                   </IconButton>
+                  {/* Uncomment if delete is needed
                   <IconButton
                     edge="end"
                     color="error"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedCustomer(customer);
                       setDeleteDialog(true);
                     }}
                   >
                     <DeleteIcon />
                   </IconButton>
+                  */}
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
@@ -262,7 +298,7 @@ const CustomerManagement: React.FC = () => {
         </Card>
       )}
 
-      {/* ✅ Updated Create/Edit Dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedCustomer ? "Edit Customer" : "Create New Customer"}
@@ -316,7 +352,7 @@ const CustomerManagement: React.FC = () => {
               }
             />
 
-            {/* ✅ Phone Numbers Component */}
+            {/* Phone Numbers Component */}
             <PhoneNumberInput
               primaryPhone={formData.primaryPhone}
               additionalPhones={formData.phoneNumbers || []}
@@ -339,9 +375,8 @@ const CustomerManagement: React.FC = () => {
               }
               placeholder="customer@example.com"
             />
-            {/* After Email field, before closing Box */}
 
-            {/* ✅ Location Capture Section */}
+            {/* Location Capture Section */}
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                 Customer Location (Optional)

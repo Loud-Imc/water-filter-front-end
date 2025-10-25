@@ -57,7 +57,7 @@ const Login: React.FC = () => {
   // ✅ Quick login functions
   const fillAdminCredentials = () => {
     setValue('email', 'admin@waterfilter.com');
-    setValue('password', 'Admin@123');
+    setValue('password', 'Kamaru@123');
   };
 
   const fillTechnicianCredentials = () => {

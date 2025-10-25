@@ -17,8 +17,8 @@ interface FormData {
   email: string;
   password: string;
   roleId: string;
-  regionId?: string;
-  phone?: string;
+  regionId?: string | null;
+  phone?: string | null;
 }
 
 const CreateUser: React.FC = () => {
@@ -60,16 +60,16 @@ const CreateUser: React.FC = () => {
     fetchRegions();
   }, [dispatch]);
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      await dispatch(
-        createUser({
-          ...data,
-          createdById: user!.id,
-        })
-      ).unwrap();
+    const onSubmit = async (data: FormData) => {
+      try {
+        await dispatch(
+          createUser({
+            ...data,
+            createdById: user!.id,
+          })
+        ).unwrap();
 
-      setSnackbar({
+        setSnackbar({
         open: true,
         message: 'User created successfully!',
         severity: 'success',

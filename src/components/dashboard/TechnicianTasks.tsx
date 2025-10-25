@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent, Typography, Grid, Box, Chip } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, Typography, Grid, Box } from '@mui/material';
+// import { useNavigate } from 'react-router-dom';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -14,7 +14,7 @@ interface TechnicianTasksProps {
 }
 
 const TechnicianTasks: React.FC<TechnicianTasksProps> = ({ tasks }) => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const taskCards = [
     {
@@ -43,7 +43,7 @@ const TechnicianTasks: React.FC<TechnicianTasksProps> = ({ tasks }) => {
   return (
     <Card sx={{ mb: 3, bgcolor: 'primary.light' }}>
       <CardContent>
-        <Typography variant="h5" fontWeight={600} gutterBottom>
+        <Typography sx={{ color: 'white' }} variant="h5" fontWeight={600} gutterBottom>
           My Tasks Today
         </Typography>
 
@@ -62,7 +62,7 @@ const TechnicianTasks: React.FC<TechnicianTasksProps> = ({ tasks }) => {
                     boxShadow: 3,
                   },
                 }}
-                onClick={() => navigate(`/service-requests?status=${card.filter}`)}
+                // onClick={() => navigate(`/service-requests?status=${card.filter}`)}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Box

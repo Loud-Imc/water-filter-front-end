@@ -14,12 +14,12 @@ import { regionService } from '../../api/services/regionService';
 import {type  Region } from '../../types';
 
 interface FormData {
-  name: string;
+   name: string;
   email: string;
   password?: string;
   roleId: string;
-  regionId?: string;
-  phone?: string;
+  regionId?: string | null;
+  phone?: string | null;
 }
 
 const EditUser: React.FC = () => {

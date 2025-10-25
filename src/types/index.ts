@@ -3,13 +3,14 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   status: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
   roleId: string;
-  regionId?: string;
+  regionId?: string | null;
   createdAt: string;
   role: Role;
   region?: Region;
+  createdById?: string;
 }
 
 // Role types
@@ -61,7 +62,7 @@ export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {}
 
 
 // Service Request types
-export type RequestType = 'SERVICE' | 'INSTALLATION' | 'COMPLAINT';
+export type RequestType = 'SERVICE' | 'INSTALLATION' | 'COMPLAINT'| 'ENQUIRY';
 export type RequestStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
@@ -145,6 +146,7 @@ export interface RegisterData {
   roleId: string;
   regionId?: string;
 }
+
 
 export interface AuthResponse {
   user: User;

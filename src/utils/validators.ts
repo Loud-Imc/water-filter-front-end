@@ -16,14 +16,14 @@ export const registerSchema = yup.object({
 export const userSchema = yup.object({
   name: yup.string().min(2, 'Name must be at least 2 characters').required('Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters'),
+  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
   roleId: yup.string().required('Role is required'),
   regionId: yup.string().nullable(),
   phone: yup.string().nullable(),
 });
 
 export const serviceRequestSchema = yup.object({
-  type: yup.string().oneOf(['SERVICE', 'INSTALLATION', 'COMPLAINT']).required('Type is required'),
+  type: yup.string().oneOf(['SERVICE', 'INSTALLATION', 'COMPLAINT','ENQUIRY']).required('Type is required'),
   description: yup.string().min(10, 'Description must be at least 10 characters').required('Description is required'),
   customerId: yup.string().required('Customer is required'),
   regionId: yup.string().required('Region is required'),
