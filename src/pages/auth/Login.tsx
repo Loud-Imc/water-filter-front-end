@@ -57,12 +57,12 @@ const Login: React.FC = () => {
   // ✅ Quick login functions
   const fillAdminCredentials = () => {
     setValue('email', 'admin@waterfilter.com');
-    setValue('password', 'Kamaru@123');
+    setValue('password', 'Admin@123');
   };
 
   const fillTechnicianCredentials = () => {
-    setValue('email', 'kamaru111@gmail.com'); // Replace with your technician email
-    setValue('password', 'Kamaru@123'); // Replace with your technician password
+    setValue('email', 'technician@gmail.com'); // Replace with your technician email
+    setValue('password', 'Technician@123'); // Replace with your technician password
   };
 
   return (
