@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -17,25 +17,39 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: 📦 Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: 🏗️ Build
+      - name: 🏗️ Build project
         run: npm run build
 
-      - name: 🚀 Deploy to Server
+      - name: 📂 Prepare deployment
+        run: |
+          mkdir -p deploy
+          cp -r dist/* deploy/
+
+      - name: 🚀 Deploy to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "dist/*"
-          target: "/var/www/waterfilter/frontend/water-filter-front-end/"
-          strip_components: 0
+          source: "deploy/*"
+          target: "/var/www/waterfilter/frontend/water-filter-front-end/dist/"
+          strip_components: 1
+          rm: false
           overwrite: true
 
-      - name: ✅ Deployment Complete
-        run: echo "🎉 Deployed to https://services.leewaa.in"
+      - name: ✅ Create manifest symlink
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /var/www/waterfilter/frontend/water-filter-front-end/dist
+            ln -sf manifest.webmanifest manifest.json
+            echo "✅ Deployed to https://services.leewaa.in"
