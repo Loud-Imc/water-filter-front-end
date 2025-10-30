@@ -31,4 +31,11 @@ export const customerService = {
   async deleteCustomer(id: string): Promise<void> {
     await axiosInstance.delete(API_ENDPOINTS.CUSTOMERS.BY_ID(id));
   },
+
+    searchCustomers: async (query: string, regionId?: string) => {
+    const params: any = { query, limit: 50 };
+    if (regionId) params.regionId = regionId;
+    const response = await axiosInstance.get('/customers/search', { params });
+    return response.data;
+  },
 };

@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Button, Chip } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { fetchAllUsers, deleteUser } from '../../app/slices/userSlice';
-import PageHeader from '../../components/common/PageHeader';
-import DataTable from '../../components/common/DataTable';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
-import SnackbarNotification from '../../components/common/SnackbarNotification';
-import EmptyState from '../../components/common/EmptyState';
-import type { User } from '../../types';
+import React, { useEffect, useState } from "react";
+import { Box, Button, Chip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { fetchAllUsers, deleteUser } from "../../app/slices/userSlice";
+import PageHeader from "../../components/common/PageHeader";
+import DataTable from "../../components/common/DataTable";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import SnackbarNotification from "../../components/common/SnackbarNotification";
+import EmptyState from "../../components/common/EmptyState";
+import type { User } from "../../types";
 
 const UserList: React.FC = () => {
   const navigate = useNavigate();
@@ -21,7 +21,11 @@ const UserList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as any,
+  });
 
   useEffect(() => {
     dispatch(fetchAllUsers());
@@ -31,7 +35,9 @@ const UserList: React.FC = () => {
     setPage(newPage);
   };
 
-  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRowsPerPageChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -42,57 +48,68 @@ const UserList: React.FC = () => {
         await dispatch(deleteUser(selectedUserId)).unwrap();
         setSnackbar({
           open: true,
-          message: 'User deleted successfully!',
-          severity: 'success',
+          message: "User deleted successfully!",
+          severity: "success",
         });
         setDeleteDialog(false);
         setSelectedUserId(null);
       } catch (error: any) {
         setSnackbar({
           open: true,
-          message: error || 'Failed to delete user',
-          severity: 'error',
+          message: error || "Failed to delete user",
+          severity: "error",
         });
       }
     }
   };
 
-  const paginatedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
- 
+  const paginatedUsers = users.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   const columns = [
-    { id: 'name', label: 'Name', minWidth: 150 },
-    { id: 'email', label: 'Email', minWidth: 200 },
+    { id: "name", label: "Name", minWidth: 150 },
+    { id: "email", label: "Email", minWidth: 200 },
     {
-      id: 'role',
-      label: 'Role',
+      id: "role",
+      label: "Role",
       minWidth: 150,
       format: (value: any) => value?.name,
     },
     {
-      id: 'region',
-      label: 'Region',
+      id: "region",
+      label: "Region",
       minWidth: 120,
-      format: (value: any) => value?.name || 'N/A',
+      format: (value: any) => value?.name || "N/A",
     },
     {
-      id: 'status',
-      label: 'Status',
+      id: "status",
+      label: "Status",
       minWidth: 100,
       format: (value: string) => (
         <Chip
           label={value}
-          color={value === 'ACTIVE' ? 'success' : 'error'}
+          color={value === "ACTIVE" ? "success" : "error"}
           size="small"
+          sx={{ color: "white", fontWeight: 550 }}
         />
       ),
     },
     {
-      id: 'actions',
-      label: 'Actions',
+      id: "actions",
+      label: "Actions",
       minWidth: 150,
       format: (_: any, row: User) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button size="small" variant="outlined" onClick={() => navigate(`/users/edit/${row.id}`)}>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              console.log("🔵 Edit button clicked for user:", row, _); // ← ADD THIS
+              navigate(`/users/edit/${row.id}`);
+            }}
+          >
             Edit
           </Button>
           <Button
@@ -101,6 +118,7 @@ const UserList: React.FC = () => {
             color="error"
             onClick={(e) => {
               e.stopPropagation();
+              console.log("🔴 Delete button clicked for user:", row.id); // ← ADD THIS
               setSelectedUserId(row.id);
               setDeleteDialog(true);
             }}
@@ -121,9 +139,9 @@ const UserList: React.FC = () => {
       <PageHeader
         title="User Management"
         action={{
-          label: 'Add User',
+          label: "Add User",
           icon: <AddIcon />,
-          onClick: () => navigate('/users/create'),
+          onClick: () => navigate("/users/create"),
         }}
       />
 
@@ -132,7 +150,7 @@ const UserList: React.FC = () => {
           title="No users found"
           description="Create your first user to get started"
           actionLabel="Add User"
-          onAction={() => navigate('/users/create')}
+          onAction={() => navigate("/users/create")}
         />
       ) : (
         <DataTable

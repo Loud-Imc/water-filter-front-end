@@ -73,7 +73,7 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({ requests }) => {
                     </Box>
                   }
                 />
-                <StatusChip status={request.status} />
+                <StatusChip  status={request.status} />
               </ListItem>
             ))}
           </List>

@@ -1,11 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../../api/services/authService';
+import { axiosInstance } from '../../api/axios';
 import { LoginCredentials, RegisterData, User } from '../../types';
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  permissions: string[]; // ← NEW
   loading: boolean;
   error: string | null;
 }
@@ -20,23 +22,54 @@ const getUserFromStorage = (): User | null => {
   return userStr ? JSON.parse(userStr) : null;
 };
 
+// ← NEW: Save/restore permissions
+const savePermissionsToStorage = (permissions: string[]) => {
+  localStorage.setItem('permissions', JSON.stringify(permissions));
+};
+
+const getPermissionsFromStorage = (): string[] => {
+  const permsStr = localStorage.getItem('permissions');
+  return permsStr ? JSON.parse(permsStr) : [];
+};
+
 const initialState: AuthState = {
-  user: getUserFromStorage(), // Restore user from localStorage
+  user: getUserFromStorage(),
   accessToken: localStorage.getItem('accessToken'),
   isAuthenticated: !!(localStorage.getItem('accessToken') && getUserFromStorage()),
+  permissions: getPermissionsFromStorage(), // ← NEW
   loading: false,
   error: null,
 };
 
+// ← NEW: Fetch user permissions
+export const fetchUserPermissions = createAsyncThunk(
+  'auth/fetchPermissions',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(`/users/me/permissions`);
+      const permissions = response.data.effectivePermissions || [];
+      savePermissionsToStorage(permissions); // Save to localStorage
+      return permissions;
+    } catch (error: any) {
+      console.error('Failed to fetch permissions:', error);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch permissions');
+    }
+  }
+);
+
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async (credentials: LoginCredentials, { rejectWithValue }) => {
+  async (credentials: LoginCredentials, { rejectWithValue, dispatch }) => {
     try {
       const data = await authService.login(credentials);
       localStorage.setItem('accessToken', data.accessToken);
-       localStorage.setItem('userId', data.user.id);
-      saveUserToStorage(data.user); // Save user to localStorage
+      localStorage.setItem('userId', data.user.id);
+      saveUserToStorage(data.user);
+      
+      // ← NEW: Fetch permissions after login
+      await dispatch(fetchUserPermissions());
+      
       return data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
@@ -46,11 +79,15 @@ export const login = createAsyncThunk(
 
 export const register = createAsyncThunk(
   'auth/register',
-  async (userData: RegisterData, { rejectWithValue }) => {
+  async (userData: RegisterData, { rejectWithValue, dispatch }) => {
     try {
       const data = await authService.register(userData);
       localStorage.setItem('accessToken', data.accessToken);
-      saveUserToStorage(data.user); // Save user to localStorage
+      saveUserToStorage(data.user);
+      
+      // ← NEW: Fetch permissions after register
+      await dispatch(fetchUserPermissions(data.user.id));
+      
       return data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
@@ -62,8 +99,9 @@ export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValu
   try {
     await authService.logout();
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('user'); // Remove user from localStorage
+    localStorage.removeItem('user');
     localStorage.removeItem('userId');
+    localStorage.removeItem('permissions'); // ← NEW
   } catch (error: any) {
     return rejectWithValue(error.response?.data?.message || 'Logout failed');
   }
@@ -78,18 +116,25 @@ const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       state.isAuthenticated = true;
       state.error = null;
-      saveUserToStorage(action.payload.user); // Save to localStorage
+      saveUserToStorage(action.payload.user);
     },
     clearAuth: (state) => {
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
+      state.permissions = []; // ← NEW
       state.error = null;
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('permissions'); // ← NEW
     },
     clearError: (state) => {
       state.error = null;
+    },
+    // ← NEW
+    setPermissions: (state, action: PayloadAction<string[]>) => {
+      state.permissions = action.payload;
+      savePermissionsToStorage(action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -105,6 +150,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.isAuthenticated = true;
         state.error = null;
+        // Permissions will be set by fetchUserPermissions
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -124,6 +170,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.isAuthenticated = true;
         state.error = null;
+        // Permissions will be set by fetchUserPermissions
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
@@ -139,14 +186,24 @@ const authSlice = createSlice({
         state.user = null;
         state.accessToken = null;
         state.isAuthenticated = false;
+        state.permissions = []; // ← NEW
         state.loading = false;
         state.error = null;
       })
       .addCase(logout.rejected, (state) => {
         state.loading = false;
       });
+
+    // ← NEW: Handle permission fetch
+    builder
+      .addCase(fetchUserPermissions.fulfilled, (state, action) => {
+        state.permissions = action.payload;
+      })
+      .addCase(fetchUserPermissions.rejected, (state) => {
+        state.permissions = [];
+      });
   },
 });
 
-export const { setCredentials, clearAuth, clearError } = authSlice.actions;
+export const { setCredentials, clearAuth, clearError, setPermissions } = authSlice.actions;
 export default authSlice.reducer;

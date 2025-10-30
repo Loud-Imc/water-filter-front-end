@@ -28,6 +28,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import HistoryIcon from '@mui/icons-material/History';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useAppSelector } from '../../app/hooks';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../constants/permissions';
 
 const DRAWER_WIDTH = 260;
 
@@ -35,78 +37,97 @@ interface MenuItem {
   label: string;
   path: string;
   icon: React.ReactNode;
-  roles: string[];
+  roles?: string[]; // Optional - for backward compatibility
+  permissions?: string[]; // NEW - permission-based access
 }
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
+  const { hasAnyPermission } = usePermission();
   const theme = useTheme();
   
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // ✅ UPDATED: Menu items now use permissions instead of roles
   const menuItems: MenuItem[] = [
     {
       label: 'Dashboard',
       path: '/dashboard',
       icon: <DashboardIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager', 'Service Team Lead', 'Sales Team Lead', 'Technician', 'Salesman'],
+      permissions: [PERMISSIONS.DASHBOARD_VIEW],
     },
     {
       label: 'Service Requests',
       path: '/service-requests',
       icon: <AssignmentIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager', 'Service Team Lead', 'Sales Team Lead'],
+      permissions: [PERMISSIONS.SERVICES_VIEW],
     },
     {
       label: 'New Service',
       path: '/service-requests/create',
       icon: <AddCircleIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager', 'Service Team Lead', 'Sales Team Lead', 'Technician', 'Salesman'],
+      permissions: [PERMISSIONS.SERVICES_CREATE],
     },
     {
       label: 'User Management',
       path: '/users',
       icon: <PeopleIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager', 'Service Team Lead', 'Sales Team Lead'],
+      permissions: [PERMISSIONS.USERS_VIEW],
     },
     {
       label: 'Role Management',
       path: '/roles',
       icon: <GroupIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin'],
+      roles: ['Super Admin', 'Service Admin', 'Sales Admin'], // Keep role-based for now
     },
     {
       label: 'Region Management',
       path: '/regions',
       icon: <LocationOnIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin'],
+      permissions: [PERMISSIONS.REGIONS_VIEW],
     },
     {
       label: 'Customer Management',
       path: '/customers',
       icon: <PersonIcon />,
-      roles: ['Super Admin', 'Service Admin', 'Sales Admin', 'Service Manager', 'Sales Manager'],
+      permissions: [PERMISSIONS.CUSTOMERS_VIEW],
     },
     {
       label: 'My Tasks',
       path: '/technician/my-tasks',
       icon: <WorkIcon />,
-      roles: ['Technician'],
+      permissions: [PERMISSIONS.SERVICES_VIEW], // Technician can view their assigned services
+      roles: ['Technician'], // Only show for Technician role
     },
     {
       label: 'Task History',
       path: '/technician/task-history',
       icon: <HistoryIcon />,
+      permissions: [PERMISSIONS.SERVICES_VIEW],
       roles: ['Technician'],
     },
   ];
 
-  const filteredMenuItems = menuItems.filter((item) =>
-    user ? item.roles.includes(user.role.name) : false
-  );
+  // ✅ NEW: Filter menu items based on permissions
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (!user) return false;
+
+    // Check role-based access (if specified)
+    if (item.roles && !item.roles.includes(user.role.name)) {
+      return false;
+    }
+
+    // Check permission-based access (if specified)
+    if (item.permissions) {
+      return hasAnyPermission(item.permissions);
+    }
+
+    // If no permissions specified, allow (backward compatibility)
+    return true;
+  });
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -129,7 +150,6 @@ const Sidebar: React.FC = () => {
               Water Filter
             </Typography>
           </Box>
-          {/* ✅ Close button only shown in mobile drawer */}
           {isMobile && (
             <IconButton onClick={handleDrawerToggle} edge="end">
               <CloseIcon />
@@ -138,6 +158,16 @@ const Sidebar: React.FC = () => {
         </Box>
       </Toolbar>
       <Divider />
+      
+      {/* ✅ NEW: Show permission debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ p: 2, bgcolor: 'grey.100' }}>
+          <Typography variant="caption" fontWeight="bold">
+            Debug: {filteredMenuItems.length} items visible
+          </Typography>
+        </Box>
+      )}
+
       <List>
         {filteredMenuItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -172,12 +202,21 @@ const Sidebar: React.FC = () => {
           );
         })}
       </List>
+
+      {/* ✅ NEW: Show empty state if no menu items */}
+      {filteredMenuItems.length === 0 && (
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            No menu items available
+          </Typography>
+        </Box>
+      )}
     </>
   );
 
   return (
     <>
-      {/* ✅ Hamburger button - ONLY show when drawer is CLOSED */}
+      {/* Hamburger button - ONLY show when drawer is CLOSED */}
       {isMobile && !mobileOpen && (
         <IconButton
           color="inherit"

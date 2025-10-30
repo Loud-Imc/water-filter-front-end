@@ -26,4 +26,11 @@ export const regionService = {
   async deleteRegion(id: string): Promise<void> {
     await axiosInstance.delete(API_ENDPOINTS.REGIONS.BY_ID(id));
   },
+
+    searchRegions: async (query: string) => {
+    const response = await axiosInstance.get('/regions/search', {
+      params: { query, limit: 50 },
+    });
+    return response.data;
+  },
 };

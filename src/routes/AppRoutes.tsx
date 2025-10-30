@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import ProtectedRoute from "../components/layout/ProtectedRoute";
+import { PERMISSIONS } from "../constants/permissions";
 import Login from "../pages/auth/Login";
 import Dashboard from "../pages/dashboard/Dashboard";
 import UserList from "../pages/users/UserList";
@@ -37,7 +38,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.DASHBOARD_VIEW]}>
             <Layout>
               <Dashboard />
             </Layout>
@@ -45,19 +46,11 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* User Management Routes */}
+      {/* User Management Routes - Permission-based */}
       <Route
         path="/users"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Sales Admin",
-              "Service Manager",
-              "Sales Manager",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.USERS_VIEW]}>
             <Layout>
               <UserList />
             </Layout>
@@ -67,15 +60,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/users/create"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Sales Admin",
-              "Service Manager",
-              "Sales Manager",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.USERS_CREATE]}>
             <Layout>
               <CreateUser />
             </Layout>
@@ -85,15 +70,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/users/edit/:id"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Sales Admin",
-              "Service Manager",
-              "Sales Manager",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.USERS_EDIT]}>
             <Layout>
               <EditUser />
             </Layout>
@@ -101,7 +78,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Role Management */}
+      {/* Role Management - Keep role-based for now */}
       <Route
         path="/roles"
         element={
@@ -119,9 +96,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/regions"
         element={
-          <ProtectedRoute
-            allowedRoles={["Super Admin", "Service Admin", "Sales Admin"]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.REGIONS_VIEW]}>
             <Layout>
               <RegionManagement />
             </Layout>
@@ -129,19 +104,11 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Customer Management */}
+      {/* Customer Management - Permission-based */}
       <Route
         path="/customers"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Sales Admin",
-              "Service Manager",
-              "Sales Manager",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
             <Layout>
               <CustomerManagement />
             </Layout>
@@ -152,15 +119,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/customers/:id"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Service Manager",
-              "Sales Manager",
-              "Sales Team Lead",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
             <Layout>
               <CustomerProfile />
             </Layout>
@@ -168,19 +127,11 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Service Requests */}
+      {/* Service Requests - Permission-based */}
       <Route
         path="/service-requests"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Super Admin",
-              "Service Admin",
-              "Sales Admin",
-              "Service Manager",
-              "Sales Manager",
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}>
             <Layout>
               <ServiceRequestList />
             </Layout>
@@ -190,7 +141,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/service-requests/create"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.SERVICES_CREATE]}>
             <Layout>
               <CreateServiceRequest />
             </Layout>
@@ -200,7 +151,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/service-requests/:id"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}>
             <Layout>
               <ServiceRequestDetail />
             </Layout>
@@ -208,11 +159,14 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Technician Routes */}
+      {/* Technician Routes - Permission-based */}
       <Route
         path="/technician/my-tasks"
         element={
-          <ProtectedRoute allowedRoles={["Technician"]}>
+          <ProtectedRoute 
+            requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
+            allowedRoles={["Technician"]} // Also check role
+          >
             <Layout>
               <MyTasks />
             </Layout>
@@ -222,7 +176,10 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/technician/task-history"
         element={
-          <ProtectedRoute allowedRoles={["Technician"]}>
+          <ProtectedRoute 
+            requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
+            allowedRoles={["Technician"]}
+          >
             <Layout>
               <TaskHistory />
             </Layout>
