@@ -12,7 +12,7 @@ const StatusChip: React.FC<StatusChipProps> = ({ status, size = 'small' }) => {
   const color = getStatusBadgeColor(status);
   const label = status.replace(/_/g, ' ');
 
-  return <Chip label={label} color={color} size={size} />;
+  return <Chip label={label} sx={{color: 'white', fontWeight: 600}} color={color} size={size} />;
 };
 
 export default StatusChip;

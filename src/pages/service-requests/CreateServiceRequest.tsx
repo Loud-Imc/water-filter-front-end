@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, TextField, Button, MenuItem,  } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Card, CardContent, TextField, Button, MenuItem, Typography } from '@mui/material';
 import { Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -8,10 +8,8 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { createRequest } from '../../app/slices/requestSlice';
 import PageHeader from '../../components/common/PageHeader';
 import SnackbarNotification from '../../components/common/SnackbarNotification';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { serviceRequestSchema } from '../../utils/validators';
-import { regionService } from '../../api/services/regionService';
-import { customerService } from '../../api/services/customerService';
-import type { Region, Customer } from '../../types';
 
 interface FormData {
   type: 'SERVICE' | 'INSTALLATION' | 'COMPLAINT' | 'ENQUIRY';
@@ -25,14 +23,18 @@ const CreateServiceRequest: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
+  const [snackbar, setSnackbar] = useState({ 
+    open: false, 
+    message: '', 
+    severity: 'success' as any 
+  });
 
   const {
     control,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue,
   } = useForm<FormData>({
     resolver: yupResolver(serviceRequestSchema),
     defaultValues: {
@@ -43,21 +45,8 @@ const CreateServiceRequest: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [regionsData, customersData] = await Promise.all([
-          regionService.getAllRegions(),
-          customerService.getAllCustomers(),
-        ]);
-        setRegions(regionsData);
-        setCustomers(customersData);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+  // Watch regionId to filter customers by region
+  const selectedRegionId = watch('regionId');
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -98,6 +87,7 @@ const CreateServiceRequest: React.FC = () => {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={3}>
+              {/* Request Type */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="type"
@@ -114,59 +104,79 @@ const CreateServiceRequest: React.FC = () => {
                       <MenuItem value="SERVICE">Service</MenuItem>
                       <MenuItem value="INSTALLATION">Installation</MenuItem>
                       <MenuItem value="COMPLAINT">Complaint</MenuItem>
-                      {/* <MenuItem value="ENQUIRY">Enquiry</MenuItem> */}
-
                     </TextField>
                   )}
                 />
               </Grid>
 
+              {/* Region Selection - Searchable */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="regionId"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      label="Region"
+                    <SearchableSelect
+                      label="Select Region"
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        // Reset customer when region changes
+                        setValue('customerId', '');
+                      }}
+                      endpoint="/regions/search"
+                      placeholder="Search region..."
                       error={!!errors.regionId}
                       helperText={errors.regionId?.message}
-                    >
-                      {regions.map((region) => (
-                        <MenuItem key={region.id} value={region.id}>
-                          {region.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                      renderOption={(option: any) => (
+                        <Box>
+                          <Typography variant="body1">{option.name}</Typography>
+                          {option._count && (
+                            <Typography variant="caption" color="text.secondary">
+                              {option._count.customers} customers • {option._count.technicians} technicians
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    />
                   )}
                 />
               </Grid>
 
+              {/* Customer Selection - Searchable & Filtered by Region */}
               <Grid size={12}>
                 <Controller
                   name="customerId"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      label="Customer"
+                    <SearchableSelect
+                      label="Select Customer"
+                      value={field.value}
+                      onChange={field.onChange}
+                      endpoint="/customers/search"
+                      placeholder="Search by name, phone, or email..."
                       error={!!errors.customerId}
-                      helperText={errors.customerId?.message}
-                    >
-                      {customers.map((customer) => (
-                        <MenuItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.address}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                      helperText={errors.customerId?.message || 'Type at least 2 characters to search'}
+                      filters={{ regionId: selectedRegionId }}
+                      disabled={!selectedRegionId}
+                      renderOption={(option: any) => (
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {option.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {option.primaryPhone}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {option.address}
+                          </Typography>
+                        </Box>
+                      )}
+                    />
                   )}
                 />
               </Grid>
 
+              {/* Description */}
               <Grid size={12}>
                 <Controller
                   name="description"
@@ -178,6 +188,7 @@ const CreateServiceRequest: React.FC = () => {
                       multiline
                       rows={4}
                       label="Description"
+                      placeholder="Provide detailed description of the request..."
                       error={!!errors.description}
                       helperText={errors.description?.message}
                     />
@@ -185,6 +196,7 @@ const CreateServiceRequest: React.FC = () => {
                 />
               </Grid>
 
+              {/* Action Buttons */}
               <Grid size={12}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button type="submit" variant="contained" size="large">

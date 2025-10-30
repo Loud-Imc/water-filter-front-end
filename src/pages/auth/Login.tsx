@@ -50,19 +50,27 @@ const Login: React.FC = () => {
     };
   }, [isAuthenticated, navigate, dispatch]);
 
+  // ← UPDATED: Handle login with permission loading
   const onSubmit = async (data: LoginCredentials) => {
-    await dispatch(login(data));
+    try {
+      // Login action now automatically fetches permissions
+      await dispatch(login(data)).unwrap();
+      // No need to manually call fetchUserPermissions - it's done in login thunk
+      console.log('✅ Login successful, permissions loaded');
+    } catch (error) {
+      console.error('❌ Login failed:', error);
+    }
   };
 
-  // ✅ Quick login functions
+  // Quick login functions
   const fillAdminCredentials = () => {
     setValue('email', 'admin@waterfilter.com');
     setValue('password', 'Admin@123');
   };
 
   const fillTechnicianCredentials = () => {
-    setValue('email', 'technician@gmail.com'); // Replace with your technician email
-    setValue('password', 'Technician@123'); // Replace with your technician password
+    setValue('email', 'technician@gmail.com');
+    setValue('password', 'Technician@123');
   };
 
   return (
@@ -93,7 +101,7 @@ const Login: React.FC = () => {
               </Alert>
             )}
 
-            {/* ✅ Quick Login Buttons */}
+            {/* Quick Login Buttons */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom align="center">
                 Quick Login (Demo)

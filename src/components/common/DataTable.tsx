@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Table,
   TableBody,
@@ -9,14 +9,14 @@ import {
   Paper,
   TablePagination,
   // Box,
-} from '@mui/material';
+} from "@mui/material";
 
 interface Column {
   id: string;
   label: string;
   minWidth?: number;
-  align?: 'left' | 'right' | 'center';
-  format?: (value: any, row?: any) => string | React.ReactNode;  // ✅ Add optional row parameter
+  align?: "left" | "right" | "center";
+  format?: (value: any, row?: any) => string | React.ReactNode; // ✅ Add optional row parameter
 }
 
 interface DataTableProps {
@@ -41,7 +41,7 @@ const DataTable: React.FC<DataTableProps> = ({
   onRowClick,
 }) => {
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+    <Paper sx={{ width: "100%", overflow: "hidden" }}>
       <TableContainer>
         <Table stickyHeader>
           <TableHead>
@@ -62,14 +62,24 @@ const DataTable: React.FC<DataTableProps> = ({
               <TableRow
                 hover
                 key={rowIndex}
-                sx={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                sx={{ cursor: onRowClick ? "pointer" : "default" }}
                 onClick={() => onRowClick && onRowClick(row)}
               >
                 {columns.map((column) => {
                   const value = row[column.id];
                   return (
-                    <TableCell key={column.id} align={column.align}>
-                      {column.format ? column.format(value) : value}
+                    <TableCell
+                      key={column.id}
+                      align={column.align}
+                      onClick={(e) => {
+                        // Stop propagation for action columns
+                        if (column.id === "actions") {
+                          e.stopPropagation();
+                        }
+                      }}
+                    >
+                      {/* ✅ FIXED: Pass row as second parameter */}
+                      {column.format ? column.format(value, row) : value}
                     </TableCell>
                   );
                 })}
