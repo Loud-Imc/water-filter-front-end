@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Card,
-  CardContent,
   TextField,
   Button,
   MenuItem,
@@ -39,10 +38,10 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 interface EditUserFormData {
   name: string;
   email: string;
-  phone: string;
+  phone: string ;
   roleId: string;
-  regionId?: string;
-  status?: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
+  regionId: string;
+  status: string;
 }
 
 

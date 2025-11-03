@@ -86,7 +86,8 @@ export const register = createAsyncThunk(
       saveUserToStorage(data.user);
       
       // ← NEW: Fetch permissions after register
-      await dispatch(fetchUserPermissions(data.user.id));
+      // await dispatch(fetchUserPermissions(data.user.id));
+      await dispatch(fetchUserPermissions());
       
       return data;
     } catch (error: any) {
