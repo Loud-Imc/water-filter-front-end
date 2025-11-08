@@ -18,6 +18,7 @@ import {
   Avatar,
   InputAdornment,
   Chip,
+  Tooltip,
 } from "@mui/material";
 import { Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -32,10 +33,12 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 import SnackbarNotification from "../../components/common/SnackbarNotification";
 import EmptyState from "../../components/common/EmptyState";
 import PhoneNumberInput from "../../components/customer/PhoneNumberInput";
+import LocationCapture from "../../components/location/LocationCapture";
+import QuickAddRegionDialog from "../../components/region/QuickAddRegionDialog"; // ✅ NEW COMPONENT
 import { customerService } from "../../api/services/customerService";
 import { regionService } from "../../api/services/regionService";
 import type { Customer, Region, CreateCustomerDto } from "../../types";
-import LocationCapture from "../../components/location/LocationCapture";
+import { SearchableSelect } from "../../components/common/SearchableSelect";
 
 const CustomerManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +49,7 @@ const CustomerManagement: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [dialog, setDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [regionDialog, setRegionDialog] = useState(false); // ✅ NEW: Quick add region dialog
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -95,7 +99,6 @@ const CustomerManagement: React.FC = () => {
     fetchData();
   }, []);
 
-  // Search and Filter Logic
   useEffect(() => {
     applyFilters();
   }, [searchQuery, selectedRegion, customers]);
@@ -103,7 +106,6 @@ const CustomerManagement: React.FC = () => {
   const applyFilters = async () => {
     let results = [...customers];
 
-    // Apply search
     if (searchQuery.trim()) {
       setSearching(true);
       try {
@@ -118,7 +120,6 @@ const CustomerManagement: React.FC = () => {
         setSearching(false);
       }
     } else if (selectedRegion !== "all") {
-      // Apply region filter only
       results = results.filter((c) => c.regionId === selectedRegion);
     }
 
@@ -170,6 +171,22 @@ const CustomerManagement: React.FC = () => {
       phoneNumbers: [],
       email: "",
       regionId: "",
+    });
+  };
+
+  // ✅ NEW: Handle region creation from customer dialog
+  const handleRegionCreated = async (newRegionId: string) => {
+    // Refresh regions list
+    const regionsData = await regionService.getAllRegions();
+    setRegions(regionsData);
+
+    // Auto-select the newly created region
+    setFormData({ ...formData, regionId: newRegionId });
+
+    setSnackbar({
+      open: true,
+      message: "Region created and selected!",
+      severity: "success",
     });
   };
 
@@ -240,8 +257,14 @@ const CustomerManagement: React.FC = () => {
 
       {/* Search & Filter Section */}
       <Card sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Search Bar */}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <TextField
             size="small"
             placeholder="Search by name, phone, or email..."
@@ -264,7 +287,6 @@ const CustomerManagement: React.FC = () => {
             }}
           />
 
-          {/* Filter Toggle Button */}
           <Button
             variant={showFilters ? "contained" : "outlined"}
             startIcon={<FilterListIcon />}
@@ -273,7 +295,6 @@ const CustomerManagement: React.FC = () => {
             Filters
           </Button>
 
-          {/* Clear Filters */}
           {hasActiveFilters && (
             <Button
               variant="text"
@@ -286,7 +307,6 @@ const CustomerManagement: React.FC = () => {
           )}
         </Box>
 
-        {/* Filter Options */}
         {showFilters && (
           <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
             <Grid container spacing={2}>
@@ -311,10 +331,13 @@ const CustomerManagement: React.FC = () => {
           </Box>
         )}
 
-        {/* Active Filters Display */}
         {hasActiveFilters && (
           <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ alignSelf: "center" }}
+            >
               Active filters:
             </Typography>
             {searchQuery && (
@@ -327,21 +350,23 @@ const CustomerManagement: React.FC = () => {
             {selectedRegion !== "all" && (
               <Chip
                 size="small"
-                label={`Region: ${regions.find((r) => r.id === selectedRegion)?.name}`}
+                label={`Region: ${
+                  regions.find((r) => r.id === selectedRegion)?.name
+                }`}
                 onDelete={() => setSelectedRegion("all")}
               />
             )}
           </Box>
         )}
 
-        {/* Results Count */}
         <Box sx={{ mt: 1 }}>
           <Typography variant="caption" color="text.secondary">
             {searching ? (
               "Searching..."
             ) : (
               <>
-                Showing {filteredCustomers.length} of {customers.length} customers
+                Showing {filteredCustomers.length} of {customers.length}{" "}
+                customers
               </>
             )}
           </Typography>
@@ -419,7 +444,10 @@ const CustomerManagement: React.FC = () => {
                         {customer.email && (
                           <>
                             <br />
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               📧 {customer.email}
                             </Typography>
                           </>
@@ -448,7 +476,7 @@ const CustomerManagement: React.FC = () => {
         </Card>
       )}
 
-      {/* Create/Edit Dialog */}
+      {/* Create/Edit Customer Dialog */}
       <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedCustomer ? "Edit Customer" : "Create New Customer"}
@@ -469,22 +497,59 @@ const CustomerManagement: React.FC = () => {
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  select
-                  fullWidth
-                  required
-                  label="Region"
-                  value={formData.regionId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, regionId: e.target.value })
-                  }
-                >
-                  {regions.map((region) => (
-                    <MenuItem key={region.id} value={region.id}>
-                      {region.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                {/* ✅ ENHANCED: Searchable Region selector with quick add button */}
+                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <SearchableSelect
+                      label="Region *"
+                      value={formData.regionId}
+                      onChange={(value) =>
+                        setFormData({ ...formData, regionId: value || "" })
+                      }
+                      endpoint="/regions/search"
+                      placeholder="Type to search region..."
+                      // error={!!error && !formData.regionId}
+                      // helperText={
+                      //   error && !formData.regionId
+                      //     ? "Region is required"
+                      //     : "Type at least 2 characters to search"
+                      // }
+                      helperText="Type at least 2 characters to search"
+                      renderOption={(option: any) => (
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {option.name}
+                          </Typography>
+                          {option.district && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {option.district} • {option.city || "N/A"} •{" "}
+                              {option.pincode || "N/A"}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    />
+                  </Box>
+
+                  {/* ✅ Quick Add Region Button */}
+                  <Tooltip title="Create new region">
+                    <IconButton
+                      color="primary"
+                      onClick={() => setRegionDialog(true)}
+                      sx={{
+                        border: 1,
+                        borderColor: "primary.main",
+                        borderRadius: 1,
+                        mt: 1, // Align with the text field
+                      }}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Grid>
             </Grid>
 
@@ -522,7 +587,7 @@ const CustomerManagement: React.FC = () => {
               placeholder="customer@example.com"
             />
 
-            <Box sx={{ mt: 2 }}>
+            {/* <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                 Customer Location (Optional)
               </Typography>
@@ -552,7 +617,7 @@ const CustomerManagement: React.FC = () => {
                   });
                 }}
               />
-            </Box>
+            </Box> */}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -572,6 +637,13 @@ const CustomerManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ✅ NEW: Quick Add Region Dialog */}
+      <QuickAddRegionDialog
+        open={regionDialog}
+        onClose={() => setRegionDialog(false)}
+        onRegionCreated={handleRegionCreated}
+      />
 
       <ConfirmDialog
         open={deleteDialog}
