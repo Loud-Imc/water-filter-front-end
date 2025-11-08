@@ -99,6 +99,7 @@ export interface ServiceRequest {
   id: string;
   type: RequestType;
   description: string;
+  acknowledgmentComments?: string;
   status: RequestStatus;
   requestedById: string;
   approvedById?: string;

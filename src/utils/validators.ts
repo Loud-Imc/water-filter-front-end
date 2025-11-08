@@ -18,8 +18,8 @@ export const userSchema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
   roleId: yup.string().required('Role is required'),
-  regionId: yup.string().nullable(),
-  phone: yup.string().nullable(),
+  regionId: yup.string().required('Region is required'),
+  phone: yup.string().required('Phone is required'),
 });
 
 export const serviceRequestSchema = yup.object({
