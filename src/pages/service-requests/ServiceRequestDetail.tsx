@@ -760,6 +760,17 @@ const ServiceRequestDetail: React.FC = () => {
                 )}
 
                 <Grid size={12}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Acknowledgment Comments
+                  </Typography>
+                  <Typography variant="body1">{request.acknowledgmentComments || "N/A"}</Typography>
+                </Grid>
+
+                <Grid size={12}>
                   {/* Used Products Summary */}
                   {usedProducts.length > 0 && (
                     <Box sx={{ mt: 3 }}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Card,
@@ -12,19 +12,18 @@ import {
   IconButton,
   Stack,
   Alert,
-} from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-// import AddIcon from '@mui/icons-material/Add';
-import DirectionsIcon from '@mui/icons-material/Directions';
-import { axiosInstance } from '../../api/axios';
-// import PageHeader from '../../components/common/PageHeader';
-import ServiceHistoryTimeline from '../../components/customer/ServiceHistoryTimeline';
-import CustomerStats from '../../components/customer/CustomerStats';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+} from "@mui/material";
+import { useParams, useNavigate } from "react-router-dom";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PhoneIcon from "@mui/icons-material/Phone";
+import EmailIcon from "@mui/icons-material/Email";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import AddIcon from "@mui/icons-material/Add"; // ✅ Import AddIcon
+import DirectionsIcon from "@mui/icons-material/Directions";
+import { axiosInstance } from "../../api/axios";
+import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
+import CustomerStats from "../../components/customer/CustomerStats";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 interface CustomerHistory {
   customer: any;
@@ -58,7 +57,9 @@ const CustomerProfile: React.FC = () => {
       const response = await axiosInstance.get(`/customers/${id}/history`);
       setData(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load customer history');
+      setError(
+        err.response?.data?.message || "Failed to load customer history"
+      );
     } finally {
       setLoading(false);
     }
@@ -67,15 +68,23 @@ const CustomerProfile: React.FC = () => {
   const handleNavigateToLocation = () => {
     if (data?.customer.latitude && data?.customer.longitude) {
       const url = `https://www.google.com/maps/dir/?api=1&destination=${data.customer.latitude},${data.customer.longitude}`;
-      window.open(url, '_blank');
+      window.open(url, "_blank");
     }
   };
 
-  // const handleCreateService = (type: string) => {
-  //   navigate('/service-requests/new', {
-  //     state: { customerId: id, type },
-  //   });
-  // };
+  // ✅ Navigate to create service with pre-filled data
+  const handleCreateService = () => {
+    if (!data?.customer) return;
+
+    navigate("/service-requests/create", {
+      state: {
+        customerId: data.customer.id,
+        customerName: data.customer.name,
+        regionId: data.customer.regionId,
+        regionName: data.customer.region?.name,
+      },
+    });
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error) return <Alert severity="error">{error}</Alert>;
@@ -86,8 +95,8 @@ const CustomerProfile: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate('/customers')} sx={{ mr: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+        <IconButton onClick={() => navigate("/customers")} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flexGrow: 1 }}>
@@ -95,12 +104,22 @@ const CustomerProfile: React.FC = () => {
             {customer.name}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Customer since {new Date(customer.createdAt).toLocaleDateString('en-IN', {
-              month: 'long',
-              year: 'numeric',
+            Customer since{" "}
+            {new Date(customer.createdAt).toLocaleDateString("en-IN", {
+              month: "long",
+              year: "numeric",
             })}
           </Typography>
         </Box>
+        {/* ✅ Create Service Button in Header */}
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateService}
+          size="large"
+        >
+          Create New Service
+        </Button>
       </Box>
 
       <Grid container spacing={3}>
@@ -108,13 +127,13 @@ const CustomerProfile: React.FC = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <Avatar
                   sx={{
                     width: 64,
                     height: 64,
-                    bgcolor: 'primary.main',
-                    fontSize: '1.5rem',
+                    bgcolor: "primary.main",
+                    fontSize: "1.5rem",
                     mr: 2,
                   }}
                 >
@@ -125,7 +144,7 @@ const CustomerProfile: React.FC = () => {
                     {customer.name}
                   </Typography>
                   <Chip
-                    label={customer.region?.name || 'No Region'}
+                    label={customer.region?.name || "No Region"}
                     size="small"
                     color="primary"
                   />
@@ -141,35 +160,54 @@ const CustomerProfile: React.FC = () => {
 
               <Stack spacing={1.5} sx={{ mb: 2 }}>
                 {/* Primary Phone */}
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <PhoneIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                  <Typography variant="body2">{customer.primaryPhone}</Typography>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <PhoneIcon
+                    sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
+                  />
+                  <Typography variant="body2">
+                    {customer.primaryPhone}
+                  </Typography>
                   <Chip label="Primary" size="small" sx={{ ml: 1 }} />
                 </Box>
 
                 {/* Additional Phones */}
                 {customer.phoneNumbers && customer.phoneNumbers.length > 0 && (
                   <>
-                    {customer.phoneNumbers.map((phone: string, index: number) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <PhoneIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                        <Typography variant="body2">{phone}</Typography>
-                      </Box>
-                    ))}
+                    {customer.phoneNumbers.map(
+                      (phone: string, index: number) => (
+                        <Box
+                          key={index}
+                          sx={{ display: "flex", alignItems: "center" }}
+                        >
+                          <PhoneIcon
+                            sx={{
+                              mr: 1,
+                              color: "text.secondary",
+                              fontSize: 20,
+                            }}
+                          />
+                          <Typography variant="body2">{phone}</Typography>
+                        </Box>
+                      )
+                    )}
                   </>
                 )}
 
                 {/* Email */}
                 {customer.email && (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <EmailIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <EmailIcon
+                      sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
+                    />
                     <Typography variant="body2">{customer.email}</Typography>
                   </Box>
                 )}
 
                 {/* Address */}
-                <Box sx={{ display: 'flex', alignItems: 'start' }}>
-                  <LocationOnIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                <Box sx={{ display: "flex", alignItems: "start" }}>
+                  <LocationOnIcon
+                    sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
+                  />
                   <Typography variant="body2">{customer.address}</Typography>
                 </Box>
               </Stack>
@@ -190,38 +228,19 @@ const CustomerProfile: React.FC = () => {
 
               <Divider sx={{ my: 2 }} />
 
-              {/* Quick Actions */}
-                {/* <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Quick Actions
-                </Typography>
-                <Stack spacing={1}>
-                    <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleCreateService('INSTALLATION')}
-                    >
-                    New Installation
-                    </Button>
-                    <Button
-                    fullWidth
-                    variant="contained"
-                    color="success"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleCreateService('SERVICE')}
-                    >
-                    New Service
-                    </Button>
-                    <Button
-                    fullWidth
-                    variant="contained"
-                    color="error"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleCreateService('COMPLAINT')}
-                    >
-                    New Complaint
-                    </Button>
-                </Stack> */}
+              {/* ✅ Quick Action Button */}
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Quick Actions
+              </Typography>
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleCreateService}
+                size="large"
+              >
+                Create New Service Request
+              </Button>
             </CardContent>
           </Card>
 

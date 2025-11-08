@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
-import { Box, Card, CardContent, TextField, Button, MenuItem, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  MenuItem,
+  Typography,
+  Alert,
+} from '@mui/material';
 import { Grid } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -20,13 +29,22 @@ interface FormData {
 
 const CreateServiceRequest: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' as any 
+  // ✅ Get pre-filled data from navigation state
+  const prefilledData = location.state as {
+    customerId?: string;
+    customerName?: string;
+    regionId?: string;
+    regionName?: string;
+  } | null;
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as any,
   });
 
   const {
@@ -40,13 +58,25 @@ const CreateServiceRequest: React.FC = () => {
     defaultValues: {
       type: 'SERVICE',
       description: '',
-      customerId: '',
-      regionId: '',
+      customerId: prefilledData?.customerId || '', // ✅ Pre-fill customer
+      regionId: prefilledData?.regionId || '', // ✅ Pre-fill region
     },
   });
 
   // Watch regionId to filter customers by region
   const selectedRegionId = watch('regionId');
+
+  // ✅ Set initial values when component mounts with prefilled data
+  useEffect(() => {
+    if (prefilledData) {
+      if (prefilledData.regionId) {
+        setValue('regionId', prefilledData.regionId);
+      }
+      if (prefilledData.customerId) {
+        setValue('customerId', prefilledData.customerId);
+      }
+    }
+  }, [prefilledData, setValue]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -82,6 +112,15 @@ const CreateServiceRequest: React.FC = () => {
           { label: 'Create' },
         ]}
       />
+
+      {/* ✅ Show info if data is pre-filled */}
+      {prefilledData && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Creating service request for customer:{' '}
+          <strong>{prefilledData.customerName}</strong> in region:{' '}
+          <strong>{prefilledData.regionName}</strong>
+        </Alert>
+      )}
 
       <Card>
         <CardContent>
@@ -122,19 +161,28 @@ const CreateServiceRequest: React.FC = () => {
                       value={field.value}
                       onChange={(value) => {
                         field.onChange(value);
-                        // Reset customer when region changes
-                        setValue('customerId', '');
+                        // Only reset customer if not pre-filled
+                        if (!prefilledData?.customerId) {
+                          setValue('customerId', '');
+                        }
                       }}
                       endpoint="/regions/search"
                       placeholder="Search region..."
                       error={!!errors.regionId}
-                      helperText={errors.regionId?.message}
+                      helperText={
+                        prefilledData?.regionId
+                          ? `Pre-selected: ${prefilledData.regionName}`
+                          : errors.regionId?.message
+                      }
+                      // ✅ Disable if pre-filled from customer profile
+                      disabled={!!prefilledData?.regionId}
                       renderOption={(option: any) => (
                         <Box>
                           <Typography variant="body1">{option.name}</Typography>
                           {option._count && (
                             <Typography variant="caption" color="text.secondary">
-                              {option._count.customers} customers • {option._count.technicians} technicians
+                              {option._count.customers} customers •{' '}
+                              {option._count.technicians} technicians
                             </Typography>
                           )}
                         </Box>
@@ -157,9 +205,14 @@ const CreateServiceRequest: React.FC = () => {
                       endpoint="/customers/search"
                       placeholder="Search by name, phone, or email..."
                       error={!!errors.customerId}
-                      helperText={errors.customerId?.message || 'Type at least 2 characters to search'}
+                      helperText={
+                        prefilledData?.customerId
+                          ? `Pre-selected: ${prefilledData.customerName}`
+                          : errors.customerId?.message ||
+                            'Type at least 2 characters to search'
+                      }
                       filters={{ regionId: selectedRegionId }}
-                      disabled={!selectedRegionId}
+                      disabled={!selectedRegionId || !!prefilledData?.customerId} // ✅ Disable if pre-filled
                       renderOption={(option: any) => (
                         <Box>
                           <Typography variant="body1" fontWeight={500}>
@@ -207,7 +260,7 @@ const CreateServiceRequest: React.FC = () => {
                   <Button
                     variant="outlined"
                     size="large"
-                    onClick={() => navigate('/service-requests')}
+                    onClick={() => navigate(-1)} // ✅ Go back to previous page
                   >
                     Cancel
                   </Button>

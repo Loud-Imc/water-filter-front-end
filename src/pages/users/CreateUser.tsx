@@ -158,7 +158,7 @@ const CreateUser: React.FC = () => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="Phone (Optional)"
+                      label="Phone "
                       error={!!errors.phone}
                       helperText={errors.phone?.message}
                     />
@@ -198,7 +198,7 @@ const CreateUser: React.FC = () => {
                       {...field}
                       select
                       fullWidth
-                      label="Region (Optional)"
+                      label="Region "
                       error={!!errors.regionId}
                       helperText={errors.regionId?.message}
                     >

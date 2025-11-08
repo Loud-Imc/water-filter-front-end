@@ -1,52 +1,58 @@
+// components/dashboard/StatCard.tsx
 import React from 'react';
-import { Card, CardContent, Typography, Box, Avatar } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, Typography, Box } from '@mui/material';
 
 interface StatCardProps {
   title: string;
   value: number;
   icon: React.ReactNode;
-  color: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  link?: string;
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
+  onClick?: () => void; // ✅ NEW: Make it clickable
 }
 
 const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   icon,
-  color,
-  link,
+  color = 'primary',
+  onClick,
 }) => {
-  const navigate = useNavigate();
-
   return (
     <Card
       sx={{
-        height: '100%',
-        cursor: link ? 'pointer' : 'default',
-        '&:hover': link ? { boxShadow: 6 } : {},
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.3s ease',
+        '&:hover': onClick ? {
+          transform: 'translateY(-4px)',
+          boxShadow: 4,
+        } : {},
       }}
-      onClick={() => link && navigate(link)}
+      onClick={onClick}
     >
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {title}
             </Typography>
-            <Typography variant="h4" fontWeight={600}>
+            <Typography variant="h4" fontWeight={700}>
               {value}
             </Typography>
           </Box>
-          <Avatar
+          <Box
             sx={{
-              bgcolor: `${color}.main`,
               width: 56,
               height: 56,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: `${color}.light`,
+              color: `${color}.dark`,
             }}
           >
             {icon}
-          </Avatar>
+          </Box>
         </Box>
       </CardContent>
     </Card>
