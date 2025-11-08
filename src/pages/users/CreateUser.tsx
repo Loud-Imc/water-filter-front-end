@@ -17,8 +17,8 @@ interface FormData {
   email: string;
   password: string;
   roleId: string;
-  regionId?: string | null;
-  phone?: string | null;
+  regionId: string ;
+  phone: string ;
 }
 
 const CreateUser: React.FC = () => {
