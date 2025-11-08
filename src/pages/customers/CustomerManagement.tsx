@@ -33,7 +33,7 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 import SnackbarNotification from "../../components/common/SnackbarNotification";
 import EmptyState from "../../components/common/EmptyState";
 import PhoneNumberInput from "../../components/customer/PhoneNumberInput";
-import LocationCapture from "../../components/location/LocationCapture";
+// import LocationCapture from "../../components/location/LocationCapture";
 import QuickAddRegionDialog from "../../components/region/QuickAddRegionDialog"; // ✅ NEW COMPONENT
 import { customerService } from "../../api/services/customerService";
 import { regionService } from "../../api/services/regionService";
