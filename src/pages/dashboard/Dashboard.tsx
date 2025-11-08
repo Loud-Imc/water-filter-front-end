@@ -19,6 +19,7 @@ import PendingIcon from "@mui/icons-material/Pending";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import StockAlertBar from "../../components/dashboard/StockAlertBar";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -49,7 +50,7 @@ const Dashboard: React.FC = () => {
       {user?.role.name === "Technician" && stats.myTasks && (
         <TechnicianTasks tasks={stats.myTasks} />
       )}
-
+    <StockAlertBar userRole={user?.role.name} />
       {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>

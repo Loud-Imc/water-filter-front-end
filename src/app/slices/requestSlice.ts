@@ -6,6 +6,7 @@ interface RequestState {
   requests: ServiceRequest[];
   myTasks: ServiceRequest[];
   taskHistory: ServiceRequest[];
+  reassignmentHistory: any[];
   selectedRequest: ServiceRequest | null;
   stats: {
     assigned: number;
@@ -21,6 +22,7 @@ const initialState: RequestState = {
   requests: [],
   myTasks: [],
   taskHistory: [],
+  reassignmentHistory: [],
   selectedRequest: null,
   stats: null,
   loading: false,
@@ -95,6 +97,35 @@ export const assignTechnician = createAsyncThunk(
       return rejectWithValue(error.response?.data?.message || 'Failed to assign technician');
     }
   }
+);
+
+export const reassignTechnician = createAsyncThunk(
+  'requests/reassign',
+  async (
+    { id, newTechnicianId, reason }: { id: string; newTechnicianId: string; reason: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await requestService.reassignTechnician(id, newTechnicianId, reason);
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to reassign technician',
+      );
+    }
+  },
+);
+
+export const fetchReassignmentHistory = createAsyncThunk(
+  'requests/reassignmentHistory',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      return await requestService.getReassignmentHistory(id);
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch reassignment history',
+      );
+    }
+  },
 );
 
 export const fetchMyTasks = createAsyncThunk('requests/fetchMyTasks', async (_, { rejectWithValue }) => {

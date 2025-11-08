@@ -23,7 +23,7 @@ export const userSchema = yup.object({
 });
 
 export const serviceRequestSchema = yup.object({
-  type: yup.string().oneOf(['SERVICE', 'INSTALLATION', 'COMPLAINT','ENQUIRY']).required('Type is required'),
+  type: yup.string().oneOf(['SERVICE', 'INSTALLATION', 'RE_INSTALLATION', 'COMPLAINT','ENQUIRY']).required('Type is required'),
   description: yup.string().min(10, 'Description must be at least 10 characters').required('Description is required'),
   customerId: yup.string().required('Customer is required'),
   regionId: yup.string().required('Region is required'),

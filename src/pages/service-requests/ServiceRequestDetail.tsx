@@ -53,6 +53,18 @@ import { formatDate } from "../../utils/helpers";
 import { canApproveRequest, canAssignTechnician } from "../../utils/helpers";
 import { customerService } from "../../api/services/customerService";
 import LocationCapture from "../../components/location/LocationCapture";
+import ReassignTechnicianDialog from "../../components/services/ReassignTechnicianDialog";
+import {
+  reassignTechnician,
+  // fetchReassignmentHistory,
+} from "../../app/slices/requestSlice";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import AddUsedProductsDialog from "../../components/services/AddUsedProductsDialog";
+import { requestService } from "../../api/services/requestService";
+import { productService } from "../../api/services/productService";
+import { BuildCircleOutlined } from "@mui/icons-material";
+import WorkMediaGallery from "./WorkMediaGallery";
+import { Product } from "@/types";
 
 const ServiceRequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +91,11 @@ const ServiceRequestDetail: React.FC = () => {
   const [assignDialog, setAssignDialog] = useState(false);
   const [comments, setComments] = useState("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState("");
+  const [reassignDialog, setReassignDialog] = useState(false);
+  const [usedProductsDialog, setUsedProductsDialog] = useState(false);
+  const [usedProducts, setUsedProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -127,21 +144,31 @@ const ServiceRequestDetail: React.FC = () => {
   }, [isWorking, startTime]);
 
   // Auto-start timer if status is IN_PROGRESS
-useEffect(() => {
-  if (
-    selectedRequest?.status === "IN_PROGRESS" &&
-    selectedRequest.workLogs &&  // ✅ Check exists first
-    selectedRequest.workLogs.length > 0
-  ) {
-    const lastWorkLog =
-      selectedRequest.workLogs[selectedRequest.workLogs.length - 1];
-    if (lastWorkLog.startTime && !lastWorkLog.endTime) {
-      setStartTime(new Date(lastWorkLog.startTime));
-      setIsWorking(true);
+  useEffect(() => {
+    if (
+      selectedRequest?.status === "IN_PROGRESS" &&
+      selectedRequest.workLogs && // ✅ Check exists first
+      selectedRequest.workLogs.length > 0
+    ) {
+      const lastWorkLog =
+        selectedRequest.workLogs[selectedRequest.workLogs.length - 1];
+      if (lastWorkLog.startTime && !lastWorkLog.endTime) {
+        setStartTime(new Date(lastWorkLog.startTime));
+        setIsWorking(true);
+      }
     }
-  }
-}, [selectedRequest]);
+  }, [selectedRequest]);
 
+  useEffect(() => {
+    productService.getAllProducts().then(setAllProducts).catch(console.error);
+
+    if (selectedRequest?.id && selectedRequest.status === "WORK_COMPLETED") {
+      requestService
+        .getUsedProducts(selectedRequest.id)
+        .then(setUsedProducts)
+        .catch(console.error);
+    }
+  }, [selectedRequest?.id, selectedRequest?.status]);
   // ✅ Early return AFTER all hooks
   if (loading || !selectedRequest) {
     return <LoadingSpinner />;
@@ -204,6 +231,31 @@ useEffect(() => {
       setSnackbar({
         open: true,
         message: error || "Failed to start work",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleAddUsedProducts = async (
+    products: Array<{ productId: string; quantityUsed: number; notes?: string }>
+  ) => {
+    if (!request.id) return;
+
+    try {
+      await requestService.addUsedProducts(request.id, products);
+      setSnackbar({
+        open: true,
+        message: "Products added successfully! Stock updated.",
+        severity: "success",
+      });
+
+      // Refresh used products
+      const updated = await requestService.getUsedProducts(request.id);
+      setUsedProducts(updated);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to add products",
         severity: "error",
       });
     }
@@ -391,6 +443,39 @@ useEffect(() => {
     }
   };
 
+  const handleReassignTechnician = async (
+    newTechnicianId: string,
+    reason: string
+  ) => {
+    if (!request.id) return;
+
+    try {
+      await dispatch(
+        reassignTechnician({
+          id: request.id,
+          newTechnicianId,
+          reason,
+        })
+      ).unwrap();
+
+      setSnackbar({
+        open: true,
+        message:
+          "Technician reassigned successfully! Old technician has been notified.",
+        severity: "success",
+      });
+
+      // Fetch updated request
+      dispatch(fetchRequestById(request.id));
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error || "Failed to reassign technician",
+        severity: "error",
+      });
+    }
+  };
+
   const availableTechnicians = users.filter(
     (u) =>
       u.role?.name === "Technician" &&
@@ -528,6 +613,19 @@ useEffect(() => {
                       >
                         Upload Additional Images
                       </Button>
+                      {/* Add Used Products - Only if WORK_COMPLETED */}
+                      {request.status === "WORK_COMPLETED" &&
+                        usedProducts.length === 0 && (
+                          <Button
+                            variant="contained"
+                            color="info"
+                            style={{ top: '10px', backgroundColor: '#1976d2' }}
+                            startIcon={<BuildCircleOutlined />}
+                            onClick={() => setUsedProductsDialog(true)}
+                          >
+                            Add Used Products
+                          </Button>
+                        )}
                     </>
                   )}
 
@@ -538,7 +636,7 @@ useEffect(() => {
                   )}
                 </CardContent>
               </Card>
-              
+
               {/* Customer Location Card */}
               <Card sx={{ mt: 2 }}>
                 <CardContent>
@@ -559,74 +657,9 @@ useEffect(() => {
         {/* Main Details Card */}
         <Grid size={{ xs: 12, md: 8 }}>
           {/* Work Images Gallery */}
-              {request.workMedia && request.workMedia.length > 0 && (
-                <Card sx={{ mt: 2 }}>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Work Images ({request.workMedia.length})
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                      {request.workMedia.map((media) => (
-                        <Grid size={{ xs: 6, sm: 4, md: 3 }} key={media.id}>
-                          <Box
-                            sx={{
-                              position: "relative",
-                              paddingTop: "100%",
-                              borderRadius: 2,
-                              overflow: "hidden",
-                              cursor: "pointer",
-                              border: "2px solid",
-                              borderColor: "divider",
-                              "&:hover": {
-                                opacity: 0.8,
-                                transform: "scale(1.02)",
-                                transition: "all 0.2s",
-                              },
-                            }}
-                            onClick={() => window.open(`http://localhost:3000${media.fileUrl}`, "_blank")}
-                          >
-                            <Box
-                              component="img"
-                              src={`http://localhost:3000${media.fileUrl}`}
-                              alt="Work image"
-                              sx={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-
-                            {/* Upload Date Overlay */}
-                            <Box
-                              sx={{
-                                position: "absolute",
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                bgcolor: "rgba(0,0,0,0.7)",
-                                color: "white",
-                                p: 1,
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                display="block"
-                                noWrap
-                              >
-                                {formatDate(media.uploadedAt)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                </Card>
-              )}
+          {request.workMedia && request.workMedia.length > 0 && (
+            <WorkMediaGallery media={request.workMedia} />
+          )}
           <Card>
             <CardContent>
               <Box
@@ -640,7 +673,9 @@ useEffect(() => {
                 <Typography variant="h5" fontWeight={600}>
                   Request Information
                 </Typography>
-                <StatusChip status={request.status} size="medium" />
+                {request.type !== "ENQUIRY" && (
+                  <StatusChip status={request.status} size="medium" />
+                )}
               </Box>
 
               <Grid container spacing={2}>
@@ -709,6 +744,58 @@ useEffect(() => {
                   <Typography variant="body1">{request.description}</Typography>
                 </Grid>
 
+                {request.approvalHistory.length > 0 && (
+                  <Grid size={12}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      Remarks
+                    </Typography>
+                    <Typography variant="body1">
+                      {request.approvalHistory[0].comments || "N/A"}
+                    </Typography>
+                  </Grid>
+                )}
+
+                <Grid size={12}>
+                  {/* Used Products Summary */}
+                  {usedProducts.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={600}
+                        gutterBottom
+                      >
+                        ✅ Products Used ({usedProducts.length})
+                      </Typography>
+                      {usedProducts.map((item) => (
+                        <Chip
+                          key={item.id}
+                          label={`${item.product.name}: ${item.quantityUsed} qty`}
+                          variant="outlined"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      ))}
+                      {usedProducts[0]?.notes && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            p: 1,
+                            bgcolor: "grey.100",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Notes: {usedProducts[0].notes}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+                </Grid>
+
                 <Grid size={12}>
                   <Divider sx={{ my: 1 }} />
                 </Grid>
@@ -763,49 +850,65 @@ useEffect(() => {
               </Grid>
 
               {/* Action Buttons */}
-              <Box sx={{ display: "flex", gap: 2, mt: 3, flexWrap: "wrap" }}>
-                {userCanApprove && request.status === "PENDING_APPROVAL" && (
-                  <>
+              {request.type !== "ENQUIRY" && (
+                <Box sx={{ display: "flex", gap: 2, mt: 3, flexWrap: "wrap" }}>
+                  {userCanApprove && request.status === "PENDING_APPROVAL" && (
+                    <>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={() => setApproveDialog(true)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<CancelIcon />}
+                        onClick={() => setRejectDialog(true)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+
+                  {userCanAssign && request.status === "APPROVED" && (
+                    <Button
+                      variant="contained"
+                      startIcon={<AssignmentIndIcon />}
+                      onClick={() => setAssignDialog(true)}
+                    >
+                      Assign Technician
+                    </Button>
+                  )}
+
+                  {userCanAssign && request.status === "WORK_COMPLETED" && (
                     <Button
                       variant="contained"
                       color="success"
                       startIcon={<CheckCircleIcon />}
-                      onClick={() => setApproveDialog(true)}
+                      onClick={() => setAcknowledgeDialog(true)}
                     >
-                      Approve
+                      Acknowledge Completion
                     </Button>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<CancelIcon />}
-                      onClick={() => setRejectDialog(true)}
-                    >
-                      Reject
-                    </Button>
-                  </>
-                )}
+                  )}
 
-                {userCanAssign && request.status === "APPROVED" && (
-                  <Button
-                    variant="contained"
-                    startIcon={<AssignmentIndIcon />}
-                    onClick={() => setAssignDialog(true)}
-                  >
-                    Assign Technician
-                  </Button>
-                )}
-
-                {userCanAssign && request.status === "WORK_COMPLETED" && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    startIcon={<CheckCircleIcon />}
-                    onClick={() => setAcknowledgeDialog(true)}
-                  >
-                    Acknowledge Completion
-                  </Button>
-                )}
-              </Box>
+                  {/* Change Technician Button - Only if ASSIGNED and already has technician */}
+                  {userCanAssign &&
+                    request.status === "ASSIGNED" &&
+                    request.assignedTo && (
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        startIcon={<SwapHorizIcon />}
+                        onClick={() => setReassignDialog(true)}
+                      >
+                        Change Technician
+                      </Button>
+                    )}
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -970,7 +1073,7 @@ useEffect(() => {
             ))}
           </TextField>
 
-          <Box sx={{ mt: 2 }}>
+          {/* <Box sx={{ mt: 2 }}>
             <Button
               fullWidth
               variant="outlined"
@@ -979,7 +1082,7 @@ useEffect(() => {
             >
               Auto Assign (System will select)
             </Button>
-          </Box>
+          </Box> */}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAssignDialog(false)}>Cancel</Button>
@@ -1176,11 +1279,29 @@ useEffect(() => {
         </DialogActions>
       </Dialog>
 
+      {/* ✅ FIXED: ReassignTechnicianDialog with correct props */}
+      <ReassignTechnicianDialog
+        open={reassignDialog}
+        currentTechnician={request.assignedTo || null}
+        availableTechnicians={availableTechnicians}
+        onClose={() => setReassignDialog(false)}
+        onReassign={handleReassignTechnician}
+        loading={loading}
+      />
+
       <SnackbarNotification
         open={snackbar.open}
         message={snackbar.message}
         severity={snackbar.severity}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+      />
+
+      <AddUsedProductsDialog
+        open={usedProductsDialog}
+        onClose={() => setUsedProductsDialog(false)}
+        onConfirm={handleAddUsedProducts}
+        allProducts={allProducts}
+        loading={loading}
       />
     </Box>
   );

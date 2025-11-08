@@ -21,6 +21,7 @@ import Unauthorized from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 import { useAppSelector } from "../app/hooks";
 import CustomerProfile from "../pages/customers/CustomerProfile";
+import ProductManagement from "../pages/products/ProductManagement";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -163,7 +164,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/technician/my-tasks"
         element={
-          <ProtectedRoute 
+          <ProtectedRoute
             requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
             allowedRoles={["Technician"]} // Also check role
           >
@@ -176,7 +177,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/technician/task-history"
         element={
-          <ProtectedRoute 
+          <ProtectedRoute
             requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
             allowedRoles={["Technician"]}
           >
@@ -194,6 +195,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <NotificationList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/products"
+        element={
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_VIEW]}>
+            <Layout>
+                <ProductManagement />
             </Layout>
           </ProtectedRoute>
         }

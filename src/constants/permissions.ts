@@ -29,4 +29,10 @@ export const PERMISSIONS = {
 
   // Dashboard
   DASHBOARD_VIEW: 'dashboard.view',
+
+  // Products
+  PRODUCTS_VIEW: 'products.view',
+  PRODUCTS_CREATE: 'products.create',
+  PRODUCTS_UPDATE: 'products.update',
+  PRODUCTS_DELETE: 'products.delete',
 } as const;

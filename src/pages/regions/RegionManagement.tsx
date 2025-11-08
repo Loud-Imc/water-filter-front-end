@@ -8,11 +8,13 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  MenuItem,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -23,7 +25,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import SnackbarNotification from '../../components/common/SnackbarNotification';
 import EmptyState from '../../components/common/EmptyState';
 import { regionService } from '../../api/services/regionService';
-import type { Region } from '../../types';
+import type { Region, DistrictData } from '../../types';
 
 const RegionManagement: React.FC = () => {
   const [regions, setRegions] = useState<Region[]>([]);
@@ -31,31 +33,77 @@ const RegionManagement: React.FC = () => {
   const [dialog, setDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
-  const [regionName, setRegionName] = useState('');
+
+  // Form states
+  const [formData, setFormData] = useState({
+    state: 'Kerala',
+    district: '',
+    city: '',
+    pincode: '',
+  });
+
+  // Dropdown data
+  const [districts, setDistricts] = useState<DistrictData[]>([]);
+
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
 
+  // Fetch regions
   const fetchRegions = async () => {
     try {
       const data = await regionService.getAllRegions();
       setRegions(data);
     } catch (error) {
       console.error('Failed to fetch regions:', error);
+      setSnackbar({ open: true, message: 'Failed to load regions', severity: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch Kerala districts
+  const fetchDistricts = async () => {
+    try {
+      const data = await regionService.getDistricts('Kerala');
+      setDistricts(data);
+    } catch (error) {
+      console.error('Failed to fetch districts:', error);
+      setSnackbar({ open: true, message: 'Failed to load districts', severity: 'error' });
+    }
+  };
+
   useEffect(() => {
     fetchRegions();
+    fetchDistricts();
   }, []);
+
+  // Generate region name
+  const generateRegionName = (): string => {
+    const parts = [
+      formData.state,
+      formData.district,
+      formData.city,
+      formData.pincode,
+    ].filter(Boolean);
+    return parts.join(' - ') || '';
+  };
 
   const handleOpenDialog = (region?: Region) => {
     if (region) {
       setSelectedRegion(region);
-      setRegionName(region.name);
+      setFormData({
+        state: region.state || 'Kerala',
+        district: region.district || '',
+        city: region.city || '',
+        pincode: region.pincode || '',
+      });
     } else {
       setSelectedRegion(null);
-      setRegionName('');
+      setFormData({
+        state: 'Kerala',
+        district: '',
+        city: '',
+        pincode: '',
+      });
     }
     setDialog(true);
   };
@@ -63,22 +111,37 @@ const RegionManagement: React.FC = () => {
   const handleCloseDialog = () => {
     setDialog(false);
     setSelectedRegion(null);
-    setRegionName('');
+    setFormData({ state: 'Kerala', district: '', city: '', pincode: '' });
   };
 
   const handleSave = async () => {
     try {
+      if (!formData.district.trim()) {
+        setSnackbar({ open: true, message: 'District is required', severity: 'error' });
+        return;
+      }
+
+      const regionName = generateRegionName();
+
+      const regionData: Partial<Region> = {
+        name: regionName,
+        state: formData.state,
+        district: formData.district,
+        city: formData.city || undefined,
+        pincode: formData.pincode || undefined,
+      };
+
       if (selectedRegion) {
-        await regionService.updateRegion(selectedRegion.id, { name: regionName });
+        await regionService.updateRegion(selectedRegion.id, regionData);
         setSnackbar({ open: true, message: 'Region updated successfully!', severity: 'success' });
       } else {
-        await regionService.createRegion({ name: regionName });
+        await regionService.createRegion(regionData);
         setSnackbar({ open: true, message: 'Region created successfully!', severity: 'success' });
       }
       handleCloseDialog();
       fetchRegions();
     } catch (error: any) {
-      setSnackbar({ open: true, message: error.message || 'Operation failed', severity: 'error' });
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Operation failed', severity: 'error' });
     }
   };
 
@@ -91,7 +154,7 @@ const RegionManagement: React.FC = () => {
         setSelectedRegion(null);
         fetchRegions();
       } catch (error: any) {
-        setSnackbar({ open: true, message: error.message || 'Failed to delete region', severity: 'error' });
+        setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to delete region', severity: 'error' });
       }
     }
   };
@@ -122,11 +185,11 @@ const RegionManagement: React.FC = () => {
         <Card>
           <List>
             {regions.map((region, index) => (
-              <ListItem
-                key={region.id}
-                divider={index < regions.length - 1}
-              >
-                <ListItemText primary={region.name} />
+              <ListItem key={region.id} divider={index < regions.length - 1}>
+                <ListItemText
+                  primary={region.name}
+                  secondary={`${region.district || 'N/A'} • ${region.city || 'N/A'} • ${region.pincode || 'N/A'}`}
+                />
                 <ListItemSecondaryAction>
                   <IconButton edge="end" onClick={() => handleOpenDialog(region)} sx={{ mr: 1 }}>
                     <EditIcon />
@@ -150,20 +213,74 @@ const RegionManagement: React.FC = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{selectedRegion ? 'Edit Region' : 'Create Region'}</DialogTitle>
+        <DialogTitle>{selectedRegion ? 'Edit Region' : 'Create New Region'}</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Region Name"
-            value={regionName}
-            onChange={(e) => setRegionName(e.target.value)}
-            sx={{ mt: 2 }}
-            autoFocus
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            {/* State (Fixed to Kerala) */}
+            <TextField
+              fullWidth
+              label="State"
+              value="Kerala"
+              disabled
+              variant="outlined"
+            />
+
+            {/* District Dropdown */}
+            <TextField
+              select
+              fullWidth
+              label="District *"
+              value={formData.district}
+              onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
+            >
+              <MenuItem value="">-- Select District --</MenuItem>
+              {districts.map(d => (
+                <MenuItem key={d.districtName} value={d.districtName}>
+                  {d.districtName}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {/* City - Manual Text Input */}
+            <TextField
+              fullWidth
+              label="City / Place"
+              value={formData.city}
+              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              placeholder="Enter city (e.g., Kochi, Pala)"
+              helperText="Telecaller enters manually"
+            />
+
+            {/* Pincode - Manual Text Input */}
+            <TextField
+              fullWidth
+              label="Pincode"
+              value={formData.pincode}
+              onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
+              placeholder="Enter pincode (e.g., 682001)"
+              helperText="Telecaller enters manually"
+            />
+
+            {/* Generated Name Display */}
+            {generateRegionName() && (
+              <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                <Typography variant="subtitle2" color="info.dark">
+                  Region Name:
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500, mt: 0.5 }}>
+                  {generateRegionName()}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={!regionName.trim()}>
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={!formData.district.trim()}
+          >
             {selectedRegion ? 'Update' : 'Create'}
           </Button>
         </DialogActions>

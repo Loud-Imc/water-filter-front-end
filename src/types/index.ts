@@ -23,10 +23,32 @@ export interface Role {
 }
 
 // Region types
+// ✅ Updated Region Interface
 export interface Region {
   id: string;
   name: string;
+  state?: string;      // Optional: "Kerala"
+  district?: string;   // Optional: "Kottayam"
+  city?: string;       // Optional: "Pala"
+  pincode?: string;    // Optional: "686575"
 }
+
+// ✅ Add India Places Types
+export interface StateData {
+  stateName: string;
+}
+
+export interface DistrictData {
+  districtName: string;
+}
+
+export interface CityData {
+  name: string;
+  pincode: string;
+  district: string;
+  state: string;
+}
+
 
 // Customer types
 // Update the Customer interface
@@ -62,7 +84,7 @@ export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {}
 
 
 // Service Request types
-export type RequestType = 'SERVICE' | 'INSTALLATION' | 'COMPLAINT'| 'ENQUIRY';
+export type RequestType = 'SERVICE' | 'INSTALLATION' | 'COMPLAINT'| 'ENQUIRY' | 'RE_INSTALLATION' ;
 export type RequestStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
@@ -152,3 +174,39 @@ export interface AuthResponse {
   user: User;
   accessToken: string;
 }
+
+// Product/Inventory types
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  sku?: string;
+  price: number;
+  stock: number;
+  hasWarranty: boolean;
+  warrantyMonths?: number;
+  warrantyYears?: number;
+  createdAt: string;
+  updatedAt: string;
+  company?: string;
+}
+
+export interface CreateProductDto {
+  name: string;
+  description?: string;
+  sku?: string;
+  price: number;
+  stock: number;
+  hasWarranty?: boolean;
+  warrantyMonths?: number;
+  warrantyYears?: number;
+  company?: string;
+}
+
+export interface UpdateProductDto extends Partial<CreateProductDto> {}
+
+export interface StockUpdateDto {
+  quantityChange: number;
+  reason: string;
+}
+

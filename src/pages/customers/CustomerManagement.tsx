@@ -16,12 +16,16 @@ import {
   IconButton,
   Typography,
   Avatar,
+  InputAdornment,
+  Chip,
 } from "@mui/material";
 import { Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-// import DeleteIcon from "@mui/icons-material/Delete";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import PageHeader from "../../components/common/PageHeader";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
@@ -36,13 +40,20 @@ import LocationCapture from "../../components/location/LocationCapture";
 const CustomerManagement: React.FC = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [dialog, setDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
+
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const [formData, setFormData] = useState<CreateCustomerDto>({
     name: "",
@@ -66,6 +77,7 @@ const CustomerManagement: React.FC = () => {
         regionService.getAllRegions(),
       ]);
       setCustomers(customersData);
+      setFilteredCustomers(customersData);
       setRegions(regionsData);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -82,6 +94,44 @@ const CustomerManagement: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Search and Filter Logic
+  useEffect(() => {
+    applyFilters();
+  }, [searchQuery, selectedRegion, customers]);
+
+  const applyFilters = async () => {
+    let results = [...customers];
+
+    // Apply search
+    if (searchQuery.trim()) {
+      setSearching(true);
+      try {
+        const searchResults = await customerService.searchCustomers(
+          searchQuery,
+          selectedRegion !== "all" ? selectedRegion : undefined
+        );
+        results = searchResults;
+      } catch (error) {
+        console.error("Search failed:", error);
+      } finally {
+        setSearching(false);
+      }
+    } else if (selectedRegion !== "all") {
+      // Apply region filter only
+      results = results.filter((c) => c.regionId === selectedRegion);
+    }
+
+    setFilteredCustomers(results);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedRegion("all");
+    setFilteredCustomers(customers);
+  };
+
+  const hasActiveFilters = searchQuery.trim() || selectedRegion !== "all";
 
   const handleOpenDialog = (customer?: Customer) => {
     if (customer) {
@@ -188,30 +238,144 @@ const CustomerManagement: React.FC = () => {
         }}
       />
 
-      {customers.length === 0 ? (
+      {/* Search & Filter Section */}
+      <Card sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Search Bar */}
+          <TextField
+            size="small"
+            placeholder="Search by name, phone, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ flexGrow: 1, minWidth: 250 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery("")}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          {/* Filter Toggle Button */}
+          <Button
+            variant={showFilters ? "contained" : "outlined"}
+            startIcon={<FilterListIcon />}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Filters
+          </Button>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="text"
+              color="error"
+              startIcon={<ClearIcon />}
+              onClick={handleClearFilters}
+            >
+              Clear
+            </Button>
+          )}
+        </Box>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Region"
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                >
+                  <MenuItem value="all">All Regions</MenuItem>
+                  {regions.map((region) => (
+                    <MenuItem key={region.id} value={region.id}>
+                      {region.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+              Active filters:
+            </Typography>
+            {searchQuery && (
+              <Chip
+                size="small"
+                label={`Search: "${searchQuery}"`}
+                onDelete={() => setSearchQuery("")}
+              />
+            )}
+            {selectedRegion !== "all" && (
+              <Chip
+                size="small"
+                label={`Region: ${regions.find((r) => r.id === selectedRegion)?.name}`}
+                onDelete={() => setSelectedRegion("all")}
+              />
+            )}
+          </Box>
+        )}
+
+        {/* Results Count */}
+        <Box sx={{ mt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {searching ? (
+              "Searching..."
+            ) : (
+              <>
+                Showing {filteredCustomers.length} of {customers.length} customers
+              </>
+            )}
+          </Typography>
+        </Box>
+      </Card>
+
+      {/* Customer List */}
+      {filteredCustomers.length === 0 ? (
         <EmptyState
-          title="No customers found"
-          description="Create your first customer to get started"
-          actionLabel="Add Customer"
-          onAction={() => handleOpenDialog()}
+          title={hasActiveFilters ? "No customers found" : "No customers yet"}
+          description={
+            hasActiveFilters
+              ? "Try adjusting your search or filters"
+              : "Create your first customer to get started"
+          }
+          actionLabel={!hasActiveFilters ? "Add Customer" : undefined}
+          onAction={!hasActiveFilters ? () => handleOpenDialog() : undefined}
         />
       ) : (
         <Card>
           <List>
-            {customers.map((customer, index) => (
+            {filteredCustomers.map((customer, index) => (
               <ListItem
                 key={customer.id}
-                divider={index < customers.length - 1}
+                divider={index < filteredCustomers.length - 1}
                 sx={{
-                  '&:hover': { bgcolor: 'action.hover' },
+                  "&:hover": { bgcolor: "action.hover" },
                 }}
               >
-                {/* ✅ Clickable Customer Info with Avatar */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
+                    display: "flex",
+                    alignItems: "center",
+                    cursor: "pointer",
                     flex: 1,
                   }}
                   onClick={() => navigate(`/customers/${customer.id}`)}
@@ -221,13 +385,13 @@ const CustomerManagement: React.FC = () => {
                       width: 48,
                       height: 48,
                       mr: 2,
-                      bgcolor: 'primary.main',
-                      fontSize: '1.2rem',
+                      bgcolor: "primary.main",
+                      fontSize: "1.2rem",
                     }}
                   >
                     {customer.name.charAt(0).toUpperCase()}
                   </Avatar>
-                  
+
                   <ListItemText
                     primary={
                       <Typography variant="body1" fontWeight={600}>
@@ -265,7 +429,6 @@ const CustomerManagement: React.FC = () => {
                   />
                 </Box>
 
-                {/* ✅ Action Buttons */}
                 <ListItemSecondaryAction>
                   <IconButton
                     edge="end"
@@ -278,19 +441,6 @@ const CustomerManagement: React.FC = () => {
                   >
                     <EditIcon />
                   </IconButton>
-                  {/* Uncomment if delete is needed
-                  <IconButton
-                    edge="end"
-                    color="error"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedCustomer(customer);
-                      setDeleteDialog(true);
-                    }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                  */}
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
@@ -305,7 +455,6 @@ const CustomerManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
-            {/* Name & Region Row */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
@@ -339,7 +488,6 @@ const CustomerManagement: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Address */}
             <TextField
               fullWidth
               required
@@ -352,7 +500,6 @@ const CustomerManagement: React.FC = () => {
               }
             />
 
-            {/* Phone Numbers Component */}
             <PhoneNumberInput
               primaryPhone={formData.primaryPhone}
               additionalPhones={formData.phoneNumbers || []}
@@ -364,7 +511,6 @@ const CustomerManagement: React.FC = () => {
               }
             />
 
-            {/* Email */}
             <TextField
               fullWidth
               label="Email (Optional)"
@@ -376,7 +522,6 @@ const CustomerManagement: React.FC = () => {
               placeholder="customer@example.com"
             />
 
-            {/* Location Capture Section */}
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                 Customer Location (Optional)
@@ -428,7 +573,6 @@ const CustomerManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Dialog */}
       <ConfirmDialog
         open={deleteDialog}
         title="Delete Customer"
