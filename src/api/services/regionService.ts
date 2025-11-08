@@ -1,6 +1,6 @@
 import { axiosInstance } from '../axios';
-import { API_ENDPOINTS } from '../endponts'; 
-import {type Region } from '../../types';
+import { API_ENDPOINTS } from '../endponts';
+import type { Region, StateData, DistrictData, CityData } from '../../types';
 
 export const regionService = {
   async getAllRegions(): Promise<Region[]> {
@@ -27,10 +27,33 @@ export const regionService = {
     await axiosInstance.delete(API_ENDPOINTS.REGIONS.BY_ID(id));
   },
 
-    searchRegions: async (query: string) => {
+  async searchRegions(query: string) {
     const response = await axiosInstance.get('/regions/search', {
       params: { query, limit: 50 },
     });
     return response.data;
+  },
+
+  // ✅ NEW: India Places methods
+  async getStates(): Promise<StateData[]> {
+    const { data } = await axiosInstance.get('/regions/india-places/states');
+    return data;
+  },
+
+  async getDistricts(state: string): Promise<DistrictData[]> {
+    const { data } = await axiosInstance.get(`/regions/india-places/districts/${encodeURIComponent(state)}`);
+    return data;
+  },
+
+  async getCities(state: string, district: string): Promise<CityData[]> {
+    const { data } = await axiosInstance.get(
+      `/regions/india-places/cities/${encodeURIComponent(state)}/${encodeURIComponent(district)}`
+    );
+    return data;
+  },
+
+  async getLocationByPincode(pincode: string): Promise<CityData[]> {
+    const { data } = await axiosInstance.get(`/regions/india-places/pincode/${pincode}`);
+    return data;
   },
 };

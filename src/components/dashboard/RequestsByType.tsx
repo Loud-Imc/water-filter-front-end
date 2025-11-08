@@ -17,6 +17,7 @@ const RequestsByType: React.FC<RequestsByTypeProps> = ({ data }) => {
 
   const typeColors: Record<string, string> = {
     INSTALLATION: '#1976d2',
+    RE_INSTALLATION: '#9c27b0',
     SERVICE: '#2e7d32',
     COMPLAINT: '#d32f2f',
     ENQUIRY: '#ed6c02',

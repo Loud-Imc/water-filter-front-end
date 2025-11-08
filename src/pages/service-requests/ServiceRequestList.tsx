@@ -45,11 +45,9 @@ const ServiceRequestList: React.FC = () => {
     navigate(`/service-requests/${row.id}`);
   };
 
-  // Filter requests - FIXED
   const filteredRequests = requests.filter((request) => {
     const matchesStatus = statusFilter === 'ALL' || request.status === statusFilter;
     
-    // Safe search with optional chaining
     const matchesSearch = !searchQuery || 
       request?.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request?.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -69,14 +67,17 @@ const ServiceRequestList: React.FC = () => {
       id: 'customer',
       label: 'Customer',
       minWidth: 150,
-      format: (value: any) => value?.name || 'N/A', // Added optional chaining
+      format: (value: any) => value?.name || 'N/A',
     },
     { id: 'description', label: 'Description', minWidth: 200 },
     {
       id: 'status',
       label: 'Status',
       minWidth: 130,
-      format: (value: RequestStatus) => <StatusChip status={value} />,
+      // ✅ OPTION 1: Pass both status and type to StatusChip
+      format: (value: RequestStatus, row: ServiceRequest) => (
+        <StatusChip status={value} requestType={row.type} />
+      ),
     },
     {
       id: 'assignedTo',
@@ -127,7 +128,6 @@ const ServiceRequestList: React.FC = () => {
               sx={{ minWidth: 200 }}
             >
               <MenuItem value="ALL">All Status</MenuItem>
-              <MenuItem value="DRAFT">Draft</MenuItem>
               <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>
               <MenuItem value="APPROVED">Approved</MenuItem>
               <MenuItem value="ASSIGNED">Assigned</MenuItem>

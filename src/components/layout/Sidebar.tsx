@@ -22,6 +22,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import BuildIcon from '@mui/icons-material/Build';
 import WorkIcon from '@mui/icons-material/Work';
+import InventoryIcon from '@mui/icons-material/Inventory';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import GroupIcon from '@mui/icons-material/Group';
 import PersonIcon from '@mui/icons-material/Person';
@@ -102,6 +103,13 @@ const Sidebar: React.FC = () => {
       permissions: [PERMISSIONS.SERVICES_VIEW], // Technician can view their assigned services
       roles: ['Technician'], // Only show for Technician role
     },
+    {
+      label: 'Products',
+      path: '/products',
+      icon: <InventoryIcon />,
+      permissions: [PERMISSIONS.PRODUCTS_VIEW],
+    },
+
     {
       label: 'Task History',
       path: '/technician/task-history',

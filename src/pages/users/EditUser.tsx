@@ -9,11 +9,17 @@ import {
   Tabs,
   Tab,
   Typography,
+  InputAdornment,
+  IconButton,
+  Divider,
 } from '@mui/material';
 import { Grid } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import PageHeader from '../../components/common/PageHeader';
 import SnackbarNotification from '../../components/common/SnackbarNotification';
 import { SearchableSelect } from '../../components/common/SearchableSelect';
@@ -38,21 +44,16 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 interface EditUserFormData {
   name: string;
   email: string;
-  phone: string ;
+  phone: string;
   roleId: string;
   regionId: string;
   status: string;
 }
 
-
-// interface FormData {
-//    name: string;
-//   email: string;
-//   password?: string;
-//   roleId: string;
-//   regionId?: string | null;
-//   phone?: string | null;
-// }
+interface PasswordResetFormData {
+  newPassword: string;
+  confirmPassword: string;
+}
 
 const editUserSchema = yup.object().shape({
   name: yup.string().required('Name is required'),
@@ -63,19 +64,38 @@ const editUserSchema = yup.object().shape({
   status: yup.string().required('Status is required'),
 });
 
+const passwordResetSchema = yup.object().shape({
+  newPassword: yup
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Password must contain uppercase, lowercase, and number'
+    )
+    .required('New password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('newPassword')], 'Passwords must match')
+    .required('Please confirm password'),
+});
+
 const EditUser: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<any[]>([]);
   const [currentTab, setCurrentTab] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  
   const [customPermissions, setCustomPermissions] = useState<{
     add: string[];
     remove: string[];
   }>({ add: [], remove: [] });
-  
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -91,6 +111,15 @@ const EditUser: React.FC = () => {
     resolver: yupResolver(editUserSchema),
   });
 
+  const {
+    control: passwordControl,
+    handleSubmit: handlePasswordSubmit,
+    formState: { errors: passwordErrors },
+    reset: resetPasswordForm,
+  } = useForm<PasswordResetFormData>({
+    resolver: yupResolver(passwordResetSchema),
+  });
+
   useEffect(() => {
     fetchData();
   }, [id]);
@@ -98,7 +127,7 @@ const EditUser: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       const [userResponse, rolesResponse] = await Promise.all([
         axiosInstance.get(`/users/${id}`),
         axiosInstance.get('/users/assignable-roles'),
@@ -125,22 +154,11 @@ const EditUser: React.FC = () => {
     }
   };
 
-    const handleSavePermissions = async () => {
+  const handleSavePermissions = async () => {
     try {
       setSaving(true);
       console.log('💾 Saving permissions:', customPermissions);
 
-      // Check if there are changes
-      // if (customPermissions.add.length === 0 && customPermissions.remove.length === 0) {
-      //   setSnackbar({
-      //     open: true,
-      //     message: 'No permission changes to save',
-      //     severity: 'info',
-      //   });
-      //   return;
-      // }
-
-      // Save permissions
       const response = await axiosInstance.put(`/users/${id}/permissions`, customPermissions);
       console.log('✅ Permissions saved:', response.data);
 
@@ -149,9 +167,6 @@ const EditUser: React.FC = () => {
         message: 'Permissions updated successfully!',
         severity: 'success',
       });
-
-      // Optionally navigate back or refresh
-      // setTimeout(() => navigate('/users'), 2000);
     } catch (error: any) {
       console.error('❌ Failed to save permissions:', error);
       setSnackbar({
@@ -166,10 +181,8 @@ const EditUser: React.FC = () => {
 
   const onSubmit = async (data: EditUserFormData) => {
     try {
-      // Update basic info
       await axiosInstance.put(`/users/${id}`, data);
 
-      // Update permissions if changed
       if (customPermissions.add.length > 0 || customPermissions.remove.length > 0) {
         await axiosInstance.put(`/users/${id}/permissions`, customPermissions);
       }
@@ -187,6 +200,34 @@ const EditUser: React.FC = () => {
         message: error.response?.data?.message || 'Failed to update user',
         severity: 'error',
       });
+    }
+  };
+
+  const handlePasswordReset = async (data: PasswordResetFormData) => {
+    try {
+      setResettingPassword(true);
+      
+      await axiosInstance.put(`/users/${id}/reset-password`, {
+        newPassword: data.newPassword,
+      });
+
+      setSnackbar({
+        open: true,
+        message: 'Password reset successfully!',
+        severity: 'success',
+      });
+
+      resetPasswordForm();
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to reset password',
+        severity: 'error',
+      });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -211,6 +252,7 @@ const EditUser: React.FC = () => {
       <Card>
         <Tabs value={currentTab} onChange={(_, v) => setCurrentTab(v)}>
           <Tab label="Basic Information" />
+          <Tab label="Security" />
           <Tab label="Permissions" />
         </Tabs>
 
@@ -353,11 +395,137 @@ const EditUser: React.FC = () => {
           </form>
         </TabPanel>
 
+        {/* NEW: Security Tab with Password Reset */}
         <TabPanel value={currentTab} index={1}>
-          <PermissionSelector
-            userId={id!}
-            onChange={setCustomPermissions}
-          />
+          <Box sx={{ maxWidth: 600 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <LockResetIcon color="primary" />
+              <Typography variant="h6">Reset Password</Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Set a new password for this user. The password must be at least 8 characters 
+              long and contain uppercase, lowercase, and numbers.
+            </Typography>
+
+            <form onSubmit={handlePasswordSubmit(handlePasswordReset)}>
+              <Grid container spacing={3}>
+                {/* New Password */}
+                <Grid size={12}>
+                  <Controller
+                    name="newPassword"
+                    control={passwordControl}
+                    defaultValue=""
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="New Password"
+                        type={showPassword ? 'text' : 'password'}
+                        error={!!passwordErrors.newPassword}
+                        helperText={passwordErrors.newPassword?.message}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Confirm Password */}
+                <Grid size={12}>
+                  <Controller
+                    name="confirmPassword"
+                    control={passwordControl}
+                    defaultValue=""
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Confirm New Password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        error={!!passwordErrors.confirmPassword}
+                        helperText={passwordErrors.confirmPassword?.message}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                edge="end"
+                              >
+                                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Action Buttons */}
+                <Grid size={12}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="warning"
+                      size="large"
+                      disabled={resettingPassword}
+                      startIcon={<LockResetIcon />}
+                    >
+                      {resettingPassword ? 'Resetting...' : 'Reset Password'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={() => {
+                        resetPasswordForm();
+                        setShowPassword(false);
+                        setShowConfirmPassword(false);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </form>
+
+            <Divider sx={{ my: 4 }} />
+
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: 'warning.lighter',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'warning.main',
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight="bold" color="warning.dark">
+                ⚠️ Security Notice
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                • Passwords are encrypted and cannot be retrieved<br />
+                • Use strong passwords with mixed characters<br />
+                • User will need to use the new password on next login
+              </Typography>
+            </Box>
+          </Box>
+        </TabPanel>
+
+        <TabPanel value={currentTab} index={2}>
+          <PermissionSelector userId={id!} onChange={setCustomPermissions} />
           <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
@@ -376,8 +544,10 @@ const EditUser: React.FC = () => {
             </Button>
           </Box>
 
-           <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-            <Typography variant="caption" fontWeight="bold">Debug Info:</Typography>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Typography variant="caption" fontWeight="bold">
+              Debug Info:
+            </Typography>
             <Typography variant="caption" display="block">
               Added: {customPermissions.add.length > 0 ? customPermissions.add.join(', ') : 'None'}
             </Typography>

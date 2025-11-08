@@ -8,3 +8,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface ImportMetaEnv {
+  readonly VITE_API_BASE_IMG_URL: string
+}

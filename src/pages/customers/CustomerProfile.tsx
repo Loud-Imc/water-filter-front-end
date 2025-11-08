@@ -32,6 +32,7 @@ interface CustomerHistory {
   statistics: {
     totalServices: number;
     installations: number;
+    reInstallations: number;
     services: number;
     complaints: number;
     enquiries: number;

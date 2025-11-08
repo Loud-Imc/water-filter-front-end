@@ -60,6 +60,8 @@ export const REQUEST_TYPES = {
   SERVICE: 'Service',
   INSTALLATION: 'Installation',
   COMPLAINT: 'Complaint',
+  ENQUIRY: 'Enquiry',
+  RE_INSTALLATION: 'Re-Installation',
 };
 
 export const REQUEST_STATUS_COLORS = {

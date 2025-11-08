@@ -6,6 +6,7 @@ interface CustomerStatsProps {
   statistics: {
     totalServices: number;
     installations: number;
+    reInstallations: number;
     services: number;
     complaints: number;
     enquiries: number;
@@ -19,6 +20,7 @@ const CustomerStats: React.FC<CustomerStatsProps> = ({ statistics, sx }) => {
   const statItems = [
     { label: 'Total Services', value: statistics.totalServices, color: 'primary.main' },
     { label: 'Installations', value: statistics.installations, color: 'info.main' },
+    { label: 'Re-Installations', value: statistics.reInstallations, color: 'secondary.main' },
     { label: 'Services', value: statistics.services, color: 'success.main' },
     { label: 'Complaints', value: statistics.complaints, color: 'error.main' },
     { label: 'Enquiries', value: statistics.enquiries, color: 'warning.main' },

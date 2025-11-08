@@ -30,6 +30,8 @@ const ServiceHistoryTimeline: React.FC<ServiceHistoryTimelineProps> = ({
     switch (type) {
       case 'INSTALLATION':
         return <BuildIcon />;
+      case 'RE_INSTALLATION':
+        return <BuildIcon />;
       case 'SERVICE':
         return <HandymanIcon />;
       case 'COMPLAINT':
@@ -45,12 +47,14 @@ const ServiceHistoryTimeline: React.FC<ServiceHistoryTimelineProps> = ({
     switch (type) {
       case 'INSTALLATION':
         return 'primary';
+      case 'RE_INSTALLATION':
+        return 'secondary';
       case 'SERVICE':
         return 'success';
       case 'COMPLAINT':
         return 'error';
       case 'ENQUIRY':
-        return 'warning';
+        return '';
       default:
         return 'default';
     }
@@ -123,11 +127,11 @@ const ServiceHistoryTimeline: React.FC<ServiceHistoryTimelineProps> = ({
                       <Typography variant="h6" fontWeight={600}>
                         {service.type}
                       </Typography>
-                      <Chip
+                      {service.type !== 'ENQUIRY' && <Chip
                         label={service.status.replace('_', ' ')}
                         size="small"
                         color={getStatusColor(service.status)}
-                      />
+                      />}
                     </Box>
 
                     <Typography variant="body2" color="text.secondary" gutterBottom>

@@ -12,7 +12,7 @@ import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { serviceRequestSchema } from '../../utils/validators';
 
 interface FormData {
-  type: 'SERVICE' | 'INSTALLATION' | 'COMPLAINT' | 'ENQUIRY';
+  type: 'SERVICE' | 'INSTALLATION' | 'RE_INSTALLATION' | 'COMPLAINT' | 'ENQUIRY';
   description: string;
   customerId: string;
   regionId: string;
@@ -104,6 +104,8 @@ const CreateServiceRequest: React.FC = () => {
                       <MenuItem value="SERVICE">Service</MenuItem>
                       <MenuItem value="INSTALLATION">Installation</MenuItem>
                       <MenuItem value="COMPLAINT">Complaint</MenuItem>
+                      <MenuItem value="ENQUIRY">Enquiry</MenuItem>
+                      <MenuItem value="RE_INSTALLATION">Re-Installation</MenuItem>
                     </TextField>
                   )}
                 />
