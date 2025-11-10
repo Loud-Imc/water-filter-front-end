@@ -1,6 +1,6 @@
 import { axiosInstance } from "../axios";
 import { API_ENDPOINTS } from "../endponts";
-import { type ServiceRequest } from "../../types";
+import { type TechnicianWithWorkload, type ServiceRequest } from "../../types";
 
 export const requestService = {
   // Get all service requests
@@ -19,10 +19,28 @@ export const requestService = {
     return data;
   },
 
-  // Create service request
-  async createRequest(
-    requestData: Partial<ServiceRequest>
-  ): Promise<ServiceRequest> {
+  // ✅ Get technicians with workload
+  getTechniciansWithWorkload: async (
+    regionId?: string
+  ): Promise<TechnicianWithWorkload[]> => {
+    const params = regionId ? { regionId } : {};
+    const response = await axiosInstance.get(
+      "/service-requests/technicians/workload",
+      { params }
+    );
+    return response.data;
+  },
+
+  // ✅ Create with priority and direct assignment
+  createRequest: async (requestData: {
+    type: string;
+    description: string;
+    customerId: string;
+    regionId: string;
+    priority?: string;
+    assignedToId: string;
+    adminNotes?: string;
+  }): Promise<ServiceRequest> => {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.BASE,
       requestData
@@ -46,9 +64,7 @@ export const requestService = {
   async salesApprove(id: string, comments?: string): Promise<ServiceRequest> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.SALES_APPROVE(id),
-      {
-        comments,
-      }
+      { comments }
     );
     return data;
   },
@@ -57,9 +73,7 @@ export const requestService = {
   async serviceApprove(id: string, comments?: string): Promise<ServiceRequest> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.SERVICE_APPROVE(id),
-      {
-        comments,
-      }
+      { comments }
     );
     return data;
   },
@@ -68,9 +82,7 @@ export const requestService = {
   async rejectRequest(id: string, comments: string): Promise<ServiceRequest> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.REJECT(id),
-      {
-        comments,
-      }
+      { comments }
     );
     return data;
   },
@@ -90,15 +102,12 @@ export const requestService = {
   ): Promise<ServiceRequest> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.MANUAL_ASSIGN(id),
-      {
-        technicianId,
-      }
+      { technicianId }
     );
     return data;
   },
 
-  // ✅ ADD THESE METHODS:
-
+  // Reassign technician
   async reassignTechnician(
     id: string,
     newTechnicianId: string,
@@ -106,11 +115,15 @@ export const requestService = {
   ): Promise<ServiceRequest> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.REASSIGN_TECHNICIAN(id),
-      { newTechnicianId, reason }
+      {
+        newTechnicianId,
+        reason,
+      }
     );
     return data;
   },
 
+  // Get reassignment history
   async getReassignmentHistory(id: string): Promise<any[]> {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.SERVICE_REQUESTS.REASSIGNMENT_HISTORY(id)
@@ -185,19 +198,21 @@ export const requestService = {
     return data;
   },
 
+  // Acknowledge completion
   async acknowledgeCompletion(
     id: string,
     comments?: string
   ): Promise<ServiceRequest> {
     const { data } = await axiosInstance.patch(
       `${API_ENDPOINTS.SERVICE_REQUESTS.BASE}/${id}/acknowledge`,
-      { comments }
+      {
+        comments,
+      }
     );
     return data;
   },
 
-  // ✅ ADD THESE METHODS:
-
+  // Add used products
   async addUsedProducts(
     requestId: string,
     usedProducts: Array<{
@@ -208,11 +223,14 @@ export const requestService = {
   ): Promise<any> {
     const { data } = await axiosInstance.post(
       API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
-      { usedProducts }
+      {
+        usedProducts,
+      }
     );
     return data;
   },
 
+  // Get used products
   async getUsedProducts(requestId: string): Promise<any[]> {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.SERVICE_REQUESTS.GET_USED_PRODUCTS(requestId)

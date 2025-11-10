@@ -38,4 +38,6 @@ export const customerService = {
     const response = await axiosInstance.get('/customers/search', { params });
     return response.data;
   },
+
+  
 };

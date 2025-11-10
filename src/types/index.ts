@@ -4,7 +4,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string | null;
-  status: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
+  status: "ACTIVE" | "BLOCKED" | "SUSPENDED";
   roleId: string;
   regionId?: string | null;
   createdAt: string;
@@ -27,10 +27,10 @@ export interface Role {
 export interface Region {
   id: string;
   name: string;
-  state?: string;      // Optional: "Kerala"
-  district?: string;   // Optional: "Kottayam"
-  city?: string;       // Optional: "Pala"
-  pincode?: string;    // Optional: "686575"
+  state?: string; // Optional: "Kerala"
+  district?: string; // Optional: "Kottayam"
+  city?: string; // Optional: "Pala"
+  pincode?: string; // Optional: "686575"
 }
 
 // ✅ Add India Places Types
@@ -49,21 +49,20 @@ export interface CityData {
   state: string;
 }
 
-
 // Customer types
 // Update the Customer interface
 export interface Customer {
   id: string;
   name: string;
   address: string;
-  primaryPhone: string;        // ✅ Changed from 'contact'
-  phoneNumbers: string[];      // ✅ New: Additional phones
+  primaryPhone: string; // ✅ Changed from 'contact'
+  phoneNumbers: string[]; // ✅ New: Additional phones
   email?: string;
   regionId: string;
   region?: Region;
-  latitude?: number;           // ✅ New: For Google Maps
-  longitude?: number;          // ✅ New: For Google Maps
-  googleMapsUrl?: string;      // ✅ New: Google Maps link
+  latitude?: number; // ✅ New: For Google Maps
+  longitude?: number; // ✅ New: For Google Maps
+  googleMapsUrl?: string; // ✅ New: Google Maps link
   createdAt: string;
   updatedAt: string;
 }
@@ -82,25 +81,34 @@ export interface CreateCustomerDto {
 
 export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {}
 
-
 // Service Request types
-export type RequestType = 'SERVICE' | 'INSTALLATION' | 'COMPLAINT'| 'ENQUIRY' | 'RE_INSTALLATION' ;
+export type RequestType =
+  | "SERVICE"
+  | "INSTALLATION"
+  | "COMPLAINT"
+  | "ENQUIRY"
+  | "RE_INSTALLATION";
 export type RequestStatus =
-  | 'DRAFT'
-  | 'PENDING_APPROVAL'
-  | 'APPROVED'
-  | 'ASSIGNED'
-  | 'IN_PROGRESS'
-  | 'WORK_COMPLETED'
-  | 'COMPLETED'
-  | 'REJECTED';
+  | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "WORK_COMPLETED"
+  | "COMPLETED"
+  | "REJECTED";
 
+// ✅ ADD: Priority enum
+export type ServicePriority = "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
+
+// ✅ UPDATE: ServiceRequest interface
 export interface ServiceRequest {
   id: string;
   type: RequestType;
   description: string;
   acknowledgmentComments?: string;
   status: RequestStatus;
+  priority: ServicePriority; // ✅ NEW
   requestedById: string;
   approvedById?: string;
   assignedToId?: string;
@@ -118,12 +126,23 @@ export interface ServiceRequest {
   workMedia?: WorkMedia[];
 }
 
+// ✅ ADD: Technician with workload interface
+export interface TechnicianWithWorkload {
+  id: string;
+  name: string;
+  email: string;
+  region: {
+    name: string;
+  } | null;
+  pendingTasks: number;
+}
+
 export interface ApprovalHistory {
   id: string;
   requestId: string;
   approverId: string;
   approverRole: string;
-  status: 'APPROVED' | 'REJECTED';
+  status: "APPROVED" | "REJECTED";
   comments?: string;
   approvedAt: string;
   approver: User;
@@ -151,7 +170,7 @@ export interface Notification {
   fromUserId: string;
   toUserId: string;
   message: string;
-  status: 'sent' | 'delivered' | 'read';
+  status: "sent" | "delivered" | "read";
   createdAt: string;
   sender: Partial<User>;
 }
@@ -169,7 +188,6 @@ export interface RegisterData {
   roleId: string;
   regionId?: string;
 }
-
 
 export interface AuthResponse {
   user: User;
@@ -211,3 +229,96 @@ export interface StockUpdateDto {
   reason: string;
 }
 
+// ✅ ADD: Report types
+export interface ReportDateRange {
+  startDate: string; // ISO date string
+  endDate: string;
+}
+
+export interface ServiceRequestsReport {
+  total: number;
+  byStatus: Array<{
+    status: string;
+    count: number;
+    percentage: string;
+  }>;
+  byType: Array<{
+    type: string;
+    count: number;
+    percentage: string;
+  }>;
+  completionRate: string;
+  avgCompletionTimeDays: string;
+}
+
+export interface TechnicianPerformance {
+  technicianId: string;
+  name: string;
+  email: string;
+  region: string;
+  assigned: number;
+  completed: number;
+  inProgress: number;
+  completionRate: string;
+  avgWorkDurationHours: string;
+}
+
+export interface RegionalBreakdown {
+  regionId: string;
+  name: string;
+  district: string | null;
+  city: string | null;
+  totalRequests: number;
+  completedRequests: number;
+  completionRate: string;
+  totalCustomers: number;
+  totalTechnicians: number;
+}
+
+export interface CustomerActivity {
+  newCustomers: number;
+  totalCustomers: number;
+  avgServicesPerCustomer: string;
+  topCustomers: Array<{
+    customerId: string;
+    name: string;
+    phone: string;
+    region: string;
+    totalServices: number;
+    completedServices: number;
+  }>;
+}
+
+export interface ProductUsage {
+  mostUsedProducts: Array<{
+    productId: string;
+    name: string;
+    sku: string;
+    currentStock: number;
+    totalQuantityUsed: number;
+    timesUsed: number;
+    estimatedValue: number;
+  }>;
+  lowStockProducts: Array<{
+    id: string;
+    name: string;
+    sku: string | null;
+    stock: number;
+    price: number;
+  }>;
+  totalValueConsumed: string;
+  totalProductsUsed: number;
+}
+
+export interface ComprehensiveReport {
+  period: {
+    startDate: Date;
+    endDate: Date;
+  };
+  serviceRequests: ServiceRequestsReport;
+  technicianPerformance: TechnicianPerformance[];
+  regionalBreakdown: RegionalBreakdown[];
+  customerActivity: CustomerActivity;
+  productUsage: ProductUsage;
+  generatedAt: Date;
+}
