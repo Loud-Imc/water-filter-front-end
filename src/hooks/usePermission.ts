@@ -2,6 +2,8 @@ import { useAppSelector } from '../app/hooks';
 
 export const usePermission = () => {
   const permissions = useAppSelector((state) => state.auth.permissions);
+
+  console.log('🔑 User permissions from state:', permissions);
   const user = useAppSelector((state) => state.auth.user);
 
   // Check if user has a specific permission

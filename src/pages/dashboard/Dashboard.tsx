@@ -12,6 +12,7 @@ import RecentRequests from "../../components/dashboard/RecentRequests";
 import RequestsByType from "../../components/dashboard/RequestsByType";
 import TechnicianTasks from "../../components/dashboard/TechnicianTasks";
 import StockAlertBar from "../../components/dashboard/StockAlertBar";
+import ReportsSection from "../../components/dashboard/ReportsSection"; // ✅ NEW
 
 // Icons
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -36,7 +37,6 @@ const Dashboard: React.FC = () => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
 
-  // Navigate to service requests with filter
   const handleCardClick = (status?: RequestStatus) => {
     if (status) {
       navigate(`/service-requests?status=${status}`);
@@ -54,8 +54,8 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // ✅ Determine if user is technician
   const isTechnician = user?.role.name === "Technician";
+  const isSuperAdmin = user?.role.name === "Super Admin"; // ✅ NEW
 
   return (
     <Box>
@@ -64,19 +64,14 @@ const Dashboard: React.FC = () => {
         subtitle="Here's what's happening today"
       />
 
-      {/* Technician-specific task view */}
       {isTechnician && stats.myTasks && (
         <TechnicianTasks tasks={stats.myTasks} />
       )}
 
-      {/* Stock alert bar */}
       <StockAlertBar userRole={user?.role.name} />
 
-      {/* ✅ Stats Grid - Single container with conditional cards */}
+      {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Cards visible to ALL users */}
-        
-        {/* Total Requests - Show to non-technicians only */}
         {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
@@ -89,7 +84,6 @@ const Dashboard: React.FC = () => {
           </Grid>
         )}
 
-        {/* Pending Approval - Show to non-technicians only */}
         {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
@@ -102,7 +96,6 @@ const Dashboard: React.FC = () => {
           </Grid>
         )}
 
-        {/* Approved - Show to non-technicians only */}
         {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
@@ -115,7 +108,6 @@ const Dashboard: React.FC = () => {
           </Grid>
         )}
 
-        {/* Assigned - Show to ALL */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Assigned"
@@ -126,7 +118,6 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
 
-        {/* In Progress - Show to ALL */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="In Progress"
@@ -137,7 +128,6 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
 
-        {/* Work Completed - Show to ALL */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Work Completed"
@@ -148,7 +138,6 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
 
-        {/* Completed - Show to ALL */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Completed"
@@ -159,7 +148,6 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
 
-        {/* Rejected - Show to non-technicians only */}
         {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard
@@ -183,6 +171,9 @@ const Dashboard: React.FC = () => {
           <RequestsByType data={stats.byType} />
         </Grid>
       </Grid>
+
+      {/* ✅ NEW: Reports Section (Only for Super Admin) */}
+      {isSuperAdmin && <ReportsSection />}
     </Box>
   );
 };
