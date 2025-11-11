@@ -7,7 +7,7 @@ import {
   Typography,
   InputAdornment,
 } from "@mui/material";
-import LockIcon from "@mui/icons-material/Lock"; // ✅ Import lock icon
+import LockIcon from "@mui/icons-material/Lock";
 import { debounce } from "lodash";
 import { axiosInstance } from "../../api/axios";
 
@@ -24,7 +24,7 @@ interface SearchableSelectProps {
   endpoint: string;
   placeholder?: string;
   disabled?: boolean;
-  readOnly?: boolean; // ✅ NEW: Add readOnly prop
+  readOnly?: boolean;
   error?: boolean;
   helperText?: string;
   filters?: Record<string, any>;
@@ -38,7 +38,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   endpoint,
   placeholder = "Search...",
   disabled = false,
-  readOnly = false, // ✅ NEW: Default false
+  readOnly = false,
   error = false,
   helperText = "",
   filters = {},
@@ -69,36 +69,45 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     }
   }, 300);
 
-  // Fetch initial selected value
+  // ✅ Load selected value when value prop changes
   useEffect(() => {
-    if (value && !selectedOption) {
-      const loadSelected = async () => {
-        try {
-          const existingOption = options.find((opt) => opt.id === value);
-          if (existingOption) {
-            setSelectedOption(existingOption);
-            return;
-          }
+    const loadSelected = async () => {
+      if (!value) {
+        setSelectedOption(null);
+        return;
+      }
 
-          const baseEndpoint = endpoint.replace("/search", "");
-          const response = await axiosInstance.get(`${baseEndpoint}/${value}`);
-          setSelectedOption(response.data);
-        } catch (error) {
-          console.error("Error loading selected value:", error);
+      // Skip if already loaded
+      if (selectedOption?.id === value) {
+        return;
+      }
+
+      try {
+        // Check if it's in current options
+        const existingOption = options.find((opt) => opt.id === value);
+        if (existingOption) {
+          setSelectedOption(existingOption);
+          return;
         }
-      };
-      loadSelected();
-    } else if (!value) {
-      setSelectedOption(null);
-    }
+
+        // Fetch from API if not found
+        const baseEndpoint = endpoint.replace("/search", "");
+        const response = await axiosInstance.get(`${baseEndpoint}/${value}`);
+        setSelectedOption(response.data);
+      } catch (error) {
+        console.error("Error loading selected value:", error);
+      }
+    };
+
+    loadSelected();
   }, [value, endpoint]);
 
+  // ✅ FIXED: Fetch options when user types (works in both normal and pre-filled mode)
   useEffect(() => {
     if (inputValue && !readOnly) {
-      // ✅ Don't fetch if readOnly
       fetchOptions(inputValue);
     }
-  }, [inputValue, JSON.stringify(filters), readOnly]);
+  }, [inputValue, readOnly]); // ✅ Removed !value condition
 
   const defaultRenderOption = (option: Option) => (
     <Box>
@@ -111,28 +120,33 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     </Box>
   );
 
+  // ✅ When readOnly, show only selected option
+  const displayOptions = readOnly
+    ? selectedOption
+      ? [selectedOption]
+      : []
+    : options;
   return (
     <Autocomplete
       value={selectedOption}
       onChange={(_, newValue) => {
         if (!readOnly) {
-          // ✅ Prevent change if readOnly
           setSelectedOption(newValue);
           onChange(newValue?.id || null, newValue);
         }
       }}
       inputValue={inputValue}
-      onInputChange={(_, newInputValue) => {
+      onInputChange={(_, newInputValue, reason) => {
         if (!readOnly) {
-          // ✅ Prevent input change if readOnly
           setInputValue(newInputValue);
         }
       }}
-      options={readOnly ? [] : options} // ✅ No options dropdown if readOnly
-      getOptionLabel={(option) => option.name || ""}
+      options={displayOptions}
+      filterOptions={(x) => x} // 👈 disables internal filtering
+      getOptionLabel={(opt) => opt.name || opt.primaryPhone || ""}
       loading={loading}
       disabled={disabled}
-      readOnly={readOnly} // ✅ NEW: Pass readOnly to Autocomplete
+      open={readOnly ? false : undefined}
       isOptionEqualToValue={(option, value) => option.id === value.id}
       renderOption={(props, option) => {
         const { key, ...otherProps } = props as any;
@@ -151,12 +165,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           helperText={helperText}
           InputProps={{
             ...params.InputProps,
-            readOnly: readOnly, // ✅ Make input readOnly
-            startAdornment: readOnly ? ( // ✅ Show lock icon if readOnly
+            readOnly: readOnly,
+            startAdornment: readOnly ? (
               <InputAdornment position="start">
                 <LockIcon sx={{ color: "text.secondary", fontSize: 20 }} />
               </InputAdornment>
-            ) : undefined,
+            ) : (
+              params.InputProps.startAdornment
+            ),
             endAdornment: (
               <>
                 {loading ? <CircularProgress size={20} /> : null}
@@ -164,15 +180,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               </>
             ),
             sx: {
-              // ✅ Override disabled/readOnly styling to keep text black
               "& .MuiInputBase-input": {
                 color: readOnly ? "text.primary" : undefined,
                 cursor: readOnly ? "default" : undefined,
                 WebkitTextFillColor: readOnly
                   ? "rgba(0, 0, 0, 0.87)"
-                  : undefined, // ✅ Force black text
+                  : undefined,
               },
-              // ✅ Keep label color normal
               "& .MuiInputLabel-root": {
                 color: readOnly ? "text.primary" : undefined,
               },
@@ -181,7 +195,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         />
       )}
       noOptionsText={
-        inputValue.length < 2
+        inputValue.length < 2 && !readOnly
           ? "Type at least 2 characters"
           : "No options found"
       }
