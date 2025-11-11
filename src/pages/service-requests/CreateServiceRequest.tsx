@@ -12,7 +12,9 @@ import {
   IconButton,
   Tooltip,
   LinearProgress,
+  InputAdornment,
 } from "@mui/material";
+import LockIcon from "@mui/icons-material/Lock";
 import { Grid } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
@@ -28,36 +30,48 @@ import PageHeader from "../../components/common/PageHeader";
 import SnackbarNotification from "../../components/common/SnackbarNotification";
 import { SearchableSelect } from "../../components/common/SearchableSelect";
 import QuickAddCustomerDialog from "../../components/customer/QuickAddCustomerDialog";
+import QuickAddRegionDialog from "../../components/region/QuickAddRegionDialog";
 import { requestService } from "../../api/services/requestService";
 import type { TechnicianWithWorkload } from "../../types";
+import axiosInstance from "../../api/axios";
 
 // Validation schema with proper enum types
 const serviceRequestSchema = yup.object().shape({
   type: yup
     .string()
-    .oneOf(['SERVICE', 'INSTALLATION', 'RE_INSTALLATION', 'COMPLAINT', 'ENQUIRY'] as const)
-    .required('Request type is required'),
-  description: yup.string().required('Description is required'),
-  customerId: yup.string().required('Customer is required'),
-  regionId: yup.string().required('Region is required'),
+    .oneOf([
+      "SERVICE",
+      "INSTALLATION",
+      "RE_INSTALLATION",
+      "COMPLAINT",
+      "ENQUIRY",
+    ] as const)
+    .required("Request type is required"),
+  description: yup.string().required("Description is required"),
+  customerId: yup.string().required("Customer is required"),
+  regionId: yup.string().required("Region is required"),
   priority: yup
     .string()
-    .oneOf(['HIGH', 'MEDIUM', 'NORMAL', 'LOW'] as const)
-    .required('Priority is required'),
-  assignedToId: yup.string().required('Technician assignment is required'),
+    .oneOf(["HIGH", "MEDIUM", "NORMAL", "LOW"] as const)
+    .required("Priority is required"),
+  assignedToId: yup.string().required("Technician assignment is required"),
   adminNotes: yup.string().optional(),
 });
 
 interface FormData {
-  type: 'SERVICE' | 'INSTALLATION' | 'RE_INSTALLATION' | 'COMPLAINT' | 'ENQUIRY';
+  type:
+    | "SERVICE"
+    | "INSTALLATION"
+    | "RE_INSTALLATION"
+    | "COMPLAINT"
+    | "ENQUIRY";
   description: string;
   customerId: string;
   regionId: string;
-  priority: 'HIGH' | 'MEDIUM' | 'NORMAL' | 'LOW';
+  priority: "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
   assignedToId: string;
   adminNotes?: string;
 }
-
 
 const CreateServiceRequest: React.FC = () => {
   const navigate = useNavigate();
@@ -72,9 +86,9 @@ const CreateServiceRequest: React.FC = () => {
     regionId?: string;
     regionName?: string;
   } | null;
-
   // States
   const [customerDialog, setCustomerDialog] = useState(false);
+  const [regionDialog, setRegionDialog] = useState(false);
   const [technicians, setTechnicians] = useState<TechnicianWithWorkload[]>([]);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [selectedCustomerName, setSelectedCustomerName] = useState(
@@ -148,6 +162,18 @@ const CreateServiceRequest: React.FC = () => {
 
     // Fetch technicians for the selected region
     fetchTechnicians(regionId);
+  };
+
+  const handleRegionCreated = async (regionId: string) => {
+    setValue("regionId", regionId);
+
+    try {
+      const response = await axiosInstance.get(`/regions/${regionId}`);
+      setSelectedRegionName(response.data.name);
+      fetchTechnicians(regionId);
+    } catch (error) {
+      console.error("Failed to fetch region details:", error);
+    }
   };
 
   // Handle customer selection
@@ -338,46 +364,96 @@ const CreateServiceRequest: React.FC = () => {
 
               {/* Region Selection */}
               <Box>
-                <Controller
-                  name="regionId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label="Region *"
-                      value={field.value}
-                      onChange={(value, option) => {
-                        field.onChange(value);
-                        handleRegionChange(value, option);
-                      }}
-                      endpoint="/regions/search"
-                      placeholder="Type to search region..."
-                      readOnly={!!prefilledData?.regionId}
-                      error={!!formErrors.regionId}
-                      helperText={
-                        formErrors.regionId?.message ||
-                        (prefilledData?.regionId
-                          ? `Pre-selected: ${selectedRegionName}`
-                          : "Type at least 2 characters to search")
-                      }
-                      renderOption={(option: any) => (
-                        <Box>
-                          <Typography variant="body1" fontWeight={500}>
-                            {option.name}
-                          </Typography>
-                          {option.district && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {option.district} • {option.city || "N/A"} •{" "}
-                              {option.pincode || "N/A"}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-                    />
-                  )}
-                />
+                {prefilledData?.regionId ? (
+                  <Controller
+                    name="regionId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        label="Region *"
+                        value={selectedRegionName}
+                        disabled
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LockIcon
+                                sx={{ color: "text.secondary", fontSize: 20 }}
+                              />
+                            </InputAdornment>
+                          ),
+                        }}
+                        helperText="🔒 Pre-selected from customer profile"
+                        sx={{
+                          "& .MuiInputBase-input.Mui-disabled": {
+                            WebkitTextFillColor: "rgba(0, 0, 0, 0.87)",
+                            color: "rgba(0, 0, 0, 0.87)",
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                ) : (
+                  <Box
+                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+                  >
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Controller
+                        name="regionId"
+                        control={control}
+                        render={({ field }) => (
+                          <SearchableSelect
+                            label="Region *"
+                            value={field.value}
+                            onChange={(value, option) => {
+                              field.onChange(value);
+                              handleRegionChange(value, option);
+                            }}
+                            endpoint="/regions/search"
+                            placeholder="Type to search region..."
+                            error={!!formErrors.regionId}
+                            helperText={
+                              formErrors.regionId?.message ||
+                              "Type at least 2 characters to search"
+                            }
+                            renderOption={(option: any) => (
+                              <Box>
+                                <Typography variant="body1" fontWeight={500}>
+                                  {option.name}
+                                </Typography>
+                                {option.district && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {option.district} • {option.city || "N/A"} •{" "}
+                                    {option.pincode || "N/A"}
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          />
+                        )}
+                      />
+                    </Box>
+
+                    {/* ✅ Quick Add Region Button */}
+                    <Tooltip title="Create new region">
+                      <IconButton
+                        color="primary"
+                        onClick={() => setRegionDialog(true)}
+                        sx={{
+                          border: 1,
+                          borderColor: "primary.main",
+                          borderRadius: 1,
+                          mt: 1,
+                        }}
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
               </Box>
 
               {/* Customer Selection with Quick Add */}
@@ -388,43 +464,75 @@ const CreateServiceRequest: React.FC = () => {
                       name="customerId"
                       control={control}
                       render={({ field }) => (
-                        <SearchableSelect
-                          label="Select Customer *"
-                          value={field.value}
-                          onChange={(value, option) => {
-                            field.onChange(value);
-                            handleCustomerChange(value, option);
-                          }}
-                          endpoint="/customers/search"
-                          placeholder="Type name or phone number..."
-                          readOnly={!!prefilledData?.customerId}
-                          error={!!formErrors.customerId}
-                          helperText={
-                            formErrors.customerId?.message ||
-                            (prefilledData?.customerId
-                              ? `Pre-selected: ${selectedCustomerName}`
-                              : "Search by name, phone, or email")
-                          }
-                          renderOption={(option: any) => (
-                            <Box>
-                              <Typography variant="body1" fontWeight={500}>
-                                {option.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                📞 {option.primaryPhone} •{" "}
-                                {option.region?.name || "N/A"}
-                              </Typography>
-                            </Box>
+                        <>
+                          {prefilledData?.customerId ? (
+                            // ✅ Show simple TextField when pre-filled
+                            <TextField
+                              fullWidth
+                              label="Select Customer *"
+                              value={selectedCustomerName}
+                              disabled
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <LockIcon
+                                      sx={{
+                                        color: "text.secondary",
+                                        fontSize: 20,
+                                      }}
+                                    />
+                                  </InputAdornment>
+                                ),
+                              }}
+                              helperText="🔒 Pre-selected from customer profile"
+                              sx={{
+                                "& .MuiInputBase-input.Mui-disabled": {
+                                  WebkitTextFillColor: "rgba(0, 0, 0, 0.87)",
+                                  color: "rgba(0, 0, 0, 0.87)",
+                                },
+                              }}
+                            />
+                          ) : (
+                            // ✅ Show SearchableSelect when creating normally
+                            <SearchableSelect
+                              label="Select Customer *"
+                              value={field.value}
+                              onChange={(value, option) => {
+                                field.onChange(value);
+                                handleCustomerChange(value, option);
+                              }}
+                              endpoint="/customers/search"
+                              filters={{ regionId: watchRegionId }}
+                              placeholder="Type name or phone number..."
+                              error={!!formErrors.customerId}
+                              helperText={
+                                formErrors.customerId?.message ||
+                                (watchRegionId
+                                  ? `Showing customers from selected region`
+                                  : "Search by name, phone, or email")
+                              }
+                              renderOption={(option: any) => (
+                                <Box>
+                                  <Typography variant="body1" fontWeight={500}>
+                                    {option.name}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    📞 {option.primaryPhone} •{" "}
+                                    {option.region?.name || "N/A"}
+                                  </Typography>
+                                </Box>
+                              )}
+                            />
                           )}
-                        />
+                        </>
                       )}
                     />
                   </Box>
 
-                  {/* Quick Add Customer Button */}
+                  {/* Quick Add Customer Button - Only show when not pre-filled */}
                   {!prefilledData?.customerId && (
                     <Tooltip title="Create new customer">
                       <IconButton
@@ -540,7 +648,7 @@ const CreateServiceRequest: React.FC = () => {
               />
 
               {/* Admin Notes (Optional) */}
-              <Controller
+              {/* <Controller
                 name="adminNotes"
                 control={control}
                 render={({ field }) => (
@@ -553,7 +661,7 @@ const CreateServiceRequest: React.FC = () => {
                     placeholder="Internal notes for reference..."
                   />
                 )}
-              />
+              /> */}
 
               {/* Error Display */}
               {error && (
@@ -589,6 +697,12 @@ const CreateServiceRequest: React.FC = () => {
         onClose={() => setCustomerDialog(false)}
         onCustomerCreated={handleCustomerCreated}
         preSelectedRegionId={watchRegionId}
+      />
+
+      <QuickAddRegionDialog
+        open={regionDialog}
+        onClose={() => setRegionDialog(false)}
+        onRegionCreated={handleRegionCreated}
       />
 
       {/* Snackbar Notification */}
