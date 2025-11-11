@@ -38,6 +38,7 @@ const RegionManagement: React.FC = () => {
   const [formData, setFormData] = useState({
     state: 'Kerala',
     district: '',
+    taluk: '', // ✅ NEW
     city: '',
     pincode: '',
   });
@@ -81,6 +82,7 @@ const RegionManagement: React.FC = () => {
     const parts = [
       formData.state,
       formData.district,
+      formData.taluk, // ✅ NEW: Include taluk
       formData.city,
       formData.pincode,
     ].filter(Boolean);
@@ -93,6 +95,7 @@ const RegionManagement: React.FC = () => {
       setFormData({
         state: region.state || 'Kerala',
         district: region.district || '',
+        taluk: region.taluk || '', // ✅ NEW
         city: region.city || '',
         pincode: region.pincode || '',
       });
@@ -101,6 +104,7 @@ const RegionManagement: React.FC = () => {
       setFormData({
         state: 'Kerala',
         district: '',
+        taluk: '', // ✅ NEW
         city: '',
         pincode: '',
       });
@@ -111,7 +115,7 @@ const RegionManagement: React.FC = () => {
   const handleCloseDialog = () => {
     setDialog(false);
     setSelectedRegion(null);
-    setFormData({ state: 'Kerala', district: '', city: '', pincode: '' });
+    setFormData({ state: 'Kerala', district: '', taluk: '', city: '', pincode: '' }); // ✅ NEW
   };
 
   const handleSave = async () => {
@@ -127,6 +131,7 @@ const RegionManagement: React.FC = () => {
         name: regionName,
         state: formData.state,
         district: formData.district,
+        taluk: formData.taluk || undefined, // ✅ NEW
         city: formData.city || undefined,
         pincode: formData.pincode || undefined,
       };
@@ -188,7 +193,17 @@ const RegionManagement: React.FC = () => {
               <ListItem key={region.id} divider={index < regions.length - 1}>
                 <ListItemText
                   primary={region.name}
-                  secondary={`${region.district || 'N/A'} • ${region.city || 'N/A'} • ${region.pincode || 'N/A'}`}
+                  secondary={
+                    // ✅ UPDATED: Include taluk in display
+                    [
+                      region.district,
+                      region.taluk,
+                      region.city,
+                      region.pincode,
+                    ]
+                      .filter(Boolean)
+                      .join(' • ') || 'N/A'
+                  }
                 />
                 <ListItemSecondaryAction>
                   <IconButton edge="end" onClick={() => handleOpenDialog(region)} sx={{ mr: 1 }}>
@@ -241,6 +256,16 @@ const RegionManagement: React.FC = () => {
               ))}
             </TextField>
 
+            {/* ✅ NEW: Taluk - Manual Text Input */}
+            <TextField
+              fullWidth
+              label="Taluk (Optional)"
+              value={formData.taluk}
+              onChange={(e) => setFormData(prev => ({ ...prev, taluk: e.target.value }))}
+              placeholder="e.g., Kottayam, Meenachil, Vaikom"
+              helperText="Enter taluk/tehsil name if applicable"
+            />
+
             {/* City - Manual Text Input */}
             <TextField
               fullWidth
@@ -248,7 +273,7 @@ const RegionManagement: React.FC = () => {
               value={formData.city}
               onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
               placeholder="Enter city (e.g., Kochi, Pala)"
-              helperText="Telecaller enters manually"
+              helperText="Enter city or place name"
             />
 
             {/* Pincode - Manual Text Input */}
@@ -258,14 +283,15 @@ const RegionManagement: React.FC = () => {
               value={formData.pincode}
               onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
               placeholder="Enter pincode (e.g., 682001)"
-              helperText="Telecaller enters manually"
+              helperText="Enter 6-digit pincode"
+              inputProps={{ maxLength: 6 }}
             />
 
             {/* Generated Name Display */}
             {generateRegionName() && (
               <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
                 <Typography variant="subtitle2" color="info.dark">
-                  Region Name:
+                  Region Name Preview:
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500, mt: 0.5 }}>
                   {generateRegionName()}
