@@ -368,7 +368,9 @@ const CreateServiceRequest: React.FC = () => {
                   <Controller
                     name="regionId"
                     control={control}
-                    render={({ field }) => (
+                    render={({ 
+                      // field 
+                    }) => (
                       <TextField
                         fullWidth
                         label="Region *"

@@ -136,7 +136,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         }
       }}
       inputValue={inputValue}
-      onInputChange={(_, newInputValue, reason) => {
+      onInputChange={(_, newInputValue) => {
         if (!readOnly) {
           setInputValue(newInputValue);
         }
