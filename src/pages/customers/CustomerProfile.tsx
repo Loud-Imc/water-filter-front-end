@@ -12,18 +12,34 @@ import {
   IconButton,
   Stack,
   Alert,
+  Tooltip,
+  ListItem,
+  List,
+  CircularProgress,
 } from "@mui/material";
+import {
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon,
+  ArrowBack as ArrowBackIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  // PlayArrow as PlayArrowIcon,
+  // CheckCircle as CheckCircleIcon,
+  // Error as ErrorIcon,
+  Star as StarIcon,
+  Business as BusinessIcon, // ✅ NEW
+} from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import AddIcon from "@mui/icons-material/Add"; // ✅ Import AddIcon
 import DirectionsIcon from "@mui/icons-material/Directions";
 import { axiosInstance } from "../../api/axios";
 import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
 import CustomerStats from "../../components/customer/CustomerStats";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { installationService } from "../../api/services/installationService";
+import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
+import type { Installation } from "../../types";
 
 interface CustomerHistory {
   customer: any;
@@ -46,9 +62,12 @@ const CustomerProfile: React.FC = () => {
   const [data, setData] = useState<CustomerHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [installations, setInstallations] = useState<Installation[]>([]); // ✅ NEW
+  const [loadingInstallations, setLoadingInstallations] = useState(false);
+  const [installationDialog, setInstallationDialog] = useState(false);
   useEffect(() => {
     fetchCustomerHistory();
+    fetchInstallations();
   }, [id]);
 
   const fetchCustomerHistory = async () => {
@@ -63,6 +82,35 @@ const CustomerProfile: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ NEW: Fetch installations
+  const fetchInstallations = async () => {
+    try {
+      setLoadingInstallations(true);
+      const data = await installationService.getByCustomer(id!);
+      setInstallations(data);
+    } catch (err) {
+      console.error("Failed to fetch installations:", err);
+    } finally {
+      setLoadingInstallations(false);
+    }
+  };
+
+  // ✅ NEW: Navigate to create service with installation pre-filled
+  const handleCreateServiceAtInstallation = (installation: Installation) => {
+    if (!data?.customer) return; // Safety check
+
+    navigate("/service-requests/create", {
+      state: {
+        customerId: data.customer.id, // ✅ Fixed
+        customerName: data.customer.name, // ✅ Fixed
+        regionId: installation.regionId,
+        regionName: installation.region?.name || data.customer.region?.name, // ✅ Fixed
+        installationId: installation.id,
+        installationName: installation.name,
+      },
+    });
   };
 
   const handleNavigateToLocation = () => {
@@ -84,6 +132,14 @@ const CustomerProfile: React.FC = () => {
         regionName: data.customer.region?.name,
       },
     });
+  };
+
+  // ✅ ADD: Handle installation created
+  const handleInstallationCreated = (
+    // installationId: string,
+    // installationName: string
+  ) => {
+    fetchInstallations(); // Refresh installations list
   };
 
   if (loading) return <LoadingSpinner />;
@@ -226,10 +282,10 @@ const CustomerProfile: React.FC = () => {
                 </Box>
               )}
 
-              <Divider sx={{ my: 2 }} />
+              {/* <Divider sx={{ my: 2 }} /> */}
 
               {/* ✅ Quick Action Button */}
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              {/* <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                 Quick Actions
               </Typography>
               <Button
@@ -240,7 +296,178 @@ const CustomerProfile: React.FC = () => {
                 size="large"
               >
                 Create New Service Request
-              </Button>
+              </Button> */}
+            </CardContent>
+          </Card>
+
+          <Card sx={{ mt: 2 }}>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BusinessIcon color="primary" />
+                  <Typography variant="h6">Installation Locations</Typography>
+                  <Chip
+                    label={installations.length}
+                    size="small"
+                    color="primary"
+                  />
+                </Box>
+               
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                 <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setInstallationDialog(true)}
+                  size="small"
+                >
+                  Add Installation
+                </Button>
+              </Box>
+
+              {loadingInstallations ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                  <CircularProgress size={30} />
+                </Box>
+              ) : installations.length === 0 ? (
+                <Alert severity="info">
+                  No installations found. Add installation locations to track
+                  services at specific sites.
+                </Alert>
+              ) : (
+                <List sx={{ p: 0 }}>
+                  {installations.map((installation, index) => (
+                    <React.Fragment key={installation.id}>
+                      {index > 0 && <Divider />}
+                      <ListItem
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          py: 2,
+                          px: 0,
+                          "&:hover": {
+                            bgcolor: "action.hover",
+                          },
+                        }}
+                      >
+                        {/* Installation Header */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 1,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <LocationIcon color="action" fontSize="small" />
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {installation.name}
+                          </Typography>
+                          {installation.isPrimary && (
+                            <Chip
+                              icon={<StarIcon />}
+                              label="Primary"
+                              size="small"
+                              color="primary"
+                            />
+                          )}
+                          {installation.installationType && (
+                            <Chip
+                              label={installation.installationType}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                          {!installation.isActive && (
+                            <Chip
+                              label="Inactive"
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+
+                        {/* Installation Details */}
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 0.5 }}
+                          >
+                            📍 {installation.address}
+                          </Typography>
+
+                          {installation.landmark && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 0.5 }}
+                            >
+                              🏛️ Landmark: {installation.landmark}
+                            </Typography>
+                          )}
+
+                          {installation.contactPerson && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 0.5 }}
+                            >
+                              👤 Contact: {installation.contactPerson}
+                              {installation.contactPhone &&
+                                ` • 📞 ${installation.contactPhone}`}
+                            </Typography>
+                          )}
+
+                          {installation.notes && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                fontStyle: "italic",
+                                display: "block",
+                                mt: 0.5,
+                              }}
+                            >
+                              Note: {installation.notes}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Action Buttons */}
+                        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={() =>
+                              handleCreateServiceAtInstallation(installation)
+                            }
+                            disabled={!installation.isActive}
+                          >
+                            Create Service
+                          </Button>
+                          <Tooltip title="Edit installation">
+                            <IconButton size="small" color="primary">
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
 
@@ -253,6 +480,16 @@ const CustomerProfile: React.FC = () => {
           <ServiceHistoryTimeline serviceHistory={serviceHistory} />
         </Grid>
       </Grid>
+
+      {data?.customer && (
+        <QuickAddInstallationDialog
+          open={installationDialog}
+          onClose={() => setInstallationDialog(false)}
+          onInstallationCreated={handleInstallationCreated}
+          customerId={data.customer.id}
+          preSelectedRegionId={data.customer.regionId}
+        />
+      )}
     </Box>
   );
 };

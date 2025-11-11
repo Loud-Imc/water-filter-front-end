@@ -31,11 +31,15 @@ import SnackbarNotification from "../../components/common/SnackbarNotification";
 import { SearchableSelect } from "../../components/common/SearchableSelect";
 import QuickAddCustomerDialog from "../../components/customer/QuickAddCustomerDialog";
 import QuickAddRegionDialog from "../../components/region/QuickAddRegionDialog";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import { installationService } from "../../api/services/installationService";
 import { requestService } from "../../api/services/requestService";
-import type { TechnicianWithWorkload } from "../../types";
+import type { TechnicianWithWorkload, Installation } from "../../types";
 import axiosInstance from "../../api/axios";
+import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
 
 // Validation schema with proper enum types
+// ✅ UPDATED: Add optional installationId
 const serviceRequestSchema = yup.object().shape({
   type: yup
     .string()
@@ -50,6 +54,7 @@ const serviceRequestSchema = yup.object().shape({
   description: yup.string().required("Description is required"),
   customerId: yup.string().required("Customer is required"),
   regionId: yup.string().required("Region is required"),
+  installationId: yup.string().optional(), // ✅ NEW: Optional installation
   priority: yup
     .string()
     .oneOf(["HIGH", "MEDIUM", "NORMAL", "LOW"] as const)
@@ -68,6 +73,7 @@ interface FormData {
   description: string;
   customerId: string;
   regionId: string;
+  installationId?: string; // ✅ NEW
   priority: "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
   assignedToId: string;
   adminNotes?: string;
@@ -85,18 +91,27 @@ const CreateServiceRequest: React.FC = () => {
     customerName?: string;
     regionId?: string;
     regionName?: string;
+    installationId?: string; // ✅ NEW
+    installationName?: string; // ✅ NEW
   } | null;
   // States
   const [customerDialog, setCustomerDialog] = useState(false);
   const [regionDialog, setRegionDialog] = useState(false);
+  const [installationDialog, setInstallationDialog] = useState(false);
   const [technicians, setTechnicians] = useState<TechnicianWithWorkload[]>([]);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
+  const [installations, setInstallations] = useState<Installation[]>([]); // ✅ NEW
+  const [loadingInstallations, setLoadingInstallations] = useState(false); // ✅ NEW
   const [selectedCustomerName, setSelectedCustomerName] = useState(
     prefilledData?.customerName || ""
   );
   const [selectedRegionName, setSelectedRegionName] = useState(
     prefilledData?.regionName || ""
   );
+
+  const [selectedInstallationName, setSelectedInstallationName] = useState(
+    prefilledData?.installationName || ""
+  ); // ✅ NEW
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -117,6 +132,7 @@ const CreateServiceRequest: React.FC = () => {
       description: "",
       customerId: prefilledData?.customerId || "",
       regionId: prefilledData?.regionId || "",
+      installationId: prefilledData?.installationId || "", // ✅ NEW
       priority: "NORMAL",
       assignedToId: "",
       adminNotes: "",
@@ -124,6 +140,7 @@ const CreateServiceRequest: React.FC = () => {
   });
 
   const watchRegionId = watch("regionId");
+  const watchCustomerId = watch("customerId"); // ✅ NEW
 
   // Fetch technicians when region changes
   useEffect(() => {
@@ -131,6 +148,15 @@ const CreateServiceRequest: React.FC = () => {
       fetchTechnicians(watchRegionId);
     }
   }, [watchRegionId]);
+
+  useEffect(() => {
+    if (watchCustomerId) {
+      fetchInstallations(watchCustomerId);
+    } else {
+      setInstallations([]);
+      setValue("installationId", "");
+    }
+  }, [watchCustomerId]);
 
   // Fetch technicians with workload
   const fetchTechnicians = async (regionId: string) => {
@@ -150,6 +176,25 @@ const CreateServiceRequest: React.FC = () => {
     }
   };
 
+  const fetchInstallations = async (customerId: string) => {
+    setLoadingInstallations(true);
+    try {
+      const data = await installationService.getByCustomer(customerId);
+      setInstallations(data.filter((i) => i.isActive));
+
+      // If only one installation, auto-select it
+      if (data.length === 1) {
+        setValue("installationId", data[0].id);
+        setSelectedInstallationName(data[0].name);
+      }
+    } catch (error) {
+      console.error("Failed to fetch installations:", error);
+      setInstallations([]);
+    } finally {
+      setLoadingInstallations(false);
+    }
+  };
+
   // Handle customer creation from quick add dialog
   const handleCustomerCreated = (
     customerId: string,
@@ -162,6 +207,7 @@ const CreateServiceRequest: React.FC = () => {
 
     // Fetch technicians for the selected region
     fetchTechnicians(regionId);
+    fetchInstallations(customerId); // ✅ NEW: Fetch installations for new customer
   };
 
   const handleRegionCreated = async (regionId: string) => {
@@ -187,6 +233,8 @@ const CreateServiceRequest: React.FC = () => {
       }
     } else {
       setSelectedCustomerName("");
+      setInstallations([]); // ✅ NEW: Clear installations
+      setValue("installationId", "");
     }
   };
 
@@ -200,6 +248,35 @@ const CreateServiceRequest: React.FC = () => {
     }
   };
 
+  // ✅ NEW: Handle region created
+  // const handleRegionCreated = (regionId: string) => {
+  //   setValue("regionId", regionId);
+  //   fetchTechnicians(regionId);
+  // };
+
+  // ✅ NEW: Handle installation created
+  const handleInstallationCreated = (
+    installationId: string,
+    installationName: string
+  ) => {
+    setValue("installationId", installationId);
+    setSelectedInstallationName(installationName);
+    // Refresh installations list
+    if (watchCustomerId) {
+      fetchInstallations(watchCustomerId);
+    }
+  };
+
+  // ✅ NEW: Handle installation selection
+  const handleInstallationChange = (value: string | null) => {
+    setValue("installationId", value || "");
+    const installation = installations.find((i) => i.id === value);
+    if (installation) {
+      setSelectedInstallationName(installation.name);
+    } else {
+      setSelectedInstallationName("");
+    }
+  };
   // Submit handler
   const onSubmit = async (data: FormData) => {
     try {
@@ -238,7 +315,7 @@ const CreateServiceRequest: React.FC = () => {
   //   }
   // };
 
-  return (
+    return (
     <Box>
       <PageHeader title="Create Service Request" />
 
@@ -250,8 +327,10 @@ const CreateServiceRequest: React.FC = () => {
               {prefilledData?.customerId && (
                 <Alert severity="info" icon={<PersonIcon />}>
                   Creating service request for customer:{" "}
-                  <strong>{prefilledData.customerName}</strong> in region:{" "}
-                  <strong>{prefilledData.regionName}</strong>
+                  <strong>{prefilledData.customerName}</strong>
+                  {prefilledData.installationName && (
+                    <> at <strong>{prefilledData.installationName}</strong></>
+                  )}
                 </Alert>
               )}
 
@@ -305,53 +384,25 @@ const CreateServiceRequest: React.FC = () => {
                         }}
                       >
                         <MenuItem value="HIGH">
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Chip label="High" color="error" size="small" />
-                            <Typography variant="body2">
-                              Urgent - VIP
-                            </Typography>
+                            <Typography variant="body2">Urgent - VIP</Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="MEDIUM">
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Chip label="Medium" color="warning" size="small" />
                             <Typography variant="body2">Important</Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="NORMAL">
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Chip label="Normal" color="success" size="small" />
-                            <Typography variant="body2">
-                              Standard priority
-                            </Typography>
+                            <Typography variant="body2">Standard priority</Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="LOW">
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Chip label="Low" color="default" size="small" />
                             <Typography variant="body2">Can wait</Typography>
                           </Box>
@@ -369,8 +420,8 @@ const CreateServiceRequest: React.FC = () => {
                     name="regionId"
                     control={control}
                     render={({ 
-                      // field 
-                    }) => (
+                      // field
+                     }) => (
                       <TextField
                         fullWidth
                         label="Region *"
@@ -379,9 +430,7 @@ const CreateServiceRequest: React.FC = () => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <LockIcon
-                                sx={{ color: "text.secondary", fontSize: 20 }}
-                              />
+                              <LockIcon sx={{ color: "text.secondary", fontSize: 20 }} />
                             </InputAdornment>
                           ),
                         }}
@@ -396,9 +445,7 @@ const CreateServiceRequest: React.FC = () => {
                     )}
                   />
                 ) : (
-                  <Box
-                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                  >
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
                     <Box sx={{ flexGrow: 1 }}>
                       <Controller
                         name="regionId"
@@ -424,10 +471,7 @@ const CreateServiceRequest: React.FC = () => {
                                   {option.name}
                                 </Typography>
                                 {option.district && (
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
+                                  <Typography variant="caption" color="text.secondary">
                                     {option.district} • {option.city || "N/A"} •{" "}
                                     {option.pincode || "N/A"}
                                   </Typography>
@@ -439,7 +483,6 @@ const CreateServiceRequest: React.FC = () => {
                       />
                     </Box>
 
-                    {/* ✅ Quick Add Region Button */}
                     <Tooltip title="Create new region">
                       <IconButton
                         color="primary"
@@ -458,83 +501,75 @@ const CreateServiceRequest: React.FC = () => {
                 )}
               </Box>
 
-              {/* Customer Selection with Quick Add */}
+              {/* Customer Selection */}
               <Box>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
                   <Box sx={{ flexGrow: 1 }}>
-                    <Controller
-                      name="customerId"
-                      control={control}
-                      render={({ field }) => (
-                        <>
-                          {prefilledData?.customerId ? (
-                            // ✅ Show simple TextField when pre-filled
-                            <TextField
-                              fullWidth
-                              label="Select Customer *"
-                              value={selectedCustomerName}
-                              disabled
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <LockIcon
-                                      sx={{
-                                        color: "text.secondary",
-                                        fontSize: 20,
-                                      }}
-                                    />
-                                  </InputAdornment>
-                                ),
-                              }}
-                              helperText="🔒 Pre-selected from customer profile"
-                              sx={{
-                                "& .MuiInputBase-input.Mui-disabled": {
-                                  WebkitTextFillColor: "rgba(0, 0, 0, 0.87)",
-                                  color: "rgba(0, 0, 0, 0.87)",
-                                },
-                              }}
-                            />
-                          ) : (
-                            // ✅ Show SearchableSelect when creating normally
-                            <SearchableSelect
-                              label="Select Customer *"
-                              value={field.value}
-                              onChange={(value, option) => {
-                                field.onChange(value);
-                                handleCustomerChange(value, option);
-                              }}
-                              endpoint="/customers/search"
-                              filters={{ regionId: watchRegionId }}
-                              placeholder="Type name or phone number..."
-                              error={!!formErrors.customerId}
-                              helperText={
-                                formErrors.customerId?.message ||
-                                (watchRegionId
-                                  ? `Showing customers from selected region`
-                                  : "Search by name, phone, or email")
-                              }
-                              renderOption={(option: any) => (
-                                <Box>
-                                  <Typography variant="body1" fontWeight={500}>
-                                    {option.name}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    📞 {option.primaryPhone} •{" "}
-                                    {option.region?.name || "N/A"}
-                                  </Typography>
-                                </Box>
-                              )}
-                            />
-                          )}
-                        </>
-                      )}
-                    />
+                    {prefilledData?.customerId ? (
+                      <Controller
+                        name="customerId"
+                        control={control}
+                        render={({ /*field */ }) => (
+                          <TextField
+                            fullWidth
+                            label="Select Customer *"
+                            value={selectedCustomerName}
+                            disabled
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <LockIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                                </InputAdornment>
+                              ),
+                            }}
+                            helperText="🔒 Pre-selected from customer profile"
+                            sx={{
+                              "& .MuiInputBase-input.Mui-disabled": {
+                                WebkitTextFillColor: "rgba(0, 0, 0, 0.87)",
+                                color: "rgba(0, 0, 0, 0.87)",
+                              },
+                            }}
+                          />
+                        )}
+                      />
+                    ) : (
+                      <Controller
+                        name="customerId"
+                        control={control}
+                        render={({ field }) => (
+                          <SearchableSelect
+                            label="Select Customer *"
+                            value={field.value}
+                            onChange={(value, option) => {
+                              field.onChange(value);
+                              handleCustomerChange(value, option);
+                            }}
+                            endpoint="/customers/search"
+                            placeholder="Type name or phone number..."
+                            error={!!formErrors.customerId}
+                            helperText={
+                              formErrors.customerId?.message ||
+                              (watchRegionId 
+                                ? `Showing customers from selected region` 
+                                : "Search by name, phone, or email")
+                            }
+                            filters={{ regionId: watchRegionId }}
+                            renderOption={(option: any) => (
+                              <Box>
+                                <Typography variant="body1" fontWeight={500}>
+                                  {option.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  📞 {option.primaryPhone} • {option.region?.name || "N/A"}
+                                </Typography>
+                              </Box>
+                            )}
+                          />
+                        )}
+                      />
+                    )}
                   </Box>
 
-                  {/* Quick Add Customer Button - Only show when not pre-filled */}
                   {!prefilledData?.customerId && (
                     <Tooltip title="Create new customer">
                       <IconButton
@@ -553,6 +588,112 @@ const CreateServiceRequest: React.FC = () => {
                   )}
                 </Box>
               </Box>
+
+              {/* ✅ NEW: Installation Selection */}
+              {watchCustomerId && (
+                <Box>
+                  {prefilledData?.installationId ? (
+                    // Pre-filled installation
+                    <Controller
+                      name="installationId"
+                      control={control}
+                      render={({ /*field */ }) => (
+                        <TextField
+                          fullWidth
+                          label="Installation Location"
+                          value={selectedInstallationName}
+                          disabled
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <LocationOnIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                              </InputAdornment>
+                            ),
+                          }}
+                          helperText="🔒 Pre-selected installation"
+                          sx={{
+                            "& .MuiInputBase-input.Mui-disabled": {
+                              WebkitTextFillColor: "rgba(0, 0, 0, 0.87)",
+                              color: "rgba(0, 0, 0, 0.87)",
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  ) : (
+                    // Normal installation selection
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Controller
+                          name="installationId"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              select
+                              fullWidth
+                              label="Installation Location (Optional)"
+                              onChange={(e) => handleInstallationChange(e.target.value)}
+                              disabled={loadingInstallations || installations.length === 0}
+                              InputProps={{
+                                startAdornment: (
+                                  <LocationOnIcon sx={{ mr: 1, color: "action.active" }} />
+                                ),
+                              }}
+                              helperText={
+                                loadingInstallations
+                                  ? "Loading installations..."
+                                  : installations.length === 0
+                                  ? "No installations for this customer. Add one to specify location."
+                                  : "Select installation location for this service"
+                              }
+                            >
+                              <MenuItem value="">
+                                <em>No specific installation</em>
+                              </MenuItem>
+                              {installations.map((installation) => (
+                                <MenuItem key={installation.id} value={installation.id}>
+                                  <Box sx={{ width: "100%" }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                      <Typography variant="body2" fontWeight={500}>
+                                        {installation.name}
+                                      </Typography>
+                                      {installation.isPrimary && (
+                                        <Chip label="Primary" size="small" color="primary" />
+                                      )}
+                                    </Box>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {installation.address}
+                                      {installation.installationType && 
+                                        ` • ${installation.installationType}`}
+                                    </Typography>
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          )}
+                        />
+                      </Box>
+
+                      <Tooltip title="Add new installation">
+                        <IconButton
+                          color="primary"
+                          onClick={() => setInstallationDialog(true)}
+                          disabled={!watchCustomerId || !watchRegionId}
+                          sx={{
+                            border: 1,
+                            borderColor: "primary.main",
+                            borderRadius: 1,
+                            mt: 1,
+                          }}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )}
+                </Box>
+              )}
 
               {/* Technician Assignment */}
               <Box>
@@ -574,9 +715,7 @@ const CreateServiceRequest: React.FC = () => {
                       disabled={!watchRegionId || loadingTechnicians}
                       InputProps={{
                         startAdornment: (
-                          <AssignmentIndIcon
-                            sx={{ mr: 1, color: "action.active" }}
-                          />
+                          <AssignmentIndIcon sx={{ mr: 1, color: "action.active" }} />
                         ),
                       }}
                     >
@@ -603,10 +742,7 @@ const CreateServiceRequest: React.FC = () => {
                                 <Typography variant="body2" fontWeight={500}>
                                   {tech.name}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
+                                <Typography variant="caption" color="text.secondary">
                                   {tech.region?.name || "N/A"}
                                 </Typography>
                               </Box>
@@ -649,22 +785,6 @@ const CreateServiceRequest: React.FC = () => {
                 )}
               />
 
-              {/* Admin Notes (Optional) */}
-              {/* <Controller
-                name="adminNotes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Admin Notes (Optional)"
-                    placeholder="Internal notes for reference..."
-                  />
-                )}
-              /> */}
-
               {/* Error Display */}
               {error && (
                 <Alert
@@ -701,10 +821,20 @@ const CreateServiceRequest: React.FC = () => {
         preSelectedRegionId={watchRegionId}
       />
 
+      {/* Quick Add Region Dialog */}
       <QuickAddRegionDialog
         open={regionDialog}
         onClose={() => setRegionDialog(false)}
         onRegionCreated={handleRegionCreated}
+      />
+
+      {/* ✅ NEW: Quick Add Installation Dialog */}
+      <QuickAddInstallationDialog
+        open={installationDialog}
+        onClose={() => setInstallationDialog(false)}
+        onInstallationCreated={handleInstallationCreated}
+        customerId={watchCustomerId}
+        preSelectedRegionId={watchRegionId}
       />
 
       {/* Snackbar Notification */}

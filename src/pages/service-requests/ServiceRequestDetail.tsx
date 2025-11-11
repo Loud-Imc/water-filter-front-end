@@ -27,6 +27,7 @@ import {
 import { useParams } from "react-router-dom";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -494,165 +495,311 @@ const ServiceRequestDetail: React.FC = () => {
       />
 
       <Grid container spacing={3}>
-        {/* Technician Work Panel */}
-        {user?.role.name === "Technician" &&
-          request.assignedTo?.id === user.id && (
-            <Grid size={12}>
-              <Card
-                sx={{ bgcolor: "primary.light", color: "primary.contrastText" }}
-              >
-                <CardContent>
-                  <Typography
-                    variant="h6"
-                    fontWeight={600}
-                    gutterBottom
-                    sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          {/* ✅ SERVICE LOCATION DETAILS - VISIBLE TO ALL USERS */}
+          <Grid size={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Service Location Details
+                </Typography>
+
+                {/* ✅ Installation Information */}
+                {request.installation ? (
+                  <Box
+                    sx={{ p: 2, bgcolor: "info.light", borderRadius: 1, mb: 2 }}
                   >
-                    <TimerIcon />
-                    Work Progress
-                  </Typography>
-
-                  {request.status === "ASSIGNED" && (
-                    <>
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        Click "Start Work" to begin this task. Timer will start
-                        automatically.
-                      </Alert>
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="large"
-                        startIcon={<PlayArrowIcon />}
-                        onClick={handleStartWork}
-                        fullWidth
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 1.5,
+                      }}
+                    >
+                      <LocationOnIcon color="info" fontSize="small" />
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight={600}
+                        color="info.dark"
                       >
-                        Start Work
-                      </Button>
-                    </>
-                  )}
-
-                  {request.status === "IN_PROGRESS" && (
-                    <>
-                      <Grid container spacing={3} alignItems="center">
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <Box sx={{ textAlign: "center" }}>
-                            <Typography variant="h2" fontWeight={600}>
-                              {formatTime(elapsedTime)}
-                            </Typography>
-                            <Typography variant="caption">
-                              Timer Running
-                            </Typography>
-                          </Box>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 8 }}>
-                          <Box
-                            sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}
-                          >
-                            <Button
-                              variant="contained"
-                              color="error"
-                              size="large"
-                              startIcon={<StopIcon />}
-                              onClick={handleStopWork}
-                            >
-                              Complete Work
-                            </Button>
-
-                            <Button
-                              variant="outlined"
-                              startIcon={<UploadIcon />}
-                              onClick={() => setUploadDialog(true)}
-                              sx={{
-                                color: "primary.contrastText",
-                                borderColor: "primary.contrastText",
-                              }}
-                            >
-                              Upload Images
-                            </Button>
-                          </Box>
-                        </Grid>
-                      </Grid>
-
-                      <Box sx={{ mt: 3 }}>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={3}
-                          label="Work Notes"
-                          value={workNotes}
-                          onChange={(e) => setWorkNotes(e.target.value)}
-                          placeholder="Add notes about the work being performed..."
-                          sx={{
-                            "& .MuiInputLabel-root": {
-                              color: "primary.contrastText",
-                            },
-                            "& .MuiInputBase-root": {
-                              color: "primary.contrastText",
-                            },
-                          }}
+                        Installation Location
+                      </Typography>
+                      {request.installation.isPrimary && (
+                        <Chip label="Primary" size="small" color="primary" />
+                      )}
+                      {request.installation.installationType && (
+                        <Chip
+                          label={request.installation.installationType}
+                          size="small"
+                          variant="outlined"
                         />
-                      </Box>
-                    </>
-                  )}
+                      )}
+                    </Box>
 
-                  {request.status === "WORK_COMPLETED" && (
-                    <>
-                      <Alert severity="success" sx={{ mb: 2 }}>
-                        ✅ Work completed! Waiting for manager acknowledgment.
-                      </Alert>
-                      <Button
-                        variant="outlined"
-                        startIcon={<UploadIcon />}
-                        onClick={() => setUploadDialog(true)}
-                        fullWidth
-                        sx={{
-                          color: "primary.contrastText",
-                          borderColor: "primary.contrastText",
-                        }}
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      color="info.dark"
+                      gutterBottom
+                    >
+                      {request.installation.name}
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="info.dark"
+                      sx={{ mb: 0.5 }}
+                    >
+                      📍 {request.installation.address}
+                    </Typography>
+
+                    {request.installation.landmark && (
+                      <Typography
+                        variant="body2"
+                        color="info.dark"
+                        sx={{ mb: 0.5 }}
                       >
-                        Upload Additional Images
-                      </Button>
-                      {/* Add Used Products - Only if WORK_COMPLETED */}
-                      {request.status === "WORK_COMPLETED" &&
-                        usedProducts.length === 0 && (
+                        🏛️ Landmark: {request.installation.landmark}
+                      </Typography>
+                    )}
+
+                    {/* ✅ Smart Phone Display */}
+                    {(() => {
+                      const installationPhone =
+                        request.installation.contactPhone;
+                      const customerPhone = request.customer?.primaryPhone;
+                      const phonesAreSame = installationPhone === customerPhone;
+
+                      return (
+                        <>
+                          {request.installation.contactPerson && (
+                            <Typography
+                              variant="body2"
+                              color="info.dark"
+                              sx={{ mb: 0.5 }}
+                            >
+                              👤 Contact: {request.installation.contactPerson}
+                              {installationPhone &&
+                                ` • 📞 ${installationPhone}`}
+                            </Typography>
+                          )}
+
+                          {!phonesAreSame && customerPhone && (
+                            <Typography
+                              variant="body2"
+                              color="info.dark"
+                              sx={{ mb: 0.5 }}
+                            >
+                              📞 Customer: {request.customer.name} •{" "}
+                              {customerPhone}
+                            </Typography>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {request.installation.notes && (
+                      <Typography
+                        variant="caption"
+                        color="info.dark"
+                        sx={{ fontStyle: "italic", display: "block", mt: 1 }}
+                      >
+                        📝 Note: {request.installation.notes}
+                      </Typography>
+                    )}
+                  </Box>
+                ) : (
+                  /* ✅ Show customer details if no installation */
+                  <Box sx={{ p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
+                    <Typography variant="body2" fontWeight={600} gutterBottom>
+                      {request.customer?.name}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 0.5 }}
+                    >
+                      📍 {request.customer?.address}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      📞 {request.customer?.primaryPhone}
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* ✅ TECHNICIAN WORK PANEL - ONLY FOR ASSIGNED TECHNICIAN */}
+          {user?.role.name === "Technician" &&
+            request.assignedTo?.id === user.id && (
+              <>
+                {/* Work Progress Card */}
+                <Grid size={12}>
+                  <Card
+                    sx={{
+                      bgcolor: "primary.light",
+                      color: "primary.contrastText",
+                    }}
+                  >
+                    <CardContent>
+                      <Typography
+                        variant="h6"
+                        fontWeight={600}
+                        gutterBottom
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <TimerIcon />
+                        Work Progress
+                      </Typography>
+
+                      {request.status === "ASSIGNED" && (
+                        <>
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                            Click "Start Work" to begin this task. Timer will
+                            start automatically.
+                          </Alert>
                           <Button
                             variant="contained"
-                            color="info"
-                            style={{ top: '10px', backgroundColor: '#1976d2' }}
-                            startIcon={<BuildCircleOutlined />}
-                            onClick={() => setUsedProductsDialog(true)}
+                            color="success"
+                            size="large"
+                            startIcon={<PlayArrowIcon />}
+                            onClick={handleStartWork}
+                            fullWidth
                           >
-                            Add Used Products
+                            Start Work
                           </Button>
-                        )}
-                    </>
-                  )}
+                        </>
+                      )}
 
-                  {request.status === "COMPLETED" && (
-                    <Alert severity="success">
-                      ✅ Task completed and acknowledged by manager.
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
+                      {request.status === "IN_PROGRESS" && (
+                        <>
+                          <Grid container spacing={3} alignItems="center">
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <Box sx={{ textAlign: "center" }}>
+                                <Typography variant="h2" fontWeight={600}>
+                                  {formatTime(elapsedTime)}
+                                </Typography>
+                                <Typography variant="caption">
+                                  Timer Running
+                                </Typography>
+                              </Box>
+                            </Grid>
 
-              {/* Customer Location Card */}
-              <Card sx={{ mt: 2 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Customer Location
-                  </Typography>
+                            <Grid size={{ xs: 12, md: 8 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 2,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <Button
+                                  variant="contained"
+                                  color="error"
+                                  size="large"
+                                  startIcon={<StopIcon />}
+                                  onClick={handleStopWork}
+                                >
+                                  Complete Work
+                                </Button>
 
-                  <LocationCapture
-                    initialLocation={customerLocation}
-                    onLocationCapture={handleLocationCapture}
-                    disabled={request.status === "COMPLETED"}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
+                                <Button
+                                  variant="outlined"
+                                  startIcon={<UploadIcon />}
+                                  onClick={() => setUploadDialog(true)}
+                                  sx={{
+                                    color: "primary.contrastText",
+                                    borderColor: "primary.contrastText",
+                                  }}
+                                >
+                                  Upload Images
+                                </Button>
+                              </Box>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ mt: 3 }}>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={3}
+                              label="Work Notes"
+                              value={workNotes}
+                              onChange={(e) => setWorkNotes(e.target.value)}
+                              placeholder="Add notes about the work being performed..."
+                              sx={{
+                                "& .MuiInputLabel-root": {
+                                  color: "primary.contrastText",
+                                },
+                                "& .MuiInputBase-root": {
+                                  color: "primary.contrastText",
+                                },
+                              }}
+                            />
+                          </Box>
+                        </>
+                      )}
+
+                      {request.status === "WORK_COMPLETED" && (
+                        <>
+                          <Alert severity="success" sx={{ mb: 2 }}>
+                            ✅ Work completed! Waiting for manager
+                            acknowledgment.
+                          </Alert>
+                          <Button
+                            variant="outlined"
+                            startIcon={<UploadIcon />}
+                            onClick={() => setUploadDialog(true)}
+                            fullWidth
+                            sx={{
+                              color: "primary.contrastText",
+                              borderColor: "primary.contrastText",
+                            }}
+                          >
+                            Upload Additional Images
+                          </Button>
+                          {usedProducts.length === 0 && (
+                            <Button
+                              variant="contained"
+                              color="info"
+                              sx={{ mt: 2, backgroundColor: "#1976d2" }}
+                              startIcon={<BuildCircleOutlined />}
+                              onClick={() => setUsedProductsDialog(true)}
+                            >
+                              Add Used Products
+                            </Button>
+                          )}
+                        </>
+                      )}
+
+                      {request.status === "COMPLETED" && (
+                        <Alert severity="success">
+                          ✅ Task completed and acknowledged by manager.
+                        </Alert>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Customer Location Capture Card */}
+                <Grid size={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Customer Location
+                      </Typography>
+                      <LocationCapture
+                        initialLocation={customerLocation}
+                        onLocationCapture={handleLocationCapture}
+                        disabled={request.status === "COMPLETED"}
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </>
+            )}
+       
 
         {/* Main Details Card */}
         <Grid size={{ xs: 12, md: 8 }}>
@@ -711,6 +858,106 @@ const ServiceRequestDetail: React.FC = () => {
                   </Typography>
                 </Grid>
 
+                {/* ✅ NEW: Installation Information */}
+                {request.installation && (
+                  <>
+                    <Grid size={12}>
+                      <Divider sx={{ my: 1 }} />
+                    </Grid>
+
+                    <Grid size={12}>
+                      <Box
+                        sx={{ p: 2, bgcolor: "info.light", borderRadius: 1 }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 1,
+                          }}
+                        >
+                          <LocationOnIcon color="info" fontSize="small" />
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight={600}
+                            color="info.dark"
+                          >
+                            Installation Location
+                          </Typography>
+                          {request.installation.isPrimary && (
+                            <Chip
+                              label="Primary"
+                              size="small"
+                              color="primary"
+                            />
+                          )}
+                          {request.installation.installationType && (
+                            <Chip
+                              label={request.installation.installationType}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          color="info.dark"
+                          gutterBottom
+                        >
+                          {request.installation.name}
+                        </Typography>
+
+                        <Typography
+                          variant="body2"
+                          color="info.dark"
+                          sx={{ mb: 0.5 }}
+                        >
+                          📍 {request.installation.address}
+                        </Typography>
+
+                        {request.installation.landmark && (
+                          <Typography
+                            variant="body2"
+                            color="info.dark"
+                            sx={{ mb: 0.5 }}
+                          >
+                            🏛️ Landmark: {request.installation.landmark}
+                          </Typography>
+                        )}
+
+                        {request.installation.contactPerson && (
+                          <Typography
+                            variant="body2"
+                            color="info.dark"
+                            sx={{ mb: 0.5 }}
+                          >
+                            👤 Contact: {request.installation.contactPerson}
+                            {request.installation.contactPhone &&
+                              ` • 📞 ${request.installation.contactPhone}`}
+                          </Typography>
+                        )}
+
+                        {request.installation.notes && (
+                          <Typography
+                            variant="caption"
+                            color="info.dark"
+                            sx={{
+                              fontStyle: "italic",
+                              display: "block",
+                              mt: 1,
+                            }}
+                          >
+                            Note: {request.installation.notes}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  </>
+                )}
+
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Contact
@@ -718,6 +965,18 @@ const ServiceRequestDetail: React.FC = () => {
                   <Typography variant="body1" fontWeight={500}>
                     {request.customer?.primaryPhone || "N/A"}
                   </Typography>
+                  {/* ✅ Show installation contact if different */}
+                  {request.installation?.contactPhone &&
+                    request.installation.contactPhone !==
+                      request.customer?.primaryPhone && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        Installation: {request.installation.contactPhone}
+                      </Typography>
+                    )}
                 </Grid>
 
                 <Grid size={12}>
@@ -767,7 +1026,9 @@ const ServiceRequestDetail: React.FC = () => {
                   >
                     Acknowledgment Comments
                   </Typography>
-                  <Typography variant="body1">{request.acknowledgmentComments || "N/A"}</Typography>
+                  <Typography variant="body1">
+                    {request.acknowledgmentComments || "N/A"}
+                  </Typography>
                 </Grid>
 
                 <Grid size={12}>

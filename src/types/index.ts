@@ -29,6 +29,7 @@ export interface Region {
   name: string;
   state?: string; // Optional: "Kerala"
   district?: string; // Optional: "Kottayam"
+  taluk?: string; // Optional: "Meenachil"
   city?: string; // Optional: "Pala"
   pincode?: string; // Optional: "686575"
 }
@@ -124,6 +125,7 @@ export interface ServiceRequest {
   approvalHistory: ApprovalHistory[];
   workLogs?: WorkLog[];
   workMedia?: WorkMedia[];
+  installation?: Installation;
 }
 
 // ✅ ADD: Technician with workload interface
@@ -322,3 +324,46 @@ export interface ComprehensiveReport {
   productUsage: ProductUsage;
   generatedAt: Date;
 }
+
+// ✅ NEW: Installation types
+export interface Installation {
+  id: string;
+  customerId: string;
+  regionId: string;
+  name: string;
+  address: string;
+  landmark?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  latitude?: number;
+  longitude?: number;
+  googleMapsUrl?: string;
+  installationType?: string;
+  notes?: string;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer;
+  region?: Region;
+  serviceRequests?: ServiceRequest[];
+}
+
+export interface CreateInstallationDto {
+  customerId: string;
+  regionId: string;
+  name: string;
+  address: string;
+  landmark?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  latitude?: number;
+  longitude?: number;
+  googleMapsUrl?: string;
+  installationType?: string;
+  notes?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+}
+
+export interface UpdateInstallationDto extends Partial<CreateInstallationDto> {}
