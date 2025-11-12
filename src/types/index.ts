@@ -11,6 +11,7 @@ export interface User {
   role: Role;
   region?: Region;
   createdById?: string;
+  isExternal?: boolean; // ✅ New: To distinguish technician types
 }
 
 // Role types
