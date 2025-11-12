@@ -1,9 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  Box,
-  Grid,
-  LinearProgress,
-} from "@mui/material";
+import { Box, Grid, LinearProgress } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { fetchDashboardStats } from "../../app/slices/dashboardSlice";
 import PageHeader from "../../components/common/PageHeader";
@@ -72,89 +68,71 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
+        {/* Total Requests - Blue/Primary */}
         {!isTechnician && (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Total Requests"
               value={stats.totalRequests}
               icon={<AssignmentIcon />}
-              color="primary"
+              color="#1976d2" // Primary Blue
               onClick={() => handleCardClick()}
             />
           </Grid>
         )}
 
-        {!isTechnician && (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Pending Approval"
-              value={stats.pendingApproval}
-              icon={<HourglassEmptyIcon />}
-              color="warning"
-              onClick={() => handleCardClick("PENDING_APPROVAL")}
-            />
-          </Grid>
-        )}
-
-        {!isTechnician && (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Approved, Not Assigned"
-              value={stats.approved}
-              icon={<ThumbUpIcon />}
-              color="info"
-              onClick={() => handleCardClick("APPROVED")}
-            />
-          </Grid>
-        )}
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        {/* Assigned - Purple/Secondary */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="Assigned"
             value={stats.assigned}
             icon={<PersonAddIcon />}
-            color="secondary"
+            color="#9c27b0" // Purple
             onClick={() => handleCardClick("ASSIGNED")}
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        {/* In Progress - Light Blue/Info */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="In Progress"
             value={stats.inProgress}
             icon={<BuildCircleIcon />}
-            color="info"
+            color="#0288d1" // Light Blue
             onClick={() => handleCardClick("IN_PROGRESS")}
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        {/* Work Completed - Teal */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="Work Completed"
             value={stats.workCompleted}
             icon={<TaskAltIcon />}
-            color="success"
+            color="#00897b" // Teal
             onClick={() => handleCardClick("WORK_COMPLETED")}
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        {/* Completed - Green/Success */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="Completed"
             value={stats.completed}
             icon={<CheckCircleIcon />}
-            color="success"
+            color="#2e7d32" // Dark Green
             onClick={() => handleCardClick("COMPLETED")}
           />
         </Grid>
 
+        {/* Rejected - Red/Error */}
         {!isTechnician && (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Rejected"
               value={stats.rejected}
               icon={<CancelIcon />}
-              color="error"
+              color="#d32f2f" // Red
               onClick={() => handleCardClick("REJECTED")}
             />
           </Grid>
