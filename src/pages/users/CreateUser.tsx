@@ -1,24 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, TextField, Button, MenuItem,  } from '@mui/material';
-import { Grid } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { createUser, fetchAssignableRoles } from '../../app/slices/userSlice';
-import PageHeader from '../../components/common/PageHeader';
-import SnackbarNotification from '../../components/common/SnackbarNotification';
-import { userSchema } from '../../utils/validators';
-import { regionService } from '../../api/services/regionService';
-import { type Region } from '../../types';
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  Typography,
+  Chip,
+  Collapse,
+} from "@mui/material";
+import { Grid } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { createUser, fetchAssignableRoles } from "../../app/slices/userSlice";
+import PageHeader from "../../components/common/PageHeader";
+import SnackbarNotification from "../../components/common/SnackbarNotification";
+import { userSchema } from "../../utils/validators";
+import { regionService } from "../../api/services/regionService";
+import { type Region } from "../../types";
+import BusinessIcon from "@mui/icons-material/Business";
+import PersonIcon from "@mui/icons-material/Person";
 
 interface FormData {
   name: string;
   email: string;
   password: string;
   roleId: string;
-  regionId: string ;
-  phone: string ;
+  regionId: string;
+  phone: string;
+  isExternal?: boolean; // ✅ Add this
 }
 
 const CreateUser: React.FC = () => {
@@ -28,59 +43,77 @@ const CreateUser: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
 
   const [regions, setRegions] = useState<Region[]>([]);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as any,
+  });
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(userSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      roleId: '',
-      regionId: '',
-      phone: '',
+      name: "",
+      email: "",
+      password: "",
+      roleId: "",
+      regionId: "",
+      phone: "",
+      isExternal: false, // ✅ Default to in-house
     },
   });
 
+  // ✅ Watch the selected role
+  const selectedRoleId = watch("roleId");
+  const isExternalValue = watch("isExternal");
+
+  // ✅ Check if selected role is "Technician"
+  const selectedRole = assignableRoles.find(
+    (role) => role.id === selectedRoleId
+  );
+  const isTechnicianRole = selectedRole?.name === "Technician";
+
   useEffect(() => {
     dispatch(fetchAssignableRoles());
-    
+
     const fetchRegions = async () => {
       try {
         const data = await regionService.getAllRegions();
         setRegions(data);
       } catch (error) {
-        console.error('Failed to fetch regions:', error);
+        console.error("Failed to fetch regions:", error);
       }
     };
     fetchRegions();
   }, [dispatch]);
 
-    const onSubmit = async (data: FormData) => {
-      try {
-        await dispatch(
-          createUser({
-            ...data,
-            createdById: user!.id,
-          })
-        ).unwrap();
+  const onSubmit = async (data: FormData) => {
+    try {
+      // ✅ Only include isExternal if role is Technician
+      const payload = {
+        ...data,
+        createdById: user!.id,
+        ...(isTechnicianRole && { isExternal: data.isExternal || false }),
+      };
 
-        setSnackbar({
+      await dispatch(createUser(payload)).unwrap();
+
+      setSnackbar({
         open: true,
-        message: 'User created successfully!',
-        severity: 'success',
+        message: "User created successfully!",
+        severity: "success",
       });
 
-      setTimeout(() => navigate('/users'), 2000);
+      setTimeout(() => navigate("/users"), 2000);
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error || 'Failed to create user',
-        severity: 'error',
+        message: error || "Failed to create user",
+        severity: "error",
       });
     }
   };
@@ -89,16 +122,14 @@ const CreateUser: React.FC = () => {
     <Box>
       <PageHeader
         title="Create User"
-        breadcrumbs={[
-          { label: 'Users', path: '/users' },
-          { label: 'Create' },
-        ]}
+        breadcrumbs={[{ label: "Users", path: "/users" }, { label: "Create" }]}
       />
 
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={3}>
+              {/* Name */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="name"
@@ -116,6 +147,7 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* Email */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="email"
@@ -133,6 +165,7 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* Password */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="password"
@@ -150,6 +183,7 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* Phone */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="phone"
@@ -158,7 +192,7 @@ const CreateUser: React.FC = () => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="Phone "
+                      label="Phone"
                       error={!!errors.phone}
                       helperText={errors.phone?.message}
                     />
@@ -166,6 +200,7 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* Role */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="roleId"
@@ -189,6 +224,7 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* Region */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="regionId"
@@ -198,7 +234,7 @@ const CreateUser: React.FC = () => {
                       {...field}
                       select
                       fullWidth
-                      label="Region "
+                      label="Region"
                       error={!!errors.regionId}
                       helperText={errors.regionId?.message}
                     >
@@ -213,15 +249,93 @@ const CreateUser: React.FC = () => {
                 />
               </Grid>
 
+              {/* ✅ Technician Type (Only show if role is Technician) */}
               <Grid size={12}>
-                <Box sx={{ display: 'flex', gap: 2 }}>
+                <Collapse in={isTechnicianRole}>
+                  <Box
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 2,
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      gutterBottom
+                      fontWeight={600}
+                    >
+                      Technician Type
+                    </Typography>
+
+                    <Controller
+                      name="isExternal"
+                      control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={field.value || false}
+                              onChange={(e) => field.onChange(e.target.checked)}
+                            />
+                          }
+                          label={
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <BusinessIcon fontSize="small" color="warning" />
+                              <span>External/Contract Technician</span>
+                            </Box>
+                          }
+                        />
+                      )}
+                    />
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mt: 1, ml: 4 }}
+                    >
+                      {isExternalValue
+                        ? "🔶 This technician is hired externally (contract/freelance)"
+                        : "🏠 This is an in-house technician (permanent staff member)"}
+                    </Typography>
+
+                    {/* Visual Badge */}
+                    <Box sx={{ mt: 2, ml: 4 }}>
+                      <Chip
+                        icon={
+                          isExternalValue ? <BusinessIcon /> : <PersonIcon />
+                        }
+                        label={
+                          isExternalValue
+                            ? "External Technician"
+                            : "In-House Technician"
+                        }
+                        color={isExternalValue ? "warning" : "primary"}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
+                </Collapse>
+              </Grid>
+
+              {/* Action Buttons */}
+              <Grid size={12}>
+                <Box sx={{ display: "flex", gap: 2 }}>
                   <Button type="submit" variant="contained" size="large">
                     Create User
                   </Button>
                   <Button
                     variant="outlined"
                     size="large"
-                    onClick={() => navigate('/users')}
+                    onClick={() => navigate("/users")}
                   >
                     Cancel
                   </Button>

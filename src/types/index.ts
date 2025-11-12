@@ -137,6 +137,7 @@ export interface TechnicianWithWorkload {
     name: string;
   } | null;
   pendingTasks: number;
+  isExternal?: boolean;
 }
 
 export interface ApprovalHistory {
