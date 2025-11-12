@@ -37,6 +37,7 @@ import { requestService } from "../../api/services/requestService";
 import type { TechnicianWithWorkload, Installation } from "../../types";
 import axiosInstance from "../../api/axios";
 import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
+import BusinessIcon from "@mui/icons-material/Business";
 
 // Validation schema with proper enum types
 // ✅ UPDATED: Add optional installationId
@@ -315,7 +316,7 @@ const CreateServiceRequest: React.FC = () => {
   //   }
   // };
 
-    return (
+  return (
     <Box>
       <PageHeader title="Create Service Request" />
 
@@ -329,7 +330,10 @@ const CreateServiceRequest: React.FC = () => {
                   Creating service request for customer:{" "}
                   <strong>{prefilledData.customerName}</strong>
                   {prefilledData.installationName && (
-                    <> at <strong>{prefilledData.installationName}</strong></>
+                    <>
+                      {" "}
+                      at <strong>{prefilledData.installationName}</strong>
+                    </>
                   )}
                 </Alert>
               )}
@@ -384,25 +388,53 @@ const CreateServiceRequest: React.FC = () => {
                         }}
                       >
                         <MenuItem value="HIGH">
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             <Chip label="High" color="error" size="small" />
-                            <Typography variant="body2">Urgent - VIP</Typography>
+                            <Typography variant="body2">
+                              Urgent - VIP
+                            </Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="MEDIUM">
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             <Chip label="Medium" color="warning" size="small" />
                             <Typography variant="body2">Important</Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="NORMAL">
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             <Chip label="Normal" color="success" size="small" />
-                            <Typography variant="body2">Standard priority</Typography>
+                            <Typography variant="body2">
+                              Standard priority
+                            </Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="LOW">
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             <Chip label="Low" color="default" size="small" />
                             <Typography variant="body2">Can wait</Typography>
                           </Box>
@@ -419,9 +451,11 @@ const CreateServiceRequest: React.FC = () => {
                   <Controller
                     name="regionId"
                     control={control}
-                    render={({ 
-                      // field
-                     }) => (
+                    render={(
+                      {
+                        // field
+                      }
+                    ) => (
                       <TextField
                         fullWidth
                         label="Region *"
@@ -430,7 +464,9 @@ const CreateServiceRequest: React.FC = () => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <LockIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                              <LockIcon
+                                sx={{ color: "text.secondary", fontSize: 20 }}
+                              />
                             </InputAdornment>
                           ),
                         }}
@@ -445,7 +481,9 @@ const CreateServiceRequest: React.FC = () => {
                     )}
                   />
                 ) : (
-                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                  <Box
+                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+                  >
                     <Box sx={{ flexGrow: 1 }}>
                       <Controller
                         name="regionId"
@@ -471,7 +509,10 @@ const CreateServiceRequest: React.FC = () => {
                                   {option.name}
                                 </Typography>
                                 {option.district && (
-                                  <Typography variant="caption" color="text.secondary">
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
                                     {option.district} • {option.city || "N/A"} •{" "}
                                     {option.pincode || "N/A"}
                                   </Typography>
@@ -509,7 +550,11 @@ const CreateServiceRequest: React.FC = () => {
                       <Controller
                         name="customerId"
                         control={control}
-                        render={({ /*field */ }) => (
+                        render={(
+                          {
+                            /*field */
+                          }
+                        ) => (
                           <TextField
                             fullWidth
                             label="Select Customer *"
@@ -518,7 +563,12 @@ const CreateServiceRequest: React.FC = () => {
                             InputProps={{
                               startAdornment: (
                                 <InputAdornment position="start">
-                                  <LockIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                                  <LockIcon
+                                    sx={{
+                                      color: "text.secondary",
+                                      fontSize: 20,
+                                    }}
+                                  />
                                 </InputAdornment>
                               ),
                             }}
@@ -549,8 +599,8 @@ const CreateServiceRequest: React.FC = () => {
                             error={!!formErrors.customerId}
                             helperText={
                               formErrors.customerId?.message ||
-                              (watchRegionId 
-                                ? `Showing customers from selected region` 
+                              (watchRegionId
+                                ? `Showing customers from selected region`
                                 : "Search by name, phone, or email")
                             }
                             filters={{ regionId: watchRegionId }}
@@ -559,8 +609,12 @@ const CreateServiceRequest: React.FC = () => {
                                 <Typography variant="body1" fontWeight={500}>
                                   {option.name}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  📞 {option.primaryPhone} • {option.region?.name || "N/A"}
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  📞 {option.primaryPhone} •{" "}
+                                  {option.region?.name || "N/A"}
                                 </Typography>
                               </Box>
                             )}
@@ -597,7 +651,11 @@ const CreateServiceRequest: React.FC = () => {
                     <Controller
                       name="installationId"
                       control={control}
-                      render={({ /*field */ }) => (
+                      render={(
+                        {
+                          /*field */
+                        }
+                      ) => (
                         <TextField
                           fullWidth
                           label="Installation Location"
@@ -606,7 +664,9 @@ const CreateServiceRequest: React.FC = () => {
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
-                                <LocationOnIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                                <LocationOnIcon
+                                  sx={{ color: "text.secondary", fontSize: 20 }}
+                                />
                               </InputAdornment>
                             ),
                           }}
@@ -622,7 +682,9 @@ const CreateServiceRequest: React.FC = () => {
                     />
                   ) : (
                     // Normal installation selection
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    <Box
+                      sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+                    >
                       <Box sx={{ flexGrow: 1 }}>
                         <Controller
                           name="installationId"
@@ -633,11 +695,18 @@ const CreateServiceRequest: React.FC = () => {
                               select
                               fullWidth
                               label="Installation Location (Optional)"
-                              onChange={(e) => handleInstallationChange(e.target.value)}
-                              disabled={loadingInstallations || installations.length === 0}
+                              onChange={(e) =>
+                                handleInstallationChange(e.target.value)
+                              }
+                              disabled={
+                                loadingInstallations ||
+                                installations.length === 0
+                              }
                               InputProps={{
                                 startAdornment: (
-                                  <LocationOnIcon sx={{ mr: 1, color: "action.active" }} />
+                                  <LocationOnIcon
+                                    sx={{ mr: 1, color: "action.active" }}
+                                  />
                                 ),
                               }}
                               helperText={
@@ -652,19 +721,38 @@ const CreateServiceRequest: React.FC = () => {
                                 <em>No specific installation</em>
                               </MenuItem>
                               {installations.map((installation) => (
-                                <MenuItem key={installation.id} value={installation.id}>
+                                <MenuItem
+                                  key={installation.id}
+                                  value={installation.id}
+                                >
                                   <Box sx={{ width: "100%" }}>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                      <Typography variant="body2" fontWeight={500}>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                      >
                                         {installation.name}
                                       </Typography>
                                       {installation.isPrimary && (
-                                        <Chip label="Primary" size="small" color="primary" />
+                                        <Chip
+                                          label="Primary"
+                                          size="small"
+                                          color="primary"
+                                        />
                                       )}
                                     </Box>
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
                                       {installation.address}
-                                      {installation.installationType && 
+                                      {installation.installationType &&
                                         ` • ${installation.installationType}`}
                                     </Typography>
                                   </Box>
@@ -696,6 +784,7 @@ const CreateServiceRequest: React.FC = () => {
               )}
 
               {/* Technician Assignment */}
+
               <Box>
                 <Controller
                   name="assignedToId"
@@ -715,7 +804,9 @@ const CreateServiceRequest: React.FC = () => {
                       disabled={!watchRegionId || loadingTechnicians}
                       InputProps={{
                         startAdornment: (
-                          <AssignmentIndIcon sx={{ mr: 1, color: "action.active" }} />
+                          <AssignmentIndIcon
+                            sx={{ mr: 1, color: "action.active" }}
+                          />
                         ),
                       }}
                     >
@@ -736,27 +827,68 @@ const CreateServiceRequest: React.FC = () => {
                                 justifyContent: "space-between",
                                 width: "100%",
                                 alignItems: "center",
+                                gap: 1,
                               }}
                             >
-                              <Box>
+                              {/* Left: Name and Region */}
+                              <Box sx={{ flex: 1 }}>
                                 <Typography variant="body2" fontWeight={500}>
                                   {tech.name}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {tech.region?.name || "N/A"}
                                 </Typography>
                               </Box>
-                              <Chip
-                                label={`${tech.pendingTasks} pending`}
-                                size="small"
-                                color={
-                                  tech.pendingTasks === 0
-                                    ? "success"
-                                    : tech.pendingTasks <= 2
-                                    ? "warning"
-                                    : "error"
-                                }
-                              />
+
+                              {/* Right: Badges */}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 0.5,
+                                  alignItems: "center",
+                                }}
+                              >
+                                {/* ✅ Technician Type Badge */}
+                                <Chip
+                                  icon={
+                                    tech.isExternal ? (
+                                      <BusinessIcon />
+                                    ) : (
+                                      <PersonIcon />
+                                    )
+                                  }
+                                  label={
+                                    tech.isExternal ? "External" : "In-House"
+                                  }
+                                  size="small"
+                                  color={
+                                    tech.isExternal ? "warning" : "primary"
+                                  }
+                                  variant="outlined"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: "0.7rem",
+                                    "& .MuiChip-icon": { fontSize: 14 },
+                                  }}
+                                />
+
+                                {/* Pending Tasks Badge */}
+                                <Chip
+                                  label={`${tech.pendingTasks} pending`}
+                                  size="small"
+                                  color={
+                                    tech.pendingTasks === 0
+                                      ? "success"
+                                      : tech.pendingTasks <= 2
+                                      ? "warning"
+                                      : "error"
+                                  }
+                                  sx={{ height: 20, fontSize: "0.7rem" }}
+                                />
+                              </Box>
                             </Box>
                           </MenuItem>
                         ))

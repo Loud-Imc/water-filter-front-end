@@ -1,6 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Chip } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  ToggleButtonGroup,
+  ToggleButton,
+  Typography,
+  Card,
+  CardContent,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import PersonIcon from "@mui/icons-material/Person";
+import BusinessIcon from "@mui/icons-material/Business";
+import GroupIcon from "@mui/icons-material/Group";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchAllUsers, deleteUser } from "../../app/slices/userSlice";
@@ -21,6 +33,10 @@ const UserList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // ✅ Filter state: 'all' | 'inhouse' | 'external'
+  const [technicianFilter, setTechnicianFilter] = useState<string>("all");
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -63,10 +79,33 @@ const UserList: React.FC = () => {
     }
   };
 
-  const paginatedUsers = users.slice(
+  // ✅ Filter logic based on toggle
+  const filteredUsers = users.filter((user) => {
+    // Only apply filter if user is a technician
+    const isTechnician = user.role?.name === "Technician";
+
+    if (!isTechnician) return true; // Show all non-technicians
+
+    if (technicianFilter === "all") return true;
+    if (technicianFilter === "inhouse") return !user.isExternal;
+    if (technicianFilter === "external") return user.isExternal;
+
+    return true;
+  });
+
+  const paginatedUsers = filteredUsers.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+
+  // ✅ Count technicians
+  const technicianCount = {
+    all: users.filter((u) => u.role?.name === "Technician").length,
+    inhouse: users.filter((u) => u.role?.name === "Technician" && !u.isExternal)
+      .length,
+    external: users.filter((u) => u.role?.name === "Technician" && u.isExternal)
+      .length,
+  };
 
   const columns = [
     { id: "name", label: "Name", minWidth: 150 },
@@ -96,6 +135,26 @@ const UserList: React.FC = () => {
         />
       ),
     },
+    // ✅ Add Technician Type column
+    {
+      id: "isExternal",
+      label: "Type",
+      minWidth: 140,
+      format: (value: boolean, row: User) => {
+        // Only show for technicians
+        if (row.role?.name !== "Technician") return "—";
+
+        return (
+          <Chip
+            icon={value ? <BusinessIcon /> : <PersonIcon />}
+            label={value ? "External" : "In-House"}
+            size="small"
+            color={value ? "warning" : "primary"}
+            variant="outlined"
+          />
+        );
+      },
+    },
     {
       id: "actions",
       label: "Actions",
@@ -106,7 +165,7 @@ const UserList: React.FC = () => {
             size="small"
             variant="outlined"
             onClick={() => {
-              console.log("🔵 Edit button clicked for user:", row, _); // ← ADD THIS
+              console.log("🔵 Edit button clicked for user:", row, _);
               navigate(`/users/edit/${row.id}`);
             }}
           >
@@ -118,7 +177,7 @@ const UserList: React.FC = () => {
             color="error"
             onClick={(e) => {
               e.stopPropagation();
-              console.log("🔴 Delete button clicked for user:", row.id); // ← ADD THIS
+              console.log("🔴 Delete button clicked for user:", row.id);
               setSelectedUserId(row.id);
               setDeleteDialog(true);
             }}
@@ -145,12 +204,73 @@ const UserList: React.FC = () => {
         }}
       />
 
-      {users.length === 0 ? (
+      {/* ✅ Technician Filter Toggle */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography variant="subtitle2" fontWeight={600}>
+              Filter Technicians:
+            </Typography>
+
+            <ToggleButtonGroup
+              value={technicianFilter}
+              exclusive
+              onChange={(_, newValue) => {
+                if (newValue !== null) {
+                  setTechnicianFilter(newValue);
+                  setPage(0); // Reset to first page
+                }
+              }}
+              size="small"
+            >
+              <ToggleButton value="all">
+                <GroupIcon sx={{ mr: 1, fontSize: 18 }} />
+                All ({technicianCount.all})
+              </ToggleButton>
+              <ToggleButton value="inhouse">
+                <PersonIcon sx={{ mr: 1, fontSize: 18 }} />
+                In-House ({technicianCount.inhouse})
+              </ToggleButton>
+              <ToggleButton value="external">
+                <BusinessIcon sx={{ mr: 1, fontSize: 18 }} />
+                External ({technicianCount.external})
+              </ToggleButton>
+            </ToggleButtonGroup>
+
+            {technicianFilter !== "all" && (
+              <Chip
+                label={`Filtered: ${filteredUsers.length} users`}
+                onDelete={() => setTechnicianFilter("all")}
+                color="primary"
+                variant="outlined"
+                size="small"
+              />
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+
+      {filteredUsers.length === 0 ? (
         <EmptyState
           title="No users found"
-          description="Create your first user to get started"
-          actionLabel="Add User"
-          onAction={() => navigate("/users/create")}
+          description={
+            technicianFilter === "all"
+              ? "Create your first user to get started"
+              : "No technicians match the selected filter"
+          }
+          actionLabel={technicianFilter === "all" ? "Add User" : "Clear Filter"}
+          onAction={() =>
+            technicianFilter === "all"
+              ? navigate("/users/create")
+              : setTechnicianFilter("all")
+          }
         />
       ) : (
         <DataTable
@@ -158,7 +278,7 @@ const UserList: React.FC = () => {
           rows={paginatedUsers}
           page={page}
           rowsPerPage={rowsPerPage}
-          totalRows={users.length}
+          totalRows={filteredUsers.length}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
         />
