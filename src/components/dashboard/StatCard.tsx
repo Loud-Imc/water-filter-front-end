@@ -7,8 +7,8 @@ interface StatCardProps {
   title: string;
   value: number;
   icon: React.ReactNode;
-  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | string; // ✅ Accept string colors
-  gradient?: string; // ✅ Optional gradient
+  color?: string; // ✅ Just accept any string
+  gradient?: string;
   onClick?: () => void;
 }
 
@@ -16,42 +16,40 @@ const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   icon,
-  color = 'primary',
+  color = '#1976d2', // ✅ Default to blue hex
   gradient,
   onClick,
 }) => {
   const theme = useTheme();
 
-  // ✅ Helper: Check if color is a MUI theme color or custom hex
-  const isThemeColor = ['primary', 'secondary', 'success', 'warning', 'error', 'info'].includes(color as string);
-  
-  // ✅ Get actual color value
-  const getColorValue = () => {
-    if (isThemeColor) {
-      return theme.palette[color as keyof typeof theme.palette].main;
-    }
-    return color; // Custom hex color
+  // ✅ Simple: Try to get from theme, fallback to hex
+  const getColorFromTheme = (colorName: string): string => {
+    const themeColorMap: Record<string, string> = {
+      primary: theme.palette.primary.main,
+      secondary: theme.palette.secondary.main,
+      success: theme.palette.success.main,
+      warning: theme.palette.warning.main,
+      error: theme.palette.error.main,
+      info: theme.palette.info.main,
+    };
+    return themeColorMap[colorName] || colorName; // Return hex if not found
   };
 
-  // ✅ Get light background color
-  const getLightColor = () => {
-    if (isThemeColor) {
-      return alpha(theme.palette[color as keyof typeof theme.palette].main, 0.1);
-    }
-    return alpha(color as string, 0.1); // 10% opacity for custom colors
+  const getDarkColor = (colorName: string): string => {
+    const themeColorMap: Record<string, string> = {
+      primary: theme.palette.primary.dark,
+      secondary: theme.palette.secondary.dark,
+      success: theme.palette.success.dark,
+      warning: theme.palette.warning.dark,
+      error: theme.palette.error.dark,
+      info: theme.palette.info.dark,
+    };
+    return themeColorMap[colorName] || colorName;
   };
 
-  // ✅ Get dark color for icon
-  const getDarkColor = () => {
-    if (isThemeColor) {
-      return theme.palette[color as keyof typeof theme.palette].dark;
-    }
-    return color; // Use same color for custom
-  };
-
-  const colorValue = getColorValue();
-  const lightColor = getLightColor();
-  const darkColor = getDarkColor();
+  const colorValue = getColorFromTheme(color);
+  const lightColor = alpha(colorValue, 0.1);
+  const darkColor = getDarkColor(color);
 
   return (
     <Card
@@ -64,7 +62,6 @@ const StatCard: React.FC<StatCardProps> = ({
           transform: 'translateY(-4px)',
           boxShadow: 6,
         } : {},
-        // ✅ Gradient border effect on hover
         '&::before': onClick ? {
           content: '""',
           position: 'absolute',
@@ -84,7 +81,6 @@ const StatCard: React.FC<StatCardProps> = ({
     >
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Left: Title and Value */}
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {title}
@@ -92,17 +88,12 @@ const StatCard: React.FC<StatCardProps> = ({
             <Typography 
               variant="h4" 
               fontWeight={700}
-              sx={{ 
-                color: colorValue,
-                // ✅ Add subtle animation on hover
-                transition: 'transform 0.3s ease',
-              }}
+              sx={{ color: colorValue }}
             >
               {value}
             </Typography>
           </Box>
 
-          {/* Right: Icon Box */}
           <Box
             sx={{
               width: 56,
@@ -111,23 +102,16 @@ const StatCard: React.FC<StatCardProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: gradient || lightColor, // ✅ Use gradient if provided
-              color: gradient ? '#ffffff' : darkColor, // White text for gradients
+              background: gradient || lightColor,
+              color: gradient ? '#ffffff' : darkColor,
               fontSize: '28px',
               transition: 'all 0.3s ease',
-              // ✅ Icon box animation on card hover
-              ...(onClick && {
-                '&:hover': {
-                  transform: 'rotate(10deg) scale(1.1)',
-                },
-              }),
             }}
           >
             {icon}
           </Box>
         </Box>
 
-        {/* ✅ Optional: Bottom accent line */}
         <Box
           sx={{
             position: 'absolute',
