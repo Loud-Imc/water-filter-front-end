@@ -39,6 +39,7 @@ export const API_ENDPOINTS = {
       `/service-requests/${id}/reassignment-history`,
     ADD_USED_PRODUCTS: (id: string) => `/service-requests/${id}/used-products`,
     GET_USED_PRODUCTS: (id: string) => `/service-requests/${id}/used-products`,
+    CUSTOMER_SERVICE_HISTORY: (id: string) => `/service-requests/${id}/customer-service-history`,
   },
   TECHNICIAN: {
     MY_TASKS: "/technicians/my-tasks",

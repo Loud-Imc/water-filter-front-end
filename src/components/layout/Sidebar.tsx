@@ -20,7 +20,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import BuildIcon from "@mui/icons-material/Build";
 import WorkIcon from "@mui/icons-material/Work";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -31,6 +30,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { useAppSelector } from "../../app/hooks";
 import { usePermission } from "../../hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
+import logoBigScreen from '../../assets/images/Leewa_logo_web.png';
 
 const DRAWER_WIDTH = 260;
 
@@ -169,10 +169,13 @@ const Sidebar: React.FC = () => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <BuildIcon sx={{ fontSize: 32, color: "primary.main" }} />
-            <Typography variant="h6" fontWeight={600} color="primary">
-              Water Filter
-            </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+                <img
+                  src={logoBigScreen}
+                  alt="Water Filter Logo"
+                  style={{ width: 160, height: 40 }}
+                />
+              </Box>
           </Box>
           {isMobile && (
             <IconButton onClick={handleDrawerToggle} edge="end">
@@ -244,7 +247,7 @@ const Sidebar: React.FC = () => {
           sx={{
             position: "fixed",
             top: 60,
-            left: 16,
+            left: 30,
             zIndex: (theme) => theme.zIndex.drawer + 2,
             bgcolor: "primary.main",
             color: "white",

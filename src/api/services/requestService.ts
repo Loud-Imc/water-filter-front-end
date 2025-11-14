@@ -237,4 +237,11 @@ export const requestService = {
     );
     return data;
   },
+
+  async getCustomerServiceHistory(serviceRequestId: string) {
+    const { data } = await axiosInstance.get(
+      API_ENDPOINTS.SERVICE_REQUESTS.CUSTOMER_SERVICE_HISTORY(serviceRequestId)
+    );
+    return data;
+  },
 };

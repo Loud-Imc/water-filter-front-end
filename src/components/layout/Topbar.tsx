@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { logout } from '../../app/slices/authSlice';
 import NotificationBadge from '../common/NotificationBadge';
+import logoMobile from '../../assets/images/Leewa_logo_mobile.png'
 
 const DRAWER_WIDTH = 260;
 
@@ -76,9 +77,9 @@ const Topbar: React.FC = () => {
         {isMobile && (
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
             <img
-              src="/manifest/favicon-32x32.png"
+              src={logoMobile}
               alt="Water Filter Logo"
-              style={{ width: 32, height: 32 }}
+              style={{ width: 48, height: 48 }}
             />
           </Box>
         )}

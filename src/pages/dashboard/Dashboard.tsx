@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
             title="Work Completed"
             value={stats.workCompleted}
             icon={<TaskAltIcon />}
-            color="#00897b" // Teal
+            color="#039688ff" // Teal
             onClick={() => handleCardClick("WORK_COMPLETED")}
           />
         </Grid>

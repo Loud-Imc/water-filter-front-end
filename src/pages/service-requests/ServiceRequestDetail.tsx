@@ -23,6 +23,9 @@ import {
   Alert,
   IconButton,
   Stack,
+  IconButton as MuiIconButton,
+  Slide,
+  CircularProgress,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -66,6 +69,19 @@ import { productService } from "../../api/services/productService";
 import { BuildCircleOutlined } from "@mui/icons-material";
 import WorkMediaGallery from "./WorkMediaGallery";
 import { Product } from "@/types";
+import CloseIcon from "@mui/icons-material/Close";
+import HistoryIcon from "@mui/icons-material/History";
+import { TransitionProps } from "@mui/material/transitions";
+import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
+
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement;
+  },
+  ref: React.Ref<unknown>
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 const ServiceRequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -96,6 +112,37 @@ const ServiceRequestDetail: React.FC = () => {
   const [usedProductsDialog, setUsedProductsDialog] = useState(false);
   const [usedProducts, setUsedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [customerHistory, setCustomerHistory] = useState<any>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const handleViewCustomerHistory = async () => {
+    if (!request?.customer?.id) return;
+
+    try {
+      setLoadingHistory(true);
+      setHistoryModalOpen(true);
+
+      const data = await requestService.getCustomerServiceHistory(id!);
+      setCustomerHistory(data);
+    } catch (error: any) {
+      console.error("Failed to fetch customer history:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to load customer history",
+        severity: "error",
+      });
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // ✅ NEW: Close modal
+  const handleCloseHistoryModal = () => {
+    setHistoryModalOpen(false);
+    setCustomerHistory(null);
+  };
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -495,311 +542,307 @@ const ServiceRequestDetail: React.FC = () => {
       />
 
       <Grid container spacing={3}>
-          {/* ✅ SERVICE LOCATION DETAILS - VISIBLE TO ALL USERS */}
-          <Grid size={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Service Location Details
-                </Typography>
+        {/* ✅ SERVICE LOCATION DETAILS - VISIBLE TO ALL USERS */}
+        <Grid size={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Service Location Details
+              </Typography>
 
-                {/* ✅ Installation Information */}
-                {request.installation ? (
+              {/* ✅ Installation Information */}
+              {request.installation ? (
+                <Box
+                  sx={{ p: 2, bgcolor: "info.light", borderRadius: 1, mb: 2 }}
+                >
                   <Box
-                    sx={{ p: 2, bgcolor: "info.light", borderRadius: 1, mb: 2 }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 1.5,
-                      }}
-                    >
-                      <LocationOnIcon color="info" fontSize="small" />
-                      <Typography
-                        variant="subtitle2"
-                        fontWeight={600}
-                        color="info.dark"
-                      >
-                        Installation Location
-                      </Typography>
-                      {request.installation.isPrimary && (
-                        <Chip label="Primary" size="small" color="primary" />
-                      )}
-                      {request.installation.installationType && (
-                        <Chip
-                          label={request.installation.installationType}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
-
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      color="info.dark"
-                      gutterBottom
-                    >
-                      {request.installation.name}
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      color="info.dark"
-                      sx={{ mb: 0.5 }}
-                    >
-                      📍 {request.installation.address}
-                    </Typography>
-
-                    {request.installation.landmark && (
-                      <Typography
-                        variant="body2"
-                        color="info.dark"
-                        sx={{ mb: 0.5 }}
-                      >
-                        🏛️ Landmark: {request.installation.landmark}
-                      </Typography>
-                    )}
-
-                    {/* ✅ Smart Phone Display */}
-                    {(() => {
-                      const installationPhone =
-                        request.installation.contactPhone;
-                      const customerPhone = request.customer?.primaryPhone;
-                      const phonesAreSame = installationPhone === customerPhone;
-
-                      return (
-                        <>
-                          {request.installation.contactPerson && (
-                            <Typography
-                              variant="body2"
-                              color="info.dark"
-                              sx={{ mb: 0.5 }}
-                            >
-                              👤 Contact: {request.installation.contactPerson}
-                              {installationPhone &&
-                                ` • 📞 ${installationPhone}`}
-                            </Typography>
-                          )}
-
-                          {!phonesAreSame && customerPhone && (
-                            <Typography
-                              variant="body2"
-                              color="info.dark"
-                              sx={{ mb: 0.5 }}
-                            >
-                              📞 Customer: {request.customer.name} •{" "}
-                              {customerPhone}
-                            </Typography>
-                          )}
-                        </>
-                      );
-                    })()}
-
-                    {request.installation.notes && (
-                      <Typography
-                        variant="caption"
-                        color="info.dark"
-                        sx={{ fontStyle: "italic", display: "block", mt: 1 }}
-                      >
-                        📝 Note: {request.installation.notes}
-                      </Typography>
-                    )}
-                  </Box>
-                ) : (
-                  /* ✅ Show customer details if no installation */
-                  <Box sx={{ p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
-                    <Typography variant="body2" fontWeight={600} gutterBottom>
-                      {request.customer?.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 0.5 }}
-                    >
-                      📍 {request.customer?.address}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      📞 {request.customer?.primaryPhone}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* ✅ TECHNICIAN WORK PANEL - ONLY FOR ASSIGNED TECHNICIAN */}
-          {user?.role.name === "Technician" &&
-            request.assignedTo?.id === user.id && (
-              <>
-                {/* Work Progress Card */}
-                <Grid size={12}>
-                  <Card
                     sx={{
-                      bgcolor: "primary.light",
-                      color: "primary.contrastText",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
                     }}
                   >
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        fontWeight={600}
-                        gutterBottom
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <TimerIcon />
-                        Work Progress
-                      </Typography>
+                    <LocationOnIcon color="info" fontSize="small" />
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={600}
+                      color="info.dark"
+                    >
+                      Installation Location
+                    </Typography>
+                    {request.installation.isPrimary && (
+                      <Chip label="Primary" size="small" color="primary" />
+                    )}
+                    {request.installation.installationType && (
+                      <Chip
+                        label={request.installation.installationType}
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
 
-                      {request.status === "ASSIGNED" && (
-                        <>
-                          <Alert severity="info" sx={{ mb: 2 }}>
-                            Click "Start Work" to begin this task. Timer will
-                            start automatically.
-                          </Alert>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="large"
-                            startIcon={<PlayArrowIcon />}
-                            onClick={handleStartWork}
-                            fullWidth
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    color="info.dark"
+                    gutterBottom
+                  >
+                    {request.installation.name}
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    color="info.dark"
+                    sx={{ mb: 0.5 }}
+                  >
+                    📍 {request.installation.address}
+                  </Typography>
+
+                  {request.installation.landmark && (
+                    <Typography
+                      variant="body2"
+                      color="info.dark"
+                      sx={{ mb: 0.5 }}
+                    >
+                      🏛️ Landmark: {request.installation.landmark}
+                    </Typography>
+                  )}
+
+                  {/* ✅ Smart Phone Display */}
+                  {(() => {
+                    const installationPhone = request.installation.contactPhone;
+                    const customerPhone = request.customer?.primaryPhone;
+                    const phonesAreSame = installationPhone === customerPhone;
+
+                    return (
+                      <>
+                        {request.installation.contactPerson && (
+                          <Typography
+                            variant="body2"
+                            color="info.dark"
+                            sx={{ mb: 0.5 }}
                           >
-                            Start Work
-                          </Button>
-                        </>
-                      )}
+                            👤 Contact: {request.installation.contactPerson}
+                            {installationPhone && ` • 📞 ${installationPhone}`}
+                          </Typography>
+                        )}
 
-                      {request.status === "IN_PROGRESS" && (
-                        <>
-                          <Grid container spacing={3} alignItems="center">
-                            <Grid size={{ xs: 12, md: 4 }}>
-                              <Box sx={{ textAlign: "center" }}>
-                                <Typography variant="h2" fontWeight={600}>
-                                  {formatTime(elapsedTime)}
-                                </Typography>
-                                <Typography variant="caption">
-                                  Timer Running
-                                </Typography>
-                              </Box>
-                            </Grid>
+                        {!phonesAreSame && customerPhone && (
+                          <Typography
+                            variant="body2"
+                            color="info.dark"
+                            sx={{ mb: 0.5 }}
+                          >
+                            📞 Customer: {request.customer.name} •{" "}
+                            {customerPhone}
+                          </Typography>
+                        )}
+                      </>
+                    );
+                  })()}
 
-                            <Grid size={{ xs: 12, md: 8 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  gap: 2,
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <Button
-                                  variant="contained"
-                                  color="error"
-                                  size="large"
-                                  startIcon={<StopIcon />}
-                                  onClick={handleStopWork}
-                                >
-                                  Complete Work
-                                </Button>
+                  {request.installation.notes && (
+                    <Typography
+                      variant="caption"
+                      color="info.dark"
+                      sx={{ fontStyle: "italic", display: "block", mt: 1 }}
+                    >
+                      📝 Note: {request.installation.notes}
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                /* ✅ Show customer details if no installation */
+                <Box sx={{ p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
+                  <Typography variant="body2" fontWeight={600} gutterBottom>
+                    {request.customer?.name}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    📍 {request.customer?.address}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    📞 {request.customer?.primaryPhone}
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-                                <Button
-                                  variant="outlined"
-                                  startIcon={<UploadIcon />}
-                                  onClick={() => setUploadDialog(true)}
-                                  sx={{
-                                    color: "primary.contrastText",
-                                    borderColor: "primary.contrastText",
-                                  }}
-                                >
-                                  Upload Images
-                                </Button>
-                              </Box>
-                            </Grid>
+        {/* ✅ TECHNICIAN WORK PANEL - ONLY FOR ASSIGNED TECHNICIAN */}
+        {user?.role.name === "Technician" &&
+          request.assignedTo?.id === user.id && (
+            <>
+              {/* Work Progress Card */}
+              <Grid size={12}>
+                <Card
+                  sx={{
+                    bgcolor: "background.paper",
+                    color: "primary.light",
+                  }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant="h6"
+                      fontWeight={600}
+                      gutterBottom
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
+                      <TimerIcon />
+                      Work Progress
+                    </Typography>
+
+                    {request.status === "ASSIGNED" && (
+                      <>
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Click "Start Work" to begin this task. Timer will
+                          start automatically.
+                        </Alert>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="large"
+                          startIcon={<PlayArrowIcon />}
+                          onClick={handleStartWork}
+                          fullWidth
+                        >
+                          Start Work
+                        </Button>
+                      </>
+                    )}
+
+                    {request.status === "IN_PROGRESS" && (
+                      <>
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid size={{ xs: 12, md: 4 }}>
+                            <Box sx={{ textAlign: "center" }}>
+                              <Typography variant="h2" fontWeight={600}>
+                                {formatTime(elapsedTime)}
+                              </Typography>
+                              <Typography variant="caption">
+                                Timer Running
+                              </Typography>
+                            </Box>
                           </Grid>
 
-                          <Box sx={{ mt: 3 }}>
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={3}
-                              label="Work Notes"
-                              value={workNotes}
-                              onChange={(e) => setWorkNotes(e.target.value)}
-                              placeholder="Add notes about the work being performed..."
+                          <Grid size={{ xs: 12, md: 8 }}>
+                            <Box
                               sx={{
-                                "& .MuiInputLabel-root": {
-                                  color: "primary.contrastText",
-                                },
-                                "& .MuiInputBase-root": {
-                                  color: "primary.contrastText",
-                                },
+                                display: "flex",
+                                gap: 2,
+                                flexWrap: "wrap",
                               }}
-                            />
-                          </Box>
-                        </>
-                      )}
-
-                      {request.status === "WORK_COMPLETED" && (
-                        <>
-                          <Alert severity="success" sx={{ mb: 2 }}>
-                            ✅ Work completed! Waiting for manager
-                            acknowledgment.
-                          </Alert>
-                          <Button
-                            variant="outlined"
-                            startIcon={<UploadIcon />}
-                            onClick={() => setUploadDialog(true)}
-                            fullWidth
-                            sx={{
-                              color: "primary.contrastText",
-                              borderColor: "primary.contrastText",
-                            }}
-                          >
-                            Upload Additional Images
-                          </Button>
-                          {usedProducts.length === 0 && (
-                            <Button
-                              variant="contained"
-                              color="info"
-                              sx={{ mt: 2, backgroundColor: "#1976d2" }}
-                              startIcon={<BuildCircleOutlined />}
-                              onClick={() => setUsedProductsDialog(true)}
                             >
-                              Add Used Products
-                            </Button>
-                          )}
-                        </>
-                      )}
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="large"
+                                startIcon={<StopIcon />}
+                                onClick={handleStopWork}
+                              >
+                                Complete Work
+                              </Button>
 
-                      {request.status === "COMPLETED" && (
-                        <Alert severity="success">
-                          ✅ Task completed and acknowledged by manager.
+                              <Button
+                                variant="outlined"
+                                startIcon={<UploadIcon />}
+                                onClick={() => setUploadDialog(true)}
+                                sx={{
+                                  color: "primary.light",
+                                  borderColor: "primary.light",
+                                }}
+                              >
+                                Upload Images
+                              </Button>
+                            </Box>
+                          </Grid>
+                        </Grid>
+
+                        <Box sx={{ mt: 3 }}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            label="Work Notes"
+                            value={workNotes}
+                            onChange={(e) => setWorkNotes(e.target.value)}
+                            placeholder="Add notes about the work being performed..."
+                            sx={{
+                              "& .MuiInputLabel-root": {
+                                color: "primary.light",
+                              },
+                              "& .MuiInputBase-root": {
+                                color: "primary.light",
+                              },
+                            }}
+                          />
+                        </Box>
+                      </>
+                    )}
+
+                    {request.status === "WORK_COMPLETED" && (
+                      <>
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                          ✅ Work completed! Waiting for manager acknowledgment.
                         </Alert>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
+                        <Button
+                          variant="outlined"
+                          startIcon={<UploadIcon />}
+                          onClick={() => setUploadDialog(true)}
+                          fullWidth
+                          sx={{
+                            color: "primary.contrastText",
+                            borderColor: "primary.contrastText",
+                          }}
+                        >
+                          Upload Additional Images
+                        </Button>
+                        {usedProducts.length === 0 && (
+                          <Button
+                            variant="contained"
+                            color="info"
+                            sx={{ mt: 2, backgroundColor: "primary.main" }}
+                            startIcon={<BuildCircleOutlined />}
+                            onClick={() => setUsedProductsDialog(true)}
+                          >
+                            Add Used Products
+                          </Button>
+                        )}
+                      </>
+                    )}
 
-                {/* Customer Location Capture Card */}
-                <Grid size={12}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Customer Location
-                      </Typography>
-                      <LocationCapture
-                        initialLocation={customerLocation}
-                        onLocationCapture={handleLocationCapture}
-                        disabled={request.status === "COMPLETED"}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </>
-            )}
-       
+                    {request.status === "COMPLETED" && (
+                      <Alert severity="success">
+                        ✅ Task completed and acknowledged by manager.
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Customer Location Capture Card */}
+              <Grid size={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Customer Location
+                    </Typography>
+                    <LocationCapture
+                      initialLocation={customerLocation}
+                      onLocationCapture={handleLocationCapture}
+                      disabled={request.status === "COMPLETED"}
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+            </>
+          )}
 
         {/* Main Details Card */}
         <Grid size={{ xs: 12, md: 8 }}>
@@ -959,24 +1002,70 @@ const ServiceRequestDetail: React.FC = () => {
                 )}
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Contact
-                  </Typography>
-                  <Typography variant="body1" fontWeight={500}>
-                    {request.customer?.primaryPhone || "N/A"}
-                  </Typography>
-                  {/* ✅ Show installation contact if different */}
-                  {request.installation?.contactPhone &&
-                    request.installation.contactPhone !==
-                      request.customer?.primaryPhone && (
+                  <Box
+                    onClick={handleViewCustomerHistory}
+                    sx={{
+                      cursor: "pointer",
+                      p: 1.5,
+                      borderRadius: 1,
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: "action.hover",
+                        transform: "translateY(-2px)",
+                      },
+                      "&:active": {
+                        transform: "translateY(0)",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Contact
+                      </Typography>
+                      <HistoryIcon
+                        sx={{
+                          fontSize: 16,
+                          color: "primary.main",
+                          animation: "pulse 2s infinite",
+                          "@keyframes pulse": {
+                            "0%, 100%": { opacity: 1 },
+                            "50%": { opacity: 0.5 },
+                          },
+                        }}
+                      />
                       <Typography
                         variant="caption"
-                        color="text.secondary"
-                        display="block"
+                        color="primary.main"
+                        sx={{ fontWeight: 500 }}
                       >
-                        Installation: {request.installation.contactPhone}
+                        View History
                       </Typography>
-                    )}
+                    </Box>
+
+                    <Typography variant="body1" fontWeight={500}>
+                      {request.customer?.primaryPhone || "N/A"}
+                    </Typography>
+
+                    {/* ✅ Show installation contact if different */}
+                    {request.installation?.contactPhone &&
+                      request.installation.contactPhone !==
+                        request.customer?.primaryPhone && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          Installation: {request.installation.contactPhone}
+                        </Typography>
+                      )}
+                  </Box>
                 </Grid>
 
                 <Grid size={12}>
@@ -1242,6 +1331,197 @@ const ServiceRequestDetail: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
+
+       <Dialog
+        fullScreen
+        open={historyModalOpen}
+        onClose={handleCloseHistoryModal}
+        TransitionComponent={Transition}
+        sx={{
+          '& .MuiDialog-paper': {
+            bgcolor: 'background.default',
+          },
+        }}
+      >
+        {/* Modal Header */}
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: 1,
+            borderColor: 'divider',
+            position: 'sticky',
+            top: 0,
+            bgcolor: 'background.paper',
+            zIndex: 1,
+          }}
+        >
+          <Box>
+            <Typography variant="h6" fontWeight={600}>
+              Customer Service History
+            </Typography>
+            {customerHistory?.customer && (
+              <Typography variant="body2" color="text.secondary">
+                {customerHistory.customer.name}
+              </Typography>
+            )}
+          </Box>
+          <MuiIconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseHistoryModal}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </MuiIconButton>
+        </DialogTitle>
+
+        {/* Modal Content */}
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          {loadingHistory ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : customerHistory ? (
+            <Grid container spacing={3}>
+              {/* Customer Info Card - Mobile Optimized */}
+              <Grid size={{ xs: 12 }}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Customer Information
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Name
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {customerHistory.customer.name}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Phone
+                        </Typography>
+                        <Typography variant="body1">
+                          {customerHistory.customer.primaryPhone}
+                        </Typography>
+                      </Box>
+                      {customerHistory.customer.email && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
+                            Email
+                          </Typography>
+                          <Typography variant="body1">
+                            {customerHistory.customer.email}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Address
+                        </Typography>
+                        <Typography variant="body1">
+                          {customerHistory.customer.address}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Statistics - Mobile Optimized Grid */}
+              <Grid size={{ xs: 12 }}>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" color="primary.main" fontWeight={600}>
+                          {customerHistory.statistics.totalServices}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Total Services
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" color="success.main" fontWeight={600}>
+                          {customerHistory.statistics.completedServices}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Completed
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" color="info.main" fontWeight={600}>
+                          {customerHistory.statistics.installations}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Installations
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" color="warning.main" fontWeight={600}>
+                          {customerHistory.statistics.complaints}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Complaints
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" color="secondary.main" fontWeight={600}>
+                          {customerHistory.statistics.services}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Services
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Card>
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h4" fontWeight={600}>
+                          {customerHistory.statistics.enquiries}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Enquiries
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              {/* Service History Timeline */}
+              <Grid size={{ xs: 12 }}>
+                <ServiceHistoryTimeline 
+                  serviceHistory={customerHistory.serviceHistory}
+                />
+              </Grid>
+            </Grid>
+          ) : (
+            <Alert severity="info">No history data available</Alert>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Approve Dialog */}
       <Dialog

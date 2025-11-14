@@ -45,7 +45,7 @@ const StatusChip: React.FC<StatusChipProps> = ({
       case 'IN_PROGRESS':
         return { bg: 'secondary.light', color: 'secondary.dark', border: 'secondary.main' };
       case 'WORK_COMPLETED':
-        return { bg: 'success.light', color: 'success.dark', border: 'success.main' };
+        return { bg: '#039688ff', color: 'success.dark', border: 'success.main' };
       case 'COMPLETED':
         return { bg: 'success.main', color: 'white', border: 'success.dark' };
       case 'REJECTED':
