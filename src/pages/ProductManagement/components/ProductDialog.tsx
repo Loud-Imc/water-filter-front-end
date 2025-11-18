@@ -48,6 +48,13 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   const [warrantyType, setWarrantyType] = useState<'months' | 'years'>('months');
   const [loading, setLoading] = useState(false);
 
+  // Validation errors state
+  const [errors, setErrors] = useState<{
+    name?: string;
+    price?: string;
+    stock?: string;
+  }>({});
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -62,9 +69,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         warrantyMonths: product.warrantyMonths,
         warrantyYears: product.warrantyYears,
       });
-      if (product.warrantyYears) {
-        setWarrantyType('years');
-      }
+      if (product.warrantyYears) setWarrantyType('years');
     } else {
       setFormData({
         name: '',
@@ -80,14 +85,27 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       });
       setWarrantyType('months');
     }
+    setErrors({});
   }, [product, open]);
 
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (formData.price < 1) newErrors.price = 'Price must be at least 1';
+    if (formData.stock < 1) newErrors.stock = 'Stock must be at least 1';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     setLoading(true);
     try {
       const productData = { ...formData };
-      
-      // Handle warranty
+
       if (formData.hasWarranty) {
         if (warrantyType === 'months') {
           productData.warrantyMonths = formData.warrantyMonths;
@@ -119,7 +137,12 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             fullWidth
             label="Product Name *"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, name: e.target.value });
+              setErrors((prev) => ({ ...prev, name: undefined }));
+            }}
+            error={!!errors.name}
+            helperText={errors.name}
           />
 
           <TextField
@@ -137,7 +160,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
           >
             <MenuItem value="">None</MenuItem>
-            {categories.filter(c => c.isActive).map((category) => (
+            {categories.filter((c) => c.isActive).map((category) => (
               <MenuItem key={category.id} value={category.id}>
                 {category.name}
               </MenuItem>
@@ -165,10 +188,14 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             label="Price *"
             type="number"
             value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-            InputProps={{
-              startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+            onChange={(e) => {
+              setFormData({ ...formData, price: Number(e.target.value) });
+              setErrors((prev) => ({ ...prev, price: undefined }));
             }}
+            error={!!errors.price}
+            helperText={errors.price}
+            InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+            inputProps={{ min: 1 }}
           />
 
           <TextField
@@ -176,7 +203,13 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             label="Stock Quantity *"
             type="number"
             value={formData.stock}
-            onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+            onChange={(e) => {
+              setFormData({ ...formData, stock: Number(e.target.value) });
+              setErrors((prev) => ({ ...prev, stock: undefined }));
+            }}
+            error={!!errors.stock}
+            helperText={errors.stock}
+            inputProps={{ min: 1 }}
           />
 
           <FormControlLabel
@@ -247,7 +280,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!formData.name.trim() || loading}
+          disabled={loading}
         >
           {loading ? 'Saving...' : product ? 'Update' : 'Create'}
         </Button>
