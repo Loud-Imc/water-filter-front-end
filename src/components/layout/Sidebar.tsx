@@ -132,19 +132,30 @@ const Sidebar: React.FC = () => {
     },
   ];
 
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (!user) return false;
+const filteredMenuItems = menuItems.filter((item) => {
+  if (!user) return false;
 
-    if (item.roles && !item.roles.includes(user.role.name)) {
-      return false;
-    }
+ if (
+  (item.label === "Service Requests" ||
+   item.label === "Products" ||
+   item.label === "Customer Management") &&
+  user.role.name === "Technician"
+) {
+  return false; // Hide these items for Technician role
+}
 
-    if (item.permissions) {
-      return hasAnyPermission(item.permissions);
-    }
 
-    return true;
-  });
+  if (item.roles && !item.roles.includes(user.role.name)) {
+    return false;
+  }
+
+  if (item.permissions) {
+    return hasAnyPermission(item.permissions);
+  }
+
+  return true;
+});
+
 
   const handleNavigation = (path: string) => {
     navigate(path);

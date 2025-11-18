@@ -6,7 +6,7 @@ import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/dashboard/StatCard";
 import RecentRequests from "../../components/dashboard/RecentRequests";
 import RequestsByType from "../../components/dashboard/RequestsByType";
-import TechnicianTasks from "../../components/dashboard/TechnicianTasks";
+// import TechnicianTasks from "../../components/dashboard/TechnicianTasks";
 import StockAlertBar from "../../components/dashboard/StockAlertBar";
 import ReportsSection from "../../components/dashboard/ReportsSection"; // ✅ NEW
 
@@ -60,9 +60,9 @@ const Dashboard: React.FC = () => {
         subtitle="Here's what's happening today"
       />
 
-      {isTechnician && stats.myTasks && (
+      {/* {isTechnician && stats.myTasks && (
         <TechnicianTasks tasks={stats.myTasks} />
-      )}
+      )} */}
 
       <StockAlertBar userRole={user?.role.name} />
 

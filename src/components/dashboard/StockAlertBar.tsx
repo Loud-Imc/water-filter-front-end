@@ -1,58 +1,72 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, IconButton } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { productService } from '../../api/services/productService';
+import { sparePartsService } from '../../api/services/sparePartsService';
 
 interface StockAlertBarProps {
   userRole?: string;
 }
 
 const StockAlertBar: React.FC<StockAlertBarProps> = ({ userRole }) => {
-  const [lowStockCount, setLowStockCount] = useState(0);
+  const [lowStockProductsCount, setLowStockProductsCount] = useState(0);
+  const [lowStockSparePartsCount, setLowStockSparePartsCount] = useState(0);
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Hide for technicians
     if (userRole === 'Technician') return;
 
-    const fetchLowStockCount = async () => {
+    const fetchLowStockCounts = async () => {
       try {
-        const count = await productService.getLowStockCount();
-        if (count > 0) {
-          setLowStockCount(count);
+        const [productCount, sparePartsCount] = await Promise.all([
+          productService.getLowStockCount(),
+          sparePartsService.getLowStockCount(),
+        ]);
+        if (productCount > 0 || sparePartsCount > 0) {
+          setLowStockProductsCount(productCount);
+          setLowStockSparePartsCount(sparePartsCount);
           setShow(true);
         }
       } catch (error) {
-        console.error('Error fetching low stock count:', error);
+        console.error('Error fetching low stock counts:', error);
       }
     };
 
-    fetchLowStockCount();
-    const interval = setInterval(fetchLowStockCount, 60000); // Check every minute
+    fetchLowStockCounts();
+    const interval = setInterval(fetchLowStockCounts, 60000);
 
     return () => clearInterval(interval);
   }, [userRole]);
 
-  const handleNavigate = () => {
+  const handleNavigateProducts = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigate('/products?filter=lowStock');
   };
 
+  const handleNavigateSpareParts = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/products?tab=Spare Parts&filter=lowStock');
+  };
+
   const handleClose = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigation when clicking close
+    e.stopPropagation();
     setShow(false);
   };
 
-  if (!show || lowStockCount === 0) return null;
+  if (!show) return null;
+
+  const totalLowStockCount = lowStockProductsCount + lowStockSparePartsCount;
+  if (totalLowStockCount === 0) return null;
 
   return (
     <Box
       sx={{
         width: '100%',
-        bgcolor: '#FFF4E5', // ✅ Light orange/amber background
-        borderLeft: '4px solid #FF9800', // ✅ Orange left border
+        bgcolor: '#FFF4E5',
+        borderLeft: '4px solid #FF9800',
         p: 2,
         mb: 3,
         display: 'flex',
@@ -62,14 +76,13 @@ const StockAlertBar: React.FC<StockAlertBarProps> = ({ userRole }) => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}
     >
-      {/* Left side: Icon + Message */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box
           sx={{
             width: 40,
             height: 40,
             borderRadius: '50%',
-            bgcolor: '#FF9800', // Orange background for icon
+            bgcolor: '#FF9800',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -77,36 +90,59 @@ const StockAlertBar: React.FC<StockAlertBarProps> = ({ userRole }) => {
         >
           <WarningIcon sx={{ fontSize: 24, color: 'white' }} />
         </Box>
-        
+
         <Box>
           <Typography variant="subtitle1" fontWeight={600} color="text.primary">
             ⚠️ Stock Alert
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {lowStockCount} {lowStockCount === 1 ? 'product is' : 'products are'} running low on stock
+          <Typography variant="body2" color="text.secondary" component="div">
+            {lowStockProductsCount > 0 && (
+              <>
+                {lowStockProductsCount}{' '}
+                <Typography
+                  component="span"
+                  onClick={handleNavigateProducts}
+                  sx={{
+                    color: '#FF9800',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    '&:hover': {
+                      color: '#F57C00',
+                    },
+                  }}
+                >
+                  {lowStockProductsCount === 1 ? 'product' : 'products'}
+                </Typography>
+              </>
+            )}
+            {lowStockProductsCount > 0 && lowStockSparePartsCount > 0 && ' and '}
+            {lowStockSparePartsCount > 0 && (
+              <>
+                {lowStockSparePartsCount}{' '}
+                <Typography
+                  component="span"
+                  onClick={handleNavigateSpareParts}
+                  sx={{
+                    color: '#FF9800',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    '&:hover': {
+                      color: '#F57C00',
+                    },
+                  }}
+                >
+                  {lowStockSparePartsCount === 1 ? 'spare part' : 'spare parts'}
+                </Typography>
+              </>
+            )}{' '}
+            {totalLowStockCount === 1 ? 'is' : 'are'} running low on stock
           </Typography>
         </Box>
       </Box>
 
-      {/* Right side: View Details Button + Close Button */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Button
-          variant="contained"
-          size="medium"
-          onClick={handleNavigate}
-          sx={{
-            bgcolor: '#FF9800',
-            color: 'white',
-            fontWeight: 600,
-            '&:hover': {
-              bgcolor: '#F57C00',
-            },
-          }}
-        >
-          View Details
-        </Button>
-
-        {/* ✅ Close Button */}
         <IconButton
           size="small"
           onClick={handleClose}

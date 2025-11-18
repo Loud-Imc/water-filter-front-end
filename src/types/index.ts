@@ -123,6 +123,9 @@ export interface ServiceRequest {
   assignedTo?: User;
   customer: Customer;
   region: Region;
+  categoryId?: string; // ✅ NEW
+  installationId?: string; // ✅ NEW
+  category?: ProductCategory; // ✅ NEW
   approvalHistory: ApprovalHistory[];
   workLogs?: WorkLog[];
   workMedia?: WorkMedia[];
@@ -199,20 +202,20 @@ export interface AuthResponse {
 }
 
 // Product/Inventory types
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  sku?: string;
-  price: number;
-  stock: number;
-  hasWarranty: boolean;
-  warrantyMonths?: number;
-  warrantyYears?: number;
-  createdAt: string;
-  updatedAt: string;
-  company?: string;
-}
+// export interface Product {
+//   id: string;
+//   name: string;
+//   description?: string;
+//   sku?: string;
+//   price: number;
+//   stock: number;
+//   hasWarranty: boolean;
+//   warrantyMonths?: number;
+//   warrantyYears?: number;
+//   createdAt: string;
+//   updatedAt: string;
+//   company?: string;
+// }
 
 export interface CreateProductDto {
   name: string;
@@ -224,6 +227,7 @@ export interface CreateProductDto {
   warrantyMonths?: number;
   warrantyYears?: number;
   company?: string;
+  categoryId?: string;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {}
@@ -369,3 +373,204 @@ export interface CreateInstallationDto {
 }
 
 export interface UpdateInstallationDto extends Partial<CreateInstallationDto> {}
+
+
+// ==========================================
+// ✅ NEW: Product Category Types
+// ==========================================
+export interface ProductCategory {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    products: number;
+  };
+}
+
+export interface CreateProductCategoryDto {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateProductCategoryDto extends Partial<CreateProductCategoryDto> {}
+
+// ==========================================
+// ✅ NEW: Spare Part Group Types
+// ==========================================
+export interface SparePartGroup {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    spareParts: number;
+  };
+}
+
+export interface CreateSparePartGroupDto {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateSparePartGroupDto extends Partial<CreateSparePartGroupDto> {}
+
+// ==========================================
+// ✅ NEW: Spare Part Types
+// ==========================================
+export interface SparePart {
+  id: string;
+  name: string;
+  description?: string;
+  sku?: string;
+  groupId?: string;
+  price: number;
+  stock: number;
+  hasWarranty: boolean;
+  warrantyMonths?: number;
+  warrantyYears?: number;
+  company?: string;
+  createdAt: string;
+  updatedAt: string;
+  group?: SparePartGroup;
+  _count?: {
+    stockHistory: number;
+    technicianStock: number;
+  };
+}
+
+export interface CreateSparePartDto {
+  name: string;
+  description?: string;
+  sku?: string | null;
+  groupId?: string;
+  price: number;
+  stock: number;
+  hasWarranty?: boolean;
+  warrantyMonths?: number;
+  warrantyYears?: number;
+  company?: string;
+}
+
+export interface UpdateSparePartDto extends Partial<CreateSparePartDto> {}
+
+// ==========================================
+// ✅ NEW: BOM Template Types
+// ==========================================
+export interface BOMTemplateItem {
+  id: string;
+  bomTemplateId: string;
+  sparePartId: string;
+  quantity: number;
+  isOptional: boolean;
+  notes?: string;
+  createdAt: string;
+  sparePart: SparePart;
+}
+
+export interface BOMTemplate {
+  id: string;
+  productId: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  product: Product;
+  items: BOMTemplateItem[];
+  _count?: {
+    items: number;
+    assemblies: number;
+  };
+}
+
+export interface CreateBOMTemplateDto {
+  productId: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateBOMTemplateDto extends Partial<CreateBOMTemplateDto> {}
+
+export interface AddBOMItemDto {
+  sparePartId: string;
+  quantity: number;
+  isOptional?: boolean;
+  notes?: string;
+}
+
+export interface ExecuteAssemblyDto {
+  selectedSparePartIds: string[];
+  notes?: string;
+}
+
+// ==========================================
+// ✅ NEW: Assembly History Types
+// ==========================================
+export interface AssemblyUsedPart {
+  id: string;
+  assemblyHistoryId: string;
+  sparePartId: string;
+  quantityUsed: number;
+  costAtTime: number;
+  sparePart: SparePart;
+}
+
+export interface AssemblyHistory {
+  id: string;
+  productId: string;
+  bomTemplateId: string;
+  assembledBy: string;
+  assembledAt: string;
+  notes?: string;
+  totalCost: number;
+  product: Product;
+  bomTemplate: BOMTemplate;
+  assembler: Partial<User>;
+  usedParts: AssemblyUsedPart[];
+}
+
+// ==========================================
+// ✅ NEW: Technician Stock Types
+// ==========================================
+export interface TechnicianStock {
+  id: string;
+  technicianId: string;
+  sparePartId?: string;
+  productId?: string;
+  quantity: number;
+  createdAt: string;
+  updatedAt: string;
+  technician: Partial<User>;
+  sparePart?: SparePart;
+  product?: Product;
+}
+
+// ==========================================
+// ✅ UPDATE: Existing Product Type (add category)
+// ==========================================
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  sku?: string;
+  categoryId?: string; // ✅ NEW
+  price: number;
+  stock: number;
+  hasWarranty: boolean;
+  warrantyMonths?: number;
+  warrantyYears?: number;
+  company?: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: ProductCategory; // ✅ NEW
+  bomTemplate?: BOMTemplate;
+}
+

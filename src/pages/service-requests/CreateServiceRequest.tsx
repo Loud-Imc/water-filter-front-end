@@ -38,6 +38,10 @@ import type { TechnicianWithWorkload, Installation } from "../../types";
 import axiosInstance from "../../api/axios";
 import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
 import BusinessIcon from "@mui/icons-material/Business";
+import { productCategoriesService } from "../../api/services/productCategoriesService";
+import type { ProductCategory } from "../../types";
+import CategoryIcon from '@mui/icons-material/Category';
+
 
 // Validation schema with proper enum types
 // ✅ UPDATED: Add optional installationId
@@ -56,6 +60,7 @@ const serviceRequestSchema = yup.object().shape({
   customerId: yup.string().required("Customer is required"),
   regionId: yup.string().required("Region is required"),
   installationId: yup.string().optional(), // ✅ NEW: Optional installation
+  categoryId: yup.string().optional(),
   priority: yup
     .string()
     .oneOf(["HIGH", "MEDIUM", "NORMAL", "LOW"] as const)
@@ -77,6 +82,7 @@ interface FormData {
   installationId?: string; // ✅ NEW
   priority: "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
   assignedToId: string;
+  categoryId?: string; // ✅ NEW
   adminNotes?: string;
 }
 
@@ -103,6 +109,8 @@ const CreateServiceRequest: React.FC = () => {
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [installations, setInstallations] = useState<Installation[]>([]); // ✅ NEW
   const [loadingInstallations, setLoadingInstallations] = useState(false); // ✅ NEW
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [selectedCustomerName, setSelectedCustomerName] = useState(
     prefilledData?.customerName || ""
   );
@@ -119,6 +127,23 @@ const CreateServiceRequest: React.FC = () => {
     severity: "success" as "success" | "error",
   });
 
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const data = await productCategoriesService.getAll();
+      setCategories(data.filter((c) => c.isActive));
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   // Form setup
   const {
     control,
@@ -133,6 +158,7 @@ const CreateServiceRequest: React.FC = () => {
       description: "",
       customerId: prefilledData?.customerId || "",
       regionId: prefilledData?.regionId || "",
+      categoryId: "", // ✅ NEW
       installationId: prefilledData?.installationId || "", // ✅ NEW
       priority: "NORMAL",
       assignedToId: "",
@@ -893,6 +919,58 @@ const CreateServiceRequest: React.FC = () => {
                           </MenuItem>
                         ))
                       )}
+                    </TextField>
+                  )}
+                />
+              </Box>
+
+              {/* ✅ NEW: Product Category Selection */}
+              <Box>
+                <Controller
+                  name="categoryId"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Product Category (Optional)"
+                      disabled={loadingCategories || categories.length === 0}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CategoryIcon sx={{ color: "action.active" }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      helperText={
+                        loadingCategories
+                          ? "Loading categories..."
+                          : categories.length === 0
+                          ? "No categories available"
+                          : "Select product category (RO, UV, etc.)"
+                      }
+                    >
+                      <MenuItem value="">
+                        <em>No specific category</em>
+                      </MenuItem>
+                      {categories.map((category) => (
+                        <MenuItem key={category.id} value={category.id}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {category.name}
+                            </Typography>
+                            {category.description && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {category.description}
+                              </Typography>
+                            )}
+                          </Box>
+                        </MenuItem>
+                      ))}
                     </TextField>
                   )}
                 />

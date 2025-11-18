@@ -49,4 +49,17 @@ export const userService = {
     const { data } = await axiosInstance.get(API_ENDPOINTS.USERS.ASSIGNABLE_ROLES);
     return data;
   },
+
+    async searchTechnicians(query: string = '', regionId?: string, limit: number = 20): Promise<User[]> {
+    const params = new URLSearchParams();
+    params.append('query', query);
+    if (regionId) params.append('regionId', regionId);
+    params.append('limit', String(limit));
+
+    const { data } = await axiosInstance.get(
+      `${API_ENDPOINTS.USERS.SEARCH_TECHNICIANS}?${params.toString()}`
+    );
+    return data;
+  },
+
 };

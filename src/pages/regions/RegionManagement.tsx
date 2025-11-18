@@ -15,10 +15,20 @@ import {
   ListItemSecondaryAction,
   IconButton,
   Typography,
+  InputAdornment,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  Collapse,
+  Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -33,22 +43,23 @@ const RegionManagement: React.FC = () => {
   const [dialog, setDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Form states
   const [formData, setFormData] = useState({
     state: 'Kerala',
     district: '',
-    taluk: '', // ✅ NEW
+    taluk: '',
     city: '',
     pincode: '',
   });
 
-  // Dropdown data
   const [districts, setDistricts] = useState<DistrictData[]>([]);
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
 
-  // Fetch regions
   const fetchRegions = async () => {
     try {
       const data = await regionService.getAllRegions();
@@ -61,7 +72,6 @@ const RegionManagement: React.FC = () => {
     }
   };
 
-  // Fetch Kerala districts
   const fetchDistricts = async () => {
     try {
       const data = await regionService.getDistricts('Kerala');
@@ -77,12 +87,11 @@ const RegionManagement: React.FC = () => {
     fetchDistricts();
   }, []);
 
-  // Generate region name
   const generateRegionName = (): string => {
     const parts = [
       formData.state,
       formData.district,
-      formData.taluk, // ✅ NEW: Include taluk
+      formData.taluk,
       formData.city,
       formData.pincode,
     ].filter(Boolean);
@@ -95,7 +104,7 @@ const RegionManagement: React.FC = () => {
       setFormData({
         state: region.state || 'Kerala',
         district: region.district || '',
-        taluk: region.taluk || '', // ✅ NEW
+        taluk: region.taluk || '',
         city: region.city || '',
         pincode: region.pincode || '',
       });
@@ -104,7 +113,7 @@ const RegionManagement: React.FC = () => {
       setFormData({
         state: 'Kerala',
         district: '',
-        taluk: '', // ✅ NEW
+        taluk: '',
         city: '',
         pincode: '',
       });
@@ -115,7 +124,7 @@ const RegionManagement: React.FC = () => {
   const handleCloseDialog = () => {
     setDialog(false);
     setSelectedRegion(null);
-    setFormData({ state: 'Kerala', district: '', taluk: '', city: '', pincode: '' }); // ✅ NEW
+    setFormData({ state: 'Kerala', district: '', taluk: '', city: '', pincode: '' });
   };
 
   const handleSave = async () => {
@@ -131,7 +140,7 @@ const RegionManagement: React.FC = () => {
         name: regionName,
         state: formData.state,
         district: formData.district,
-        taluk: formData.taluk || undefined, // ✅ NEW
+        taluk: formData.taluk || undefined,
         city: formData.city || undefined,
         pincode: formData.pincode || undefined,
       };
@@ -164,6 +173,50 @@ const RegionManagement: React.FC = () => {
     }
   };
 
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedDistrict('');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
+
+  const uniqueDistricts = Array.from(new Set(regions.map(r => r.district).filter(Boolean)));
+
+  const filteredRegions = regions
+    .filter((region) => {
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesName = region.name.toLowerCase().includes(search);
+        const matchesDistrict = region.district?.toLowerCase().includes(search);
+        const matchesTaluk = region.taluk?.toLowerCase().includes(search);
+        const matchesCity = region.city?.toLowerCase().includes(search);
+        const matchesPincode = region.pincode?.toLowerCase().includes(search);
+        if (!matchesName && !matchesDistrict && !matchesTaluk && !matchesCity && !matchesPincode) return false;
+      }
+      if (selectedDistrict && region.district !== selectedDistrict) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'district':
+          comparison = (a.district || '').localeCompare(b.district || '');
+          break;
+        case 'city':
+          comparison = (a.city || '').localeCompare(b.city || '');
+          break;
+        case 'pincode':
+          comparison = (a.pincode || '').localeCompare(b.pincode || '');
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -179,22 +232,132 @@ const RegionManagement: React.FC = () => {
         }}
       />
 
-      {regions.length === 0 ? (
+      <Card sx={{ mb: 3, p: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              placeholder="Search by name, district, taluk, city, or pincode..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm('')}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Sort By</InputLabel>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                label="Sort By"
+              >
+                <MenuItem value="name">Name</MenuItem>
+                <MenuItem value="district">District</MenuItem>
+                <MenuItem value="city">City</MenuItem>
+                <MenuItem value="pincode">Pincode</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Order</InputLabel>
+              <Select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                label="Order"
+              >
+                <MenuItem value="asc">Ascending</MenuItem>
+                <MenuItem value="desc">Descending</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Button
+              fullWidth
+              variant={showFilters ? 'contained' : 'outlined'}
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              Filters
+            </Button>
+          </Grid>
+        </Grid>
+
+        <Collapse in={showFilters}>
+          <Paper sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>District</InputLabel>
+                  <Select
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    label="District"
+                  >
+                    <MenuItem value="">All Districts</MenuItem>
+                    {uniqueDistricts.map((district) => (
+                      <MenuItem key={district} value={district}>
+                        {district}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    Showing {filteredRegions.length} of {regions.length} regions
+                  </Typography>
+                  <Button
+                    startIcon={<ClearIcon />}
+                    onClick={handleClearFilters}
+                    size="small"
+                  >
+                    Clear All Filters
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Collapse>
+      </Card>
+
+      {filteredRegions.length === 0 ? (
         <EmptyState
           title="No regions found"
-          description="Create your first region to get started"
-          actionLabel="Add Region"
-          onAction={() => handleOpenDialog()}
+          description={
+            searchTerm || selectedDistrict
+              ? "No regions match your filters. Try adjusting your search."
+              : "Create your first region to get started"
+          }
+          actionLabel={searchTerm || selectedDistrict ? "Clear Filters" : "Add Region"}
+          onAction={() => (searchTerm || selectedDistrict ? handleClearFilters() : handleOpenDialog())}
         />
       ) : (
         <Card>
           <List>
-            {regions.map((region, index) => (
-              <ListItem key={region.id} divider={index < regions.length - 1}>
+            {filteredRegions.map((region, index) => (
+              <ListItem key={region.id} divider={index < filteredRegions.length - 1}>
                 <ListItemText
                   primary={region.name}
                   secondary={
-                    // ✅ UPDATED: Include taluk in display
                     [
                       region.district,
                       region.taluk,
@@ -226,12 +389,10 @@ const RegionManagement: React.FC = () => {
         </Card>
       )}
 
-      {/* Create/Edit Dialog */}
       <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{selectedRegion ? 'Edit Region' : 'Create New Region'}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            {/* State (Fixed to Kerala) */}
             <TextField
               fullWidth
               label="State"
@@ -240,7 +401,6 @@ const RegionManagement: React.FC = () => {
               variant="outlined"
             />
 
-            {/* District Dropdown */}
             <TextField
               select
               fullWidth
@@ -256,7 +416,6 @@ const RegionManagement: React.FC = () => {
               ))}
             </TextField>
 
-            {/* ✅ NEW: Taluk - Manual Text Input */}
             <TextField
               fullWidth
               label="Taluk (Optional)"
@@ -266,7 +425,6 @@ const RegionManagement: React.FC = () => {
               helperText="Enter taluk/tehsil name if applicable"
             />
 
-            {/* City - Manual Text Input */}
             <TextField
               fullWidth
               label="City / Place"
@@ -276,7 +434,6 @@ const RegionManagement: React.FC = () => {
               helperText="Enter city or place name"
             />
 
-            {/* Pincode - Manual Text Input */}
             <TextField
               fullWidth
               label="Pincode"
@@ -287,7 +444,6 @@ const RegionManagement: React.FC = () => {
               inputProps={{ maxLength: 6 }}
             />
 
-            {/* Generated Name Display */}
             {generateRegionName() && (
               <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
                 <Typography variant="subtitle2" color="info.dark">
@@ -312,7 +468,6 @@ const RegionManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Dialog */}
       <ConfirmDialog
         open={deleteDialog}
         title="Delete Region"

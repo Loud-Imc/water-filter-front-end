@@ -2,6 +2,12 @@ import { axiosInstance } from "../axios";
 import { API_ENDPOINTS } from "../endponts";
 import { type TechnicianWithWorkload, type ServiceRequest } from "../../types";
 
+interface UsedItem {
+  type: 'product' | 'sparePart';
+  id: string;  // productId or sparePartId
+  quantityUsed: number;
+  notes?: string;
+}
 export const requestService = {
   // Get all service requests
   async getAllRequests(): Promise<ServiceRequest[]> {
@@ -10,6 +16,15 @@ export const requestService = {
     );
     return data;
   },
+
+//   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
+//   const { data } = await axiosInstance.post(
+//     API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
+//     { usedItems }
+//   );
+//   return data;
+// },
+
 
   // Get request by ID
   async getRequestById(id: string): Promise<ServiceRequest> {
@@ -213,23 +228,30 @@ export const requestService = {
   },
 
   // Add used products
-  async addUsedProducts(
-    requestId: string,
-    usedProducts: Array<{
-      productId: string;
-      quantityUsed: number;
-      notes?: string;
-    }>
-  ): Promise<any> {
-    const { data } = await axiosInstance.post(
-      API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
-      {
-        usedProducts,
-      }
-    );
-    return data;
-  },
+  // async addUsedProducts(
+  //   requestId: string,
+  //   usedProducts: Array<{
+  //     productId: string;
+  //     quantityUsed: number;
+  //     notes?: string;
+  //   }>
+  // ): Promise<any> {
+  //   const { data } = await axiosInstance.post(
+  //     API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
+  //     {
+  //       usedProducts,
+  //     }
+  //   );
+  //   return data;
+  // },
 
+  async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
+  const { data } = await axiosInstance.post(
+    API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
+    { usedItems }
+  );
+  return data;
+},
   // Get used products
   async getUsedProducts(requestId: string): Promise<any[]> {
     const { data } = await axiosInstance.get(
@@ -237,6 +259,14 @@ export const requestService = {
     );
     return data;
   },
+
+  async getUsedSpareParts(requestId: string): Promise<any[]> {
+  const { data } = await axiosInstance.get(
+    API_ENDPOINTS.SERVICE_REQUESTS.GET_USED_SPARE_PARTS(requestId)
+  );
+  return data;
+},
+
 
   async getCustomerServiceHistory(serviceRequestId: string) {
     const { data } = await axiosInstance.get(
