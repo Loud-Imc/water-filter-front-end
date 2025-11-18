@@ -14,17 +14,29 @@ import {
   ListItemSecondaryAction,
   IconButton,
   Chip,
+  // Typography,
+  InputAdornment,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  // Collapse,
+  // Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import SnackbarNotification from '../../components/common/SnackbarNotification';
 import EmptyState from '../../components/common/EmptyState';
 import { roleService } from '../../api/services/roleService';
-import { type Role } from '../../types';
+import type { Role } from '../../types';
 
 const RoleManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -33,22 +45,28 @@ const RoleManagement: React.FC = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [roleName, setRoleName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  // const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
 
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
   const fetchRoles = async () => {
+    setLoading(true);
     try {
       const data = await roleService.getAllRoles();
       setRoles(data);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
+      setSnackbar({ open: true, message: 'Failed to load roles', severity: 'error' });
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchRoles();
-  }, []);
 
   const handleOpenDialog = (role?: Role) => {
     if (role) {
@@ -97,6 +115,22 @@ const RoleManagement: React.FC = () => {
     }
   };
 
+  // const handleClearFilters = () => {
+  //   setSearchTerm('');
+  //   setSortBy('name');
+  //   setSortOrder('asc');
+  // };
+
+  const filteredRoles = roles
+    .filter((role) => {
+      if (!searchTerm) return true;
+      return role.name.toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    .sort((a, b) => {
+      const comparison = a.name.localeCompare(b.name);
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -112,21 +146,70 @@ const RoleManagement: React.FC = () => {
         }}
       />
 
-      {roles.length === 0 ? (
+      <Card sx={{ mb: 3, p: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 8 }}>
+            <TextField
+              fullWidth
+              placeholder="Search roles by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm('')}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Sort Order</InputLabel>
+              <Select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                label="Sort Order"
+              >
+                <MenuItem value="asc">Ascending</MenuItem>
+                <MenuItem value="desc">Descending</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Button
+              fullWidth
+              variant={showFilters ? 'contained' : 'outlined'}
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              Clear Filters
+            </Button>
+          </Grid>
+        </Grid>
+      </Card>
+
+      {filteredRoles.length === 0 ? (
         <EmptyState
           title="No roles found"
-          description="Create your first role to get started"
+          description={searchTerm ? "No roles match your search." : "Create your first role to get started"}
           actionLabel="Add Role"
           onAction={() => handleOpenDialog()}
         />
       ) : (
         <Card>
           <List>
-            {roles.map((role, index) => (
-              <ListItem
-                key={role.id}
-                divider={index < roles.length - 1}
-              >
+            {filteredRoles.map((role, index) => (
+              <ListItem key={role.id} divider={index < filteredRoles.length - 1}>
                 <ListItemText
                   primary={role.name}
                   secondary={role.parentRole || 'No parent role'}
@@ -159,7 +242,6 @@ const RoleManagement: React.FC = () => {
         </Card>
       )}
 
-      {/* Create/Edit Dialog */}
       <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{selectedRole ? 'Edit Role' : 'Create Role'}</DialogTitle>
         <DialogContent>
@@ -180,7 +262,6 @@ const RoleManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Dialog */}
       <ConfirmDialog
         open={deleteDialog}
         title="Delete Role"

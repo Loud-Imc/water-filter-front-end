@@ -66,13 +66,22 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import AddUsedProductsDialog from "../../components/services/AddUsedProductsDialog";
 import { requestService } from "../../api/services/requestService";
 import { productService } from "../../api/services/productService";
+import { sparePartsService } from "../../api/services/sparePartsService";
+
 import { BuildCircleOutlined } from "@mui/icons-material";
 import WorkMediaGallery from "./WorkMediaGallery";
-import { Product } from "@/types";
+import { Product, SparePart } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import { TransitionProps } from "@mui/material/transitions";
 import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
+
+interface UsedItem {
+  type: "product" | "sparePart";
+  id: string; // productId or sparePartId
+  quantityUsed: number;
+  notes?: string;
+}
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -112,6 +121,7 @@ const ServiceRequestDetail: React.FC = () => {
   const [usedProductsDialog, setUsedProductsDialog] = useState(false);
   const [usedProducts, setUsedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allSpareParts, setAllSpareParts] = React.useState<SparePart[]>([]);
 
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [customerHistory, setCustomerHistory] = useState<any>(null);
@@ -217,6 +227,19 @@ const ServiceRequestDetail: React.FC = () => {
         .catch(console.error);
     }
   }, [selectedRequest?.id, selectedRequest?.status]);
+  useEffect(() => {
+    async function fetchSpareParts() {
+      try {
+        const data = await sparePartsService.getAll();
+        setAllSpareParts(data);
+      } catch (error) {
+        console.error("Failed to fetch spare parts", error);
+      }
+    }
+
+    fetchSpareParts();
+  }, []);
+
   // ✅ Early return AFTER all hooks
   if (loading || !selectedRequest) {
     return <LoadingSpinner />;
@@ -284,26 +307,75 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
-  const handleAddUsedProducts = async (
-    products: Array<{ productId: string; quantityUsed: number; notes?: string }>
-  ) => {
-    if (!request.id) return;
+  // const handleAddUsedProducts = async (
+  //   products: Array<{ productId: string; quantityUsed: number; notes?: string }>
+  // ) => {
+  //   if (!request.id) return;
 
+  //   try {
+  //     await requestService.addUsedProducts(request.id, products);
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Products added successfully! Stock updated.",
+  //       severity: "success",
+  //     });
+
+  //     // Refresh used products
+  //     const updated = await requestService.getUsedProducts(request.id);
+  //     setUsedProducts(updated);
+  //   } catch (error: any) {
+  //     setSnackbar({
+  //       open: true,
+  //       message: error.response?.data?.message || "Failed to add products",
+  //       severity: "error",
+  //     });
+  //   }
+  // };
+
+  // const handleAddUsedProducts = async (usedItems: UsedItem[]) => {
+  //   if (!request.id) return;
+
+  //   try {
+  //     // Assuming your backend accepts an array of used items with type info
+  //     await requestService.addUsedItems(request.id, usedItems);
+
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Used products and spare parts added successfully! Stock updated.",
+  //       severity: "success",
+  //     });
+
+  //     // Refresh used products and spare parts (combine as needed)
+  //     const updatedProducts = await requestService.getUsedProducts(request.id);
+  //     const updatedSpareParts = await requestService.getUsedSpareParts(request.id);
+  //     setUsedProducts([...updatedProducts, ...updatedSpareParts]);
+  //   } catch (error: any) {
+  //     setSnackbar({
+  //       open: true,
+  //       message: error.response?.data?.message || "Failed to add used items",
+  //       severity: "error",
+  //     });
+  //   }
+  // };
+
+  const handleAddUsedProducts = async (usedItems: UsedItem[]) => {
+    if (!request.id) return;
     try {
-      await requestService.addUsedProducts(request.id, products);
+      await requestService.addUsedItems(request.id, usedItems);
       setSnackbar({
         open: true,
-        message: "Products added successfully! Stock updated.",
+        message: "Used items added successfully! Stock updated.",
         severity: "success",
       });
-
-      // Refresh used products
-      const updated = await requestService.getUsedProducts(request.id);
-      setUsedProducts(updated);
+      const updatedProducts = await requestService.getUsedProducts(request.id);
+      const updatedSpareParts = await requestService.getUsedSpareParts(
+        request.id
+      );
+      setUsedProducts([...updatedProducts, ...updatedSpareParts]);
     } catch (error: any) {
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || "Failed to add products",
+        message: error.response?.data?.message || "Failed to add used items",
         severity: "error",
       });
     }
@@ -890,15 +962,60 @@ const ServiceRequestDetail: React.FC = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Customer
-                  </Typography>
-                  <Typography variant="body1" fontWeight={500}>
-                    {request.customer?.name || "N/A"}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {request.customer?.address || ""}
-                  </Typography>
+                  <Box
+                    onClick={handleViewCustomerHistory}
+                    sx={{
+                      cursor: "pointer",
+                      // p: 1.5,
+                      borderRadius: 1,
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: "action.hover",
+                        transform: "translateY(-2px)",
+                      },
+                      "&:active": {
+                        transform: "translateY(0)",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Customer
+                      </Typography>
+                      <HistoryIcon
+                        sx={{
+                          fontSize: 20,
+                          color: "primary.main",
+                          animation: "pulse 2s infinite",
+                          "@keyframes pulse": {
+                            "0%, 100%": { opacity: 1 },
+                            "50%": { opacity: 0.5 },
+                          },
+                        }}
+                      />
+                      <Typography
+                        variant="caption"
+                        color="primary.main"
+                        sx={{ fontWeight: 800 }}
+                      >
+                        View History
+                      </Typography>
+                    </Box>
+
+                    <Typography variant="body1" fontWeight={500}>
+                      {request.customer?.name || "N/A"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {request.customer?.address || ""}
+                    </Typography>
+                  </Box>
                 </Grid>
 
                 {/* ✅ NEW: Installation Information */}
@@ -1002,70 +1119,26 @@ const ServiceRequestDetail: React.FC = () => {
                 )}
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box
-                    onClick={handleViewCustomerHistory}
-                    sx={{
-                      cursor: "pointer",
-                      p: 1.5,
-                      borderRadius: 1,
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        bgcolor: "action.hover",
-                        transform: "translateY(-2px)",
-                      },
-                      "&:active": {
-                        transform: "translateY(0)",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 0.5,
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        Contact
-                      </Typography>
-                      <HistoryIcon
-                        sx={{
-                          fontSize: 16,
-                          color: "primary.main",
-                          animation: "pulse 2s infinite",
-                          "@keyframes pulse": {
-                            "0%, 100%": { opacity: 1 },
-                            "50%": { opacity: 0.5 },
-                          },
-                        }}
-                      />
+                  <Typography variant="body2" color="text.secondary">
+                    Contact
+                  </Typography>
+                  <Typography variant="body1" fontWeight={500}>
+                    {request.customer?.primaryPhone || "N/A"}
+                  </Typography>
+
+                  {/* Show installation contact if different */}
+                  {request.installation?.contactPhone &&
+                    request.installation.contactPhone !==
+                      request.customer?.primaryPhone && (
                       <Typography
                         variant="caption"
-                        color="primary.main"
-                        sx={{ fontWeight: 500 }}
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mt: 0.5 }}
                       >
-                        View History
+                        Installation: {request.installation.contactPhone}
                       </Typography>
-                    </Box>
-
-                    <Typography variant="body1" fontWeight={500}>
-                      {request.customer?.primaryPhone || "N/A"}
-                    </Typography>
-
-                    {/* ✅ Show installation contact if different */}
-                    {request.installation?.contactPhone &&
-                      request.installation.contactPhone !==
-                        request.customer?.primaryPhone && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          display="block"
-                        >
-                          Installation: {request.installation.contactPhone}
-                        </Typography>
-                      )}
-                  </Box>
+                    )}
                 </Grid>
 
                 <Grid size={12}>
@@ -1081,7 +1154,7 @@ const ServiceRequestDetail: React.FC = () => {
                   <Divider sx={{ my: 1 }} />
                 </Grid>
 
-                <Grid size={12}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -1090,6 +1163,20 @@ const ServiceRequestDetail: React.FC = () => {
                     Description
                   </Typography>
                   <Typography variant="body1">{request.description}</Typography>
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontWeight: 800 }}
+                  >
+                    Category
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {request?.category?.name || "N/A"}
+                  </Typography>
                 </Grid>
 
                 {request.approvalHistory.length > 0 && (
@@ -1332,28 +1419,28 @@ const ServiceRequestDetail: React.FC = () => {
         </Grid>
       </Grid>
 
-       <Dialog
+      <Dialog
         fullScreen
         open={historyModalOpen}
         onClose={handleCloseHistoryModal}
         TransitionComponent={Transition}
         sx={{
-          '& .MuiDialog-paper': {
-            bgcolor: 'background.default',
+          "& .MuiDialog-paper": {
+            bgcolor: "background.default",
           },
         }}
       >
         {/* Modal Header */}
         <DialogTitle
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             borderBottom: 1,
-            borderColor: 'divider',
-            position: 'sticky',
+            borderColor: "divider",
+            position: "sticky",
             top: 0,
-            bgcolor: 'background.paper',
+            bgcolor: "background.paper",
             zIndex: 1,
           }}
         >
@@ -1380,7 +1467,7 @@ const ServiceRequestDetail: React.FC = () => {
         {/* Modal Content */}
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
           {loadingHistory ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
               <CircularProgress />
             </Box>
           ) : customerHistory ? (
@@ -1389,7 +1476,11 @@ const ServiceRequestDetail: React.FC = () => {
               <Grid size={{ xs: 12 }}>
                 <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={600}
+                      gutterBottom
+                    >
                       Customer Information
                     </Typography>
                     <Stack spacing={1.5}>
@@ -1437,8 +1528,12 @@ const ServiceRequestDetail: React.FC = () => {
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h4" color="primary.main" fontWeight={600}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
+                        <Typography
+                          variant="h4"
+                          color="primary.main"
+                          fontWeight={600}
+                        >
                           {customerHistory.statistics.totalServices}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -1449,8 +1544,12 @@ const ServiceRequestDetail: React.FC = () => {
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h4" color="success.main" fontWeight={600}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
+                        <Typography
+                          variant="h4"
+                          color="success.main"
+                          fontWeight={600}
+                        >
                           {customerHistory.statistics.completedServices}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -1461,8 +1560,12 @@ const ServiceRequestDetail: React.FC = () => {
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h4" color="info.main" fontWeight={600}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
+                        <Typography
+                          variant="h4"
+                          color="info.main"
+                          fontWeight={600}
+                        >
                           {customerHistory.statistics.installations}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -1473,8 +1576,12 @@ const ServiceRequestDetail: React.FC = () => {
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h4" color="warning.main" fontWeight={600}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
+                        <Typography
+                          variant="h4"
+                          color="warning.main"
+                          fontWeight={600}
+                        >
                           {customerHistory.statistics.complaints}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -1485,8 +1592,12 @@ const ServiceRequestDetail: React.FC = () => {
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h4" color="secondary.main" fontWeight={600}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
+                        <Typography
+                          variant="h4"
+                          color="secondary.main"
+                          fontWeight={600}
+                        >
                           {customerHistory.statistics.services}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -1497,7 +1608,7 @@ const ServiceRequestDetail: React.FC = () => {
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Card>
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                      <CardContent sx={{ textAlign: "center", py: 2 }}>
                         <Typography variant="h4" fontWeight={600}>
                           {customerHistory.statistics.enquiries}
                         </Typography>
@@ -1512,7 +1623,7 @@ const ServiceRequestDetail: React.FC = () => {
 
               {/* Service History Timeline */}
               <Grid size={{ xs: 12 }}>
-                <ServiceHistoryTimeline 
+                <ServiceHistoryTimeline
                   serviceHistory={customerHistory.serviceHistory}
                 />
               </Grid>
@@ -1853,6 +1964,7 @@ const ServiceRequestDetail: React.FC = () => {
         onClose={() => setUsedProductsDialog(false)}
         onConfirm={handleAddUsedProducts}
         allProducts={allProducts}
+        allSpareParts={allSpareParts}
         loading={loading}
       />
     </Box>

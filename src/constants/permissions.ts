@@ -31,8 +31,33 @@ export const PERMISSIONS = {
   DASHBOARD_VIEW: 'dashboard.view',
 
   // Products
+
+  // Products
   PRODUCTS_VIEW: 'products.view',
   PRODUCTS_CREATE: 'products.create',
   PRODUCTS_UPDATE: 'products.update',
   PRODUCTS_DELETE: 'products.delete',
+  
+  // ✅ NEW: Spare Parts
+  SPARE_PARTS_VIEW: 'spare_parts.view',
+  SPARE_PARTS_CREATE: 'spare_parts.create',
+  SPARE_PARTS_UPDATE: 'spare_parts.update',
+  SPARE_PARTS_DELETE: 'spare_parts.delete',
+  
+  // ✅ NEW: Categories & Groups
+  CATEGORIES_VIEW: 'categories.view',
+  CATEGORIES_MANAGE: 'categories.manage',
+  GROUPS_VIEW: 'groups.view',
+  GROUPS_MANAGE: 'groups.manage',
+  
+  // ✅ NEW: Assembly
+  ASSEMBLY_VIEW: 'assembly.view',
+  ASSEMBLY_CREATE: 'assembly.create',
+  ASSEMBLY_EXECUTE: 'assembly.execute',
+  ASSEMBLY_DELETE: 'assembly.delete',
+  
+  // ✅ NEW: Stock
+  STOCK_VIEW: 'stock.view',
+  STOCK_UPDATE: 'stock.update',
+  STOCK_TRANSFER: 'stock.transfer',
 } as const;

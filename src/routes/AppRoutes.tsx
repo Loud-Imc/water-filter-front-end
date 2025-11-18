@@ -21,17 +21,20 @@ import Unauthorized from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
 import { useAppSelector } from "../app/hooks";
 import CustomerProfile from "../pages/customers/CustomerProfile";
-import ProductManagement from "../pages/products/ProductManagement";
+import ProductManagement from "../pages/ProductManagement/ProductManagement";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  
 
   return (
     <Routes>
       {/* Public Routes */}
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+        }
       />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -47,7 +50,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* User Management Routes - Permission-based */}
+      {/* User Management */}
       <Route
         path="/users"
         element={
@@ -79,7 +82,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Role Management - Keep role-based for now */}
+      {/* Role Management */}
       <Route
         path="/roles"
         element={
@@ -105,7 +108,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Customer Management - Permission-based */}
+      {/* Customer Management */}
       <Route
         path="/customers"
         element={
@@ -116,7 +119,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/customers/:id"
         element={
@@ -128,7 +130,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Service Requests - Permission-based */}
+      {/* Service Requests */}
       <Route
         path="/service-requests"
         element={
@@ -160,13 +162,13 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Technician Routes - Permission-based */}
+      {/* Technician Routes */}
       <Route
         path="/technician/my-tasks"
         element={
           <ProtectedRoute
             requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
-            allowedRoles={["Technician"]} // Also check role
+            allowedRoles={["Technician"]}
           >
             <Layout>
               <MyTasks />
@@ -200,12 +202,13 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      {/* Product Management - New route */}
       <Route
         path="/products"
         element={
           <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_VIEW]}>
             <Layout>
-                <ProductManagement />
+              <ProductManagement />
             </Layout>
           </ProtectedRoute>
         }

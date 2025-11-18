@@ -6,6 +6,7 @@ interface UserState {
   users: User[];
   subordinates: User[];
   assignableRoles: Role[];
+  technicians: User[]; 
   selectedUser: User | null;
   loading: boolean;
   error: string | null;
@@ -15,6 +16,7 @@ const initialState: UserState = {
   users: [],
   subordinates: [],
   assignableRoles: [],
+  technicians: [],
   selectedUser: null,
   loading: false,
   error: null,
@@ -83,6 +85,20 @@ export const fetchAssignableRoles = createAsyncThunk('users/fetchAssignableRoles
     return rejectWithValue(error.response?.data?.message || 'Failed to fetch roles');
   }
 });
+
+export const fetchTechnicians = createAsyncThunk(
+  'users/fetchTechnicians',
+  async (
+    { query = '', regionId, limit = 100 }: { query?: string; regionId?: string; limit?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await userService.searchTechnicians(query, regionId, limit);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch technicians');
+    }
+  }
+);
 
 const userSlice = createSlice({
   name: 'users',
@@ -185,6 +201,21 @@ const userSlice = createSlice({
     builder
       .addCase(fetchAssignableRoles.fulfilled, (state, action) => {
         state.assignableRoles = action.payload;
+      });
+
+         // ✅ NEW: Fetch technicians
+    builder
+      .addCase(fetchTechnicians.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTechnicians.fulfilled, (state, action) => {
+        state.loading = false;
+        state.technicians = action.payload;
+      })
+      .addCase(fetchTechnicians.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

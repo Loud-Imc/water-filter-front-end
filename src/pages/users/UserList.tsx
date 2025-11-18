@@ -8,11 +8,24 @@ import {
   Typography,
   Card,
   CardContent,
+  TextField,
+  InputAdornment,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
+  Paper,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import GroupIcon from "@mui/icons-material/Group";
+import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import ClearIcon from "@mui/icons-material/Clear";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchAllUsers, deleteUser } from "../../app/slices/userSlice";
@@ -33,10 +46,14 @@ const UserList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  // ✅ Filter state: 'all' | 'inhouse' | 'external'
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [technicianFilter, setTechnicianFilter] = useState<string>("all");
-
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -79,33 +96,72 @@ const UserList: React.FC = () => {
     }
   };
 
-  // ✅ Filter logic based on toggle
-  const filteredUsers = users.filter((user) => {
-    // Only apply filter if user is a technician
-    const isTechnician = user.role?.name === "Technician";
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setTechnicianFilter("all");
+    setSelectedRole("");
+    setSelectedRegion("");
+    setSelectedStatus("");
+    setSortBy("name");
+    setSortOrder("asc");
+  };
 
-    if (!isTechnician) return true; // Show all non-technicians
+  const roles = Array.from(new Set(users.map((u) => u.role?.name).filter(Boolean)));
+  const regions = Array.from(new Set(users.map((u) => u.region?.name).filter(Boolean)));
 
-    if (technicianFilter === "all") return true;
-    if (technicianFilter === "inhouse") return !user.isExternal;
-    if (technicianFilter === "external") return user.isExternal;
+  const technicianCount = {
+    all: users.filter((u) => u.role?.name === "Technician").length,
+    inhouse: users.filter((u) => u.role?.name === "Technician" && !u.isExternal).length,
+    external: users.filter((u) => u.role?.name === "Technician" && u.isExternal).length,
+  };
 
-    return true;
-  });
+  const filteredUsers = users
+    .filter((user) => {
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesName = user.name.toLowerCase().includes(search);
+        const matchesEmail = user.email.toLowerCase().includes(search);
+        const matchesPhone = user.phone?.toLowerCase().includes(search);
+        if (!matchesName && !matchesEmail && !matchesPhone) return false;
+      }
+
+      const isTechnician = user.role?.name === "Technician";
+      if (isTechnician) {
+        if (technicianFilter === "inhouse" && user.isExternal) return false;
+        if (technicianFilter === "external" && !user.isExternal) return false;
+      }
+
+      if (selectedRole && user.role?.name !== selectedRole) return false;
+      if (selectedRegion && user.region?.name !== selectedRegion) return false;
+      if (selectedStatus && user.status !== selectedStatus) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "email":
+          comparison = a.email.localeCompare(b.email);
+          break;
+        case "role":
+          comparison = (a.role?.name || "").localeCompare(b.role?.name || "");
+          break;
+        case "region":
+          comparison = (a.region?.name || "").localeCompare(b.region?.name || "");
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
 
   const paginatedUsers = filteredUsers.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
-
-  // ✅ Count technicians
-  const technicianCount = {
-    all: users.filter((u) => u.role?.name === "Technician").length,
-    inhouse: users.filter((u) => u.role?.name === "Technician" && !u.isExternal)
-      .length,
-    external: users.filter((u) => u.role?.name === "Technician" && u.isExternal)
-      .length,
-  };
 
   const columns = [
     { id: "name", label: "Name", minWidth: 150 },
@@ -135,15 +191,12 @@ const UserList: React.FC = () => {
         />
       ),
     },
-    // ✅ Add Technician Type column
     {
       id: "isExternal",
       label: "Type",
       minWidth: 140,
       format: (value: boolean, row: User) => {
-        // Only show for technicians
         if (row.role?.name !== "Technician") return "—";
-
         return (
           <Chip
             icon={value ? <BusinessIcon /> : <PersonIcon />}
@@ -164,10 +217,7 @@ const UserList: React.FC = () => {
           <Button
             size="small"
             variant="outlined"
-            onClick={() => {
-              console.log("🔵 Edit button clicked for user:", row, _);
-              navigate(`/users/edit/${row.id}`);
-            }}
+            onClick={() => navigate(`/users/edit/${row.id}`)}
           >
             Edit
           </Button>
@@ -177,7 +227,6 @@ const UserList: React.FC = () => {
             color="error"
             onClick={(e) => {
               e.stopPropagation();
-              console.log("🔴 Delete button clicked for user:", row.id);
               setSelectedUserId(row.id);
               setDeleteDialog(true);
             }}
@@ -204,7 +253,6 @@ const UserList: React.FC = () => {
         }}
       />
 
-      {/* ✅ Technician Filter Toggle */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box
@@ -213,6 +261,7 @@ const UserList: React.FC = () => {
               alignItems: "center",
               gap: 2,
               flexWrap: "wrap",
+              mb: 2,
             }}
           >
             <Typography variant="subtitle2" fontWeight={600}>
@@ -225,7 +274,7 @@ const UserList: React.FC = () => {
               onChange={(_, newValue) => {
                 if (newValue !== null) {
                   setTechnicianFilter(newValue);
-                  setPage(0); // Reset to first page
+                  setPage(0);
                 }
               }}
               size="small"
@@ -254,6 +303,157 @@ const UserList: React.FC = () => {
               />
             )}
           </Box>
+
+          <Grid container spacing={2} alignItems="center">
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                placeholder="Search by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                        <ClearIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 6, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  label="Sort By"
+                >
+                  <MenuItem value="name">Name</MenuItem>
+                  <MenuItem value="email">Email</MenuItem>
+                  <MenuItem value="role">Role</MenuItem>
+                  <MenuItem value="region">Region</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 6, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Order</InputLabel>
+                <Select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                  label="Order"
+                >
+                  <MenuItem value="asc">Ascending</MenuItem>
+                  <MenuItem value="desc">Descending</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
+              <Button
+                fullWidth
+                variant={showFilters ? "contained" : "outlined"}
+                startIcon={<FilterListIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                Filters
+              </Button>
+            </Grid>
+          </Grid>
+
+          <Collapse in={showFilters}>
+            <Paper sx={{ mt: 2, p: 2, bgcolor: "grey.50" }}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={selectedRole}
+                      onChange={(e) => {
+                        setSelectedRole(e.target.value);
+                        setPage(0);
+                      }}
+                      label="Role"
+                    >
+                      <MenuItem value="">All Roles</MenuItem>
+                      {roles.map((role) => (
+                        <MenuItem key={role} value={role}>
+                          {role}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Region</InputLabel>
+                    <Select
+                      value={selectedRegion}
+                      onChange={(e) => {
+                        setSelectedRegion(e.target.value);
+                        setPage(0);
+                      }}
+                      label="Region"
+                    >
+                      <MenuItem value="">All Regions</MenuItem>
+                      {regions.map((region) => (
+                        <MenuItem key={region} value={region}>
+                          {region}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={selectedStatus}
+                      onChange={(e) => {
+                        setSelectedStatus(e.target.value);
+                        setPage(0);
+                      }}
+                      label="Status"
+                    >
+                      <MenuItem value="">All Status</MenuItem>
+                      <MenuItem value="ACTIVE">Active</MenuItem>
+                      <MenuItem value="BLOCKED">Blocked</MenuItem>
+                      <MenuItem value="SUSPENDED">Suspended</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" color="text.secondary">
+                      Showing {filteredUsers.length} of {users.length} users
+                    </Typography>
+                    <Button
+                      startIcon={<ClearIcon />}
+                      onClick={handleClearFilters}
+                      size="small"
+                    >
+                      Clear All Filters
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+          </Collapse>
         </CardContent>
       </Card>
 
@@ -261,13 +461,23 @@ const UserList: React.FC = () => {
         <EmptyState
           title="No users found"
           description={
-            technicianFilter === "all"
+            searchTerm || selectedRole || selectedRegion || selectedStatus
+              ? "No users match your filters. Try adjusting your search."
+              : technicianFilter === "all"
               ? "Create your first user to get started"
               : "No technicians match the selected filter"
           }
-          actionLabel={technicianFilter === "all" ? "Add User" : "Clear Filter"}
+          actionLabel={
+            searchTerm || selectedRole || selectedRegion || selectedStatus
+              ? "Clear Filters"
+              : technicianFilter === "all"
+              ? "Add User"
+              : "Clear Filter"
+          }
           onAction={() =>
-            technicianFilter === "all"
+            searchTerm || selectedRole || selectedRegion || selectedStatus
+              ? handleClearFilters()
+              : technicianFilter === "all"
               ? navigate("/users/create")
               : setTechnicianFilter("all")
           }

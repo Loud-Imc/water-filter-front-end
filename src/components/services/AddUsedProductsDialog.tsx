@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,16 +19,30 @@ import {
   TableHead,
   TableRow,
   Alert,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import type { Product } from '../../types';
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import type { Product, SparePart } from "../../types";
+
+interface UsedItem {
+  id: string;
+  type: "product" | "sparePart";
+  quantityUsed: number;
+  notes?: string;
+  name?: string;
+  price?: number;
+}
 
 interface AddUsedProductsDialogProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (usedProducts: Array<{ productId: string; quantityUsed: number; notes?: string }>) => Promise<void>;
+  onConfirm: (usedItems: UsedItem[]) => Promise<void>;
   allProducts: Product[];
+  allSpareParts: SparePart[];
   loading?: boolean;
 }
 
@@ -37,158 +51,179 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   onClose,
   onConfirm,
   allProducts,
+  allSpareParts,
   loading = false,
 }) => {
-  const [usedProducts, setUsedProducts] = useState<Array<{
-    productId: string;
-    quantityUsed: number;
-    notes?: string;
-    name?: string;
-    price?: number;
-  }>>([]);
-
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [usedItems, setUsedItems] = useState<UsedItem[]>([]);
+  const [selectType, setSelectType] = useState<"product" | "sparePart">(
+    "product"
+  );
+  const [selectedId, setSelectedId] = useState("");
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
-  const [selectedNotes, setSelectedNotes] = useState('');
+  const [selectedNotes, setSelectedNotes] = useState("");
 
-  const handleAddProduct = () => {
-    if (!selectedProductId || selectedQuantity < 1) {
-      return;
-    }
-
-    const product = allProducts.find((p) => p.id === selectedProductId);
-    if (!product) return;
-
-    // Check if already added
-    if (usedProducts.some((p) => p.productId === selectedProductId)) {
-      alert('This product is already added');
-      return;
-    }
-
-    const newProduct = {
-      productId: selectedProductId,
-      quantityUsed: selectedQuantity,
-      notes: selectedNotes || undefined,
-      name: product.name,
-      price: Number(product.price),
-    };
-
-    setUsedProducts([...usedProducts, newProduct]);
-    setSelectedProductId('');
-    setSelectedQuantity(1);
-    setSelectedNotes('');
+  const handleSelectTypeChange = (event: SelectChangeEvent) => {
+    setSelectType(event.target.value as "product" | "sparePart");
+    setSelectedId("");
   };
 
-  const handleRemoveProduct = (productId: string) => {
-    setUsedProducts(usedProducts.filter((p) => p.productId !== productId));
+  const handleAddItem = () => {
+    if (!selectedId || selectedQuantity < 1) return;
+
+    if (
+      usedItems.some(
+        (item) => item.id === selectedId && item.type === selectType
+      )
+    ) {
+      alert(
+        `This ${
+          selectType === "product" ? "product" : "spare part"
+        } is already added`
+      );
+      return;
+    }
+
+    const list = selectType === "product" ? allProducts : allSpareParts;
+    const selectedItem = list.find((item) => item.id === selectedId);
+    if (!selectedItem) return;
+
+    const newItem: UsedItem = {
+      id: selectedId,
+      type: selectType,
+      quantityUsed: selectedQuantity,
+      notes: selectedNotes || undefined,
+      name: selectedItem.name,
+      price: Number(selectedItem.price),
+    };
+
+    setUsedItems([...usedItems, newItem]);
+    setSelectedId("");
+    setSelectedQuantity(1);
+    setSelectedNotes("");
+  };
+
+  const handleRemoveItem = (id: string, type: "product" | "sparePart") => {
+    setUsedItems(
+      usedItems.filter((item) => !(item.id === id && item.type === type))
+    );
   };
 
   const handleConfirm = async () => {
-    if (usedProducts.length === 0) {
-      alert('Please add at least one product');
+    if (usedItems.length === 0) {
+      alert("Please add at least one item");
       return;
     }
-
     try {
       await onConfirm(
-        usedProducts.map((p) => ({
-          productId: p.productId,
-          quantityUsed: p.quantityUsed,
-          notes: p.notes,
-        })),
+        usedItems.map((item) => ({
+          id: item.id,
+          type: item.type,
+          quantityUsed: item.quantityUsed,
+          notes: item.notes,
+        }))
       );
-      setUsedProducts([]);
+      setUsedItems([]);
       onClose();
     } catch (error) {
-      console.error('Error confirming products:', error);
+      console.error("Error confirming items:", error);
     }
   };
 
-  const totalCost = usedProducts.reduce(
-    (sum, p) => sum + (p.price || 0) * p.quantityUsed,
-    0,
+  const totalCost = usedItems.reduce(
+    (sum, item) => sum + (item.price || 0) * item.quantityUsed,
+    0
   );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Add Used Products & Services</DialogTitle>
+      <DialogTitle>Add Used Products & Spare Parts</DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
-          {/* Add Product Section */}
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                Add Products Used
-              </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 2 }}>
+          {/* Select Type */}
+          <FormControl fullWidth>
+            <InputLabel id="select-type-label">Item Type</InputLabel>
+            <Select
+              labelId="select-type-label"
+              value={selectType}
+              label="Item Type"
+              onChange={handleSelectTypeChange}
+              disabled={loading}
+            >
+              <MenuItem value="product">Product</MenuItem>
+              <MenuItem value="sparePart">Spare Part</MenuItem>
+            </Select>
+          </FormControl>
 
-              <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
-                {/* Product Selector */}
-                <TextField
-                  select
-                  fullWidth
-                  label="Select Product *"
-                  value={selectedProductId}
-                  onChange={(e) => setSelectedProductId(e.target.value)}
-                  disabled={loading}
-                >
-                  <MenuItem value="">-- Choose Product --</MenuItem>
-                  {allProducts.map((product) => (
-                    <MenuItem key={product.id} value={product.id}>
-                      {product.name} (Stock: {product.stock}, Price: ₹
-                      {Number(product.price).toFixed(2)})
-                    </MenuItem>
-                  ))}
-                </TextField>
+          {/* Item Selector */}
+          <TextField
+            select
+            fullWidth
+            label={`Select ${
+              selectType === "product" ? "Product" : "Spare Part"
+            } *`}
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            disabled={loading}
+          >
+            <MenuItem value="">-- Choose --</MenuItem>
+            {(selectType === "product" ? allProducts : allSpareParts)?.map(
+              (item) => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.name} (Stock: {item.stock}, Price: ₹
+                  {Number(item.price).toFixed(2)})
+                </MenuItem>
+              )
+            )}
+          </TextField>
 
-                {/* Quantity Input */}
-                <TextField
-                  type="number"
-                  fullWidth
-                  label="Quantity Used *"
-                  value={selectedQuantity}
-                  onChange={(e) => setSelectedQuantity(Math.max(1, Number(e.target.value)))}
-                  inputProps={{ min: 1 }}
-                  disabled={loading}
-                />
+          {/* Quantity Input */}
+          <TextField
+            type="number"
+            fullWidth
+            label="Quantity Used *"
+            value={selectedQuantity}
+            onChange={(e) =>
+              setSelectedQuantity(Math.max(1, Number(e.target.value)))
+            }
+            inputProps={{ min: 1 }}
+            disabled={loading}
+          />
 
-                {/* Notes */}
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Service Notes (Optional)"
-                  value={selectedNotes}
-                  onChange={(e) => setSelectedNotes(e.target.value)}
-                  placeholder="e.g., Installed new filter, replaced motor..."
-                  disabled={loading}
-                />
+          {/* Notes */}
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label="Notes (Optional)"
+            value={selectedNotes}
+            onChange={(e) => setSelectedNotes(e.target.value)}
+            placeholder="e.g., Installed filter, replaced valve..."
+            disabled={loading}
+          />
 
-                {/* Add Button */}
-                <Button
-                  startIcon={<AddIcon />}
-                  variant="contained"
-                  onClick={handleAddProduct}
-                  disabled={!selectedProductId || selectedQuantity < 1 || loading}
-                >
-                  Add Product
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
+          {/* Add Button */}
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={handleAddItem}
+            disabled={!selectedId || selectedQuantity < 1 || loading}
+          >
+            Add
+          </Button>
 
-          {/* Products Summary */}
-          {usedProducts.length > 0 && (
+          {/* Summary List */}
+          {usedItems.length > 0 && (
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                  Products Added ({usedProducts.length})
+                  Items Added ({usedItems.length})
                 </Typography>
-
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
-                      <TableRow sx={{ bgcolor: 'grey.100' }}>
-                        <TableCell>Product</TableCell>
+                      <TableRow sx={{ bgcolor: "grey.100" }}>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Name</TableCell>
                         <TableCell align="right">Qty</TableCell>
                         <TableCell align="right">Price</TableCell>
                         <TableCell align="right">Total</TableCell>
@@ -196,19 +231,29 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {usedProducts.map((product) => (
-                        <TableRow key={product.productId}>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell align="right">{product.quantityUsed}</TableCell>
-                          <TableCell align="right">₹{product.price?.toFixed(2)}</TableCell>
+                      {usedItems.map((item) => (
+                        <TableRow key={`${item.type}-${item.id}`}>
+                          <TableCell>
+                            {item.type === "product" ? "Product" : "Spare Part"}
+                          </TableCell>
+                          <TableCell>{item.name}</TableCell>
                           <TableCell align="right">
-                            ₹{((product.price || 0) * product.quantityUsed).toFixed(2)}
+                            {item.quantityUsed}
+                          </TableCell>
+                          <TableCell align="right">
+                            ₹{item.price?.toFixed(2)}
+                          </TableCell>
+                          <TableCell align="right">
+                            ₹
+                            {((item.price || 0) * item.quantityUsed).toFixed(2)}
                           </TableCell>
                           <TableCell align="center">
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={() => handleRemoveProduct(product.productId)}
+                              onClick={() =>
+                                handleRemoveItem(item.id, item.type)
+                              }
                               disabled={loading}
                             >
                               <DeleteIcon />
@@ -219,8 +264,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
                     </TableBody>
                   </Table>
                 </TableContainer>
-
-                <Box sx={{ mt: 2, textAlign: 'right' }}>
+                <Box sx={{ mt: 2, textAlign: "right" }}>
                   <Typography variant="subtitle1" fontWeight={600}>
                     Total Cost: ₹{totalCost.toFixed(2)}
                   </Typography>
@@ -229,10 +273,10 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             </Card>
           )}
 
-          {/* Alert if no products */}
-          {usedProducts.length === 0 && (
+          {/* Alert if no items */}
+          {usedItems.length === 0 && (
             <Alert severity="info">
-              No products added yet. Add at least one product to proceed.
+              No items added yet. Add at least one item to proceed.
             </Alert>
           )}
         </Box>
@@ -244,9 +288,9 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
         <Button
           onClick={handleConfirm}
           variant="contained"
-          disabled={usedProducts.length === 0 || loading}
+          disabled={usedItems.length === 0 || loading}
         >
-          {loading ? 'Saving...' : 'Confirm & Save'}
+          {loading ? "Saving..." : "Confirm & Save"}
         </Button>
       </DialogActions>
     </Dialog>
