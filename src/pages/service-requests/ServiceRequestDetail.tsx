@@ -473,13 +473,13 @@ const ServiceRequestDetail: React.FC = () => {
   };
 
   const userCanApprove =
-    user && canApproveRequest(user.role.name, request.requestedBy.role.name);
-  const userCanAssign = user && canAssignTechnician(user.role.name);
+    user && canApproveRequest(user?.role?.name, request?.requestedBy?.role?.name);
+  const userCanAssign = user && canAssignTechnician(user?.role?.name);
   const isSalesCreated = [
     "Salesman",
     "Sales Team Lead",
     "Sales Manager",
-  ].includes(request.requestedBy.role.name);
+  ].includes(request?.requestedBy?.role?.name);
 
   const handleApprove = async () => {
     try {
@@ -661,7 +661,7 @@ const ServiceRequestDetail: React.FC = () => {
                     color="info.dark"
                     gutterBottom
                   >
-                    {request.installation.name}
+                    {request.installation?.name}
                   </Typography>
 
                   <Typography
@@ -707,7 +707,7 @@ const ServiceRequestDetail: React.FC = () => {
                             color="info.dark"
                             sx={{ mb: 0.5 }}
                           >
-                            📞 Customer: {request.customer.name} •{" "}
+                            📞 Customer: {request?.customer?.name} •{" "}
                             {customerPhone}
                           </Typography>
                         )}
@@ -721,7 +721,7 @@ const ServiceRequestDetail: React.FC = () => {
                       color="info.dark"
                       sx={{ fontStyle: "italic", display: "block", mt: 1 }}
                     >
-                      📝 Note: {request.installation.notes}
+                      📝 Note: {request.installation?.notes}
                     </Typography>
                   )}
                 </Box>
@@ -748,7 +748,7 @@ const ServiceRequestDetail: React.FC = () => {
         </Grid>
 
         {/* ✅ TECHNICIAN WORK PANEL - ONLY FOR ASSIGNED TECHNICIAN */}
-        {user?.role.name === "Technician" &&
+        {user?.role?.name === "Technician" &&
           request.assignedTo?.id === user.id && (
             <>
               {/* Work Progress Card */}
@@ -1067,7 +1067,7 @@ const ServiceRequestDetail: React.FC = () => {
                           color="info.dark"
                           gutterBottom
                         >
-                          {request.installation.name}
+                          {request?.installation?.name}
                         </Typography>
 
                         <Typography
@@ -1221,7 +1221,7 @@ const ServiceRequestDetail: React.FC = () => {
                       {usedProducts.map((item) => (
                         <Chip
                           key={item.id}
-                          label={`${item.product.name}: ${item.quantityUsed} qty`}
+                          label={`${item?.product?.name || "N/A"}: ${item?.quantityUsed} qty`}
                           variant="outlined"
                           sx={{ mr: 1, mb: 1 }}
                         />
@@ -1279,7 +1279,7 @@ const ServiceRequestDetail: React.FC = () => {
                         Assigned Technician
                       </Typography>
                       <Typography variant="body1" fontWeight={500}>
-                        {request.assignedTo.name}
+                        {request?.assignedTo?.name}
                       </Typography>
                     </Grid>
                   </>
@@ -1291,7 +1291,7 @@ const ServiceRequestDetail: React.FC = () => {
                       Approved By
                     </Typography>
                     <Typography variant="body1" fontWeight={500}>
-                      {request.approvedBy.name}
+                      {request?.approvedBy?.name}
                     </Typography>
                   </Grid>
                 )}
@@ -1450,7 +1450,7 @@ const ServiceRequestDetail: React.FC = () => {
             </Typography>
             {customerHistory?.customer && (
               <Typography variant="body2" color="text.secondary">
-                {customerHistory.customer.name}
+                {customerHistory?.customer?.name}
               </Typography>
             )}
           </Box>
@@ -1489,7 +1489,7 @@ const ServiceRequestDetail: React.FC = () => {
                           Name
                         </Typography>
                         <Typography variant="body1" fontWeight={500}>
-                          {customerHistory.customer.name}
+                          {customerHistory?.customer?.name}
                         </Typography>
                       </Box>
                       <Box>
@@ -1731,7 +1731,7 @@ const ServiceRequestDetail: React.FC = () => {
             )}
             {availableTechnicians.map((tech) => (
               <MenuItem key={tech.id} value={tech.id}>
-                {tech.name} {tech.region?.name ? `(${tech.region.name})` : ""}
+                {tech?.name} {tech.region?.name ? `(${tech.region.name})` : ""}
               </MenuItem>
             ))}
           </TextField>
