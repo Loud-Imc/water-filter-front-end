@@ -70,11 +70,12 @@ import { sparePartsService } from "../../api/services/sparePartsService";
 
 import { BuildCircleOutlined } from "@mui/icons-material";
 import WorkMediaGallery from "./WorkMediaGallery";
-import { Product, SparePart } from "@/types";
+import { Product, SparePart, TechnicianStock } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import { TransitionProps } from "@mui/material/transitions";
 import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
+import { technicianStockService } from "../../api/services/technicianStockService";
 
 interface UsedItem {
   type: "product" | "sparePart";
@@ -126,6 +127,7 @@ const ServiceRequestDetail: React.FC = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [customerHistory, setCustomerHistory] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [technicianStock, setTechnicianStock] = useState<TechnicianStock[]>([]);
 
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
@@ -180,6 +182,16 @@ const ServiceRequestDetail: React.FC = () => {
       }
     }
   }, [selectedRequest]);
+
+  // Fetch technician stock when component loads (if user is technician)
+  useEffect(() => {
+    if (user?.role?.name === "Technician") {
+      technicianStockService
+        .getMyStock()
+        .then(setTechnicianStock)
+        .catch(console.error);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (id) {
@@ -307,57 +319,6 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
-  // const handleAddUsedProducts = async (
-  //   products: Array<{ productId: string; quantityUsed: number; notes?: string }>
-  // ) => {
-  //   if (!request.id) return;
-
-  //   try {
-  //     await requestService.addUsedProducts(request.id, products);
-  //     setSnackbar({
-  //       open: true,
-  //       message: "Products added successfully! Stock updated.",
-  //       severity: "success",
-  //     });
-
-  //     // Refresh used products
-  //     const updated = await requestService.getUsedProducts(request.id);
-  //     setUsedProducts(updated);
-  //   } catch (error: any) {
-  //     setSnackbar({
-  //       open: true,
-  //       message: error.response?.data?.message || "Failed to add products",
-  //       severity: "error",
-  //     });
-  //   }
-  // };
-
-  // const handleAddUsedProducts = async (usedItems: UsedItem[]) => {
-  //   if (!request.id) return;
-
-  //   try {
-  //     // Assuming your backend accepts an array of used items with type info
-  //     await requestService.addUsedItems(request.id, usedItems);
-
-  //     setSnackbar({
-  //       open: true,
-  //       message: "Used products and spare parts added successfully! Stock updated.",
-  //       severity: "success",
-  //     });
-
-  //     // Refresh used products and spare parts (combine as needed)
-  //     const updatedProducts = await requestService.getUsedProducts(request.id);
-  //     const updatedSpareParts = await requestService.getUsedSpareParts(request.id);
-  //     setUsedProducts([...updatedProducts, ...updatedSpareParts]);
-  //   } catch (error: any) {
-  //     setSnackbar({
-  //       open: true,
-  //       message: error.response?.data?.message || "Failed to add used items",
-  //       severity: "error",
-  //     });
-  //   }
-  // };
-
   const handleAddUsedProducts = async (usedItems: UsedItem[]) => {
     if (!request.id) return;
     try {
@@ -473,7 +434,8 @@ const ServiceRequestDetail: React.FC = () => {
   };
 
   const userCanApprove =
-    user && canApproveRequest(user?.role?.name, request?.requestedBy?.role?.name);
+    user &&
+    canApproveRequest(user?.role?.name, request?.requestedBy?.role?.name);
   const userCanAssign = user && canAssignTechnician(user?.role?.name);
   const isSalesCreated = [
     "Salesman",
@@ -1207,8 +1169,8 @@ const ServiceRequestDetail: React.FC = () => {
                   </Typography>
                 </Grid>
 
-                <Grid size={12}>
-                  {/* Used Products Summary */}
+                <Grid  size={12}>
+                  {/* Used Products & Spare Parts Summary */}
                   {usedProducts.length > 0 && (
                     <Box sx={{ mt: 3 }}>
                       <Typography
@@ -1216,17 +1178,23 @@ const ServiceRequestDetail: React.FC = () => {
                         fontWeight={600}
                         gutterBottom
                       >
-                        ✅ Products Used ({usedProducts.length})
+                        ✅ Items Used ({usedProducts.length})
                       </Typography>
-                      {usedProducts.map((item) => (
-                        <Chip
-                          key={item.id}
-                          label={`${item?.product?.name || "N/A"}: ${item?.quantityUsed} qty`}
-                          variant="outlined"
-                          sx={{ mr: 1, mb: 1 }}
-                        />
-                      ))}
-                      {usedProducts[0]?.notes && (
+                      {usedProducts.map((item) => {
+                        const name =
+                          item.product?.name || item.sparePart?.name || "N/A";
+                        const quantity = item.quantityUsed;
+                        return (
+                          <Chip
+                            key={item.id}
+                            label={`${name}: ${quantity} qty`}
+                            variant="outlined"
+                            sx={{ mr: 1, mb: 1 }}
+                          />
+                        );
+                      })}
+                      {/* Show notes if any item has notes */}
+                      {usedProducts.some((item) => item.notes) && (
                         <Box
                           sx={{
                             mt: 1,
@@ -1236,7 +1204,8 @@ const ServiceRequestDetail: React.FC = () => {
                           }}
                         >
                           <Typography variant="caption" color="text.secondary">
-                            Notes: {usedProducts[0].notes}
+                            Notes:{" "}
+                            {usedProducts.find((item) => item.notes)?.notes}
                           </Typography>
                         </Box>
                       )}
@@ -1965,6 +1934,7 @@ const ServiceRequestDetail: React.FC = () => {
         onConfirm={handleAddUsedProducts}
         allProducts={allProducts}
         allSpareParts={allSpareParts}
+        technicianStock={technicianStock}
         loading={loading}
       />
     </Box>
