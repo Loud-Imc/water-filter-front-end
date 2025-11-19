@@ -21,6 +21,7 @@ import {
   Grid,
   Collapse,
   Paper,
+  TablePagination,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,7 +31,6 @@ import CategoryIcon from "@mui/icons-material/Category";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
-// import { usePermission } from "../../../hooks/usePermission";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { productService } from "../../../api/services/productService";
 import { productCategoriesService } from "../../../api/services/productCategoriesService";
@@ -65,6 +65,10 @@ const ProductsTab: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -74,23 +78,16 @@ const ProductsTab: React.FC = () => {
   const searchParams = new URLSearchParams(location.search);
   const filterParam = searchParams.get("filter");
 
-  // const { hasPermission } = usePermission();
-  // const canCreate = hasPermission(PERMISSIONS.PRODUCTS_CREATE);
-  // const canUpdate = hasPermission(PERMISSIONS.PRODUCTS_UPDATE);
-  // const canDelete = hasPermission(PERMISSIONS.PRODUCTS_DELETE);
-  // const canManageCategories = hasPermission(PERMISSIONS.CATEGORIES_MANAGE);
-
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-  if (filterParam === 'lowStock') {
-    setMaxStock('5'); // or whatever threshold you use for "low stock"
-    setShowFilters(true);
-  }
-  // Optionally: clear/reset filters if filterParam is not present
-}, [filterParam]);
+    if (filterParam === "lowStock") {
+      setMaxStock("5");
+      setShowFilters(true);
+    }
+  }, [filterParam]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -187,6 +184,16 @@ const ProductsTab: React.FC = () => {
     setMaxStock("");
     setSortBy("name");
     setSortOrder("asc");
+    setPage(0);
+  };
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const formatWarranty = (product: Product): string => {
@@ -244,6 +251,12 @@ const ProductsTab: React.FC = () => {
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
+  // Paginate filtered products
+  const paginatedProducts = filteredProducts.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -293,7 +306,10 @@ const ProductsTab: React.FC = () => {
               fullWidth
               placeholder="Search by product name or SKU..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -361,7 +377,10 @@ const ProductsTab: React.FC = () => {
                   <InputLabel>Category</InputLabel>
                   <Select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setPage(0);
+                    }}
                     label="Category"
                   >
                     <MenuItem value="">All Categories</MenuItem>
@@ -381,7 +400,10 @@ const ProductsTab: React.FC = () => {
                   <InputLabel>Company</InputLabel>
                   <Select
                     value={selectedCompany}
-                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCompany(e.target.value);
+                      setPage(0);
+                    }}
                     label="Company"
                   >
                     <MenuItem value="">All Companies</MenuItem>
@@ -401,7 +423,10 @@ const ProductsTab: React.FC = () => {
                   type="number"
                   label="Min Price"
                   value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
+                  onChange={(e) => {
+                    setMinPrice(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -413,7 +438,10 @@ const ProductsTab: React.FC = () => {
                   type="number"
                   label="Max Price"
                   value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
+                  onChange={(e) => {
+                    setMaxPrice(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -425,7 +453,10 @@ const ProductsTab: React.FC = () => {
                   type="number"
                   label="Min Stock"
                   value={minStock}
-                  onChange={(e) => setMinStock(e.target.value)}
+                  onChange={(e) => {
+                    setMinStock(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -437,7 +468,10 @@ const ProductsTab: React.FC = () => {
                   type="number"
                   label="Max Stock"
                   value={maxStock}
-                  onChange={(e) => setMaxStock(e.target.value)}
+                  onChange={(e) => {
+                    setMaxStock(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -486,7 +520,7 @@ const ProductsTab: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell>
                       <Typography variant="body1" fontWeight={500}>
@@ -562,6 +596,17 @@ const ProductsTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Pagination */}
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredProducts.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
         </Card>
       )}
 

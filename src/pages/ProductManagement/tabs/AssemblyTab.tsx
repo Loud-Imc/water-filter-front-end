@@ -23,6 +23,7 @@ import {
   MenuItem,
   Collapse,
   Paper,
+  TablePagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -33,7 +34,6 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import { bomTemplatesService } from '../../../api/services/bomTemplatesService';
 import { productService } from '../../../api/services/productService';
-// import { assembliesService } from '../../../api/services/assembliesService';
 import type { BOMTemplate, AssemblyHistory, Product } from '../../../types';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SnackbarNotification from '../../../components/common/SnackbarNotification';
@@ -56,6 +56,11 @@ const AssemblyTab: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -126,6 +131,16 @@ const AssemblyTab: React.FC = () => {
     setSelectedStatus('');
     setSortBy('name');
     setSortOrder('asc');
+    setPage(0);
+  };
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const filteredTemplates = templates
@@ -163,6 +178,12 @@ const AssemblyTab: React.FC = () => {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
+  // Paginate filtered templates
+  const paginatedTemplates = filteredTemplates.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -194,7 +215,10 @@ const AssemblyTab: React.FC = () => {
               fullWidth
               placeholder="Search by template name, product, or description..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -262,7 +286,10 @@ const AssemblyTab: React.FC = () => {
                   <InputLabel>Product</InputLabel>
                   <Select
                     value={selectedProduct}
-                    onChange={(e) => setSelectedProduct(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedProduct(e.target.value);
+                      setPage(0);
+                    }}
                     label="Product"
                   >
                     <MenuItem value="">All Products</MenuItem>
@@ -280,7 +307,10 @@ const AssemblyTab: React.FC = () => {
                   <InputLabel>Status</InputLabel>
                   <Select
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedStatus(e.target.value);
+                      setPage(0);
+                    }}
                     label="Status"
                   >
                     <MenuItem value="">All Status</MenuItem>
@@ -331,7 +361,7 @@ const AssemblyTab: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTemplates.map((template) => (
+                paginatedTemplates.map((template) => (
                   <TableRow key={template.id}>
                     <TableCell>
                       <Typography fontWeight={500}>{template.name}</Typography>
@@ -413,6 +443,19 @@ const AssemblyTab: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Pagination */}
+        {filteredTemplates.length > 0 && (
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredTemplates.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        )}
       </Card>
 
       <BOMTemplateDialog

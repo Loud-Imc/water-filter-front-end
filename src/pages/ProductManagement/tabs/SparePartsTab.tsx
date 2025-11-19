@@ -21,6 +21,7 @@ import {
   Grid,
   Collapse,
   Paper,
+  TablePagination,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,7 +32,6 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
-// import { usePermission } from "../../../hooks/usePermission";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { sparePartsService } from "../../../api/services/sparePartsService";
 import { sparePartGroupsService } from "../../../api/services/sparePartGroupsService";
@@ -60,9 +60,7 @@ const SparePartsTab: React.FC = () => {
   const [stockDialog, setStockDialog] = useState(false);
   const [technicianStockDialog, setTechnicianStockDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
-  const [selectedSparePart, setSelectedSparePart] = useState<SparePart | null>(
-    null
-  );
+  const [selectedSparePart, setSelectedSparePart] = useState<SparePart | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
@@ -73,18 +71,16 @@ const SparePartsTab: React.FC = () => {
   const [maxStock, setMaxStock] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success" as any,
   });
-
-  // const { hasPermission } = usePermission();
-  // const canCreate = hasPermission(PERMISSIONS.SPARE_PARTS_CREATE);
-  // const canUpdate = hasPermission(PERMISSIONS.SPARE_PARTS_UPDATE);
-  // const canDelete = hasPermission(PERMISSIONS.SPARE_PARTS_DELETE);
-  // const canManageGroups = hasPermission(PERMISSIONS.GROUPS_MANAGE);
-  // const canViewStock = hasPermission(PERMISSIONS.STOCK_VIEW);
 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -95,13 +91,11 @@ const SparePartsTab: React.FC = () => {
   }, []);
 
   useEffect(() => {
-  if (filterParam === 'lowStock') {
-    setMaxStock('5'); // or whatever threshold you use for "low stock"
-    setShowFilters(true);
-  }
-  // Optionally: clear/reset filters if filterParam is not present
-}, [filterParam]);
-
+    if (filterParam === "lowStock") {
+      setMaxStock("5");
+      setShowFilters(true);
+    }
+  }, [filterParam]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -199,6 +193,16 @@ const SparePartsTab: React.FC = () => {
     setMaxStock("");
     setSortBy("name");
     setSortOrder("asc");
+    setPage(0);
+  };
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const formatWarranty = (sparePart: SparePart): string => {
@@ -227,8 +231,7 @@ const SparePartsTab: React.FC = () => {
         if (!matchesName && !matchesSku) return false;
       }
       if (selectedGroup && sparePart.groupId !== selectedGroup) return false;
-      if (selectedCompany && sparePart.company !== selectedCompany)
-        return false;
+      if (selectedCompany && sparePart.company !== selectedCompany) return false;
       if (minPrice && Number(sparePart.price) < Number(minPrice)) return false;
       if (maxPrice && Number(sparePart.price) > Number(maxPrice)) return false;
       if (minStock && sparePart.stock < Number(minStock)) return false;
@@ -255,6 +258,12 @@ const SparePartsTab: React.FC = () => {
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
+
+  // Paginate filtered spare parts
+  const paginatedSpareParts = filteredSpareParts.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   if (loading) {
     return <LoadingSpinner />;
@@ -305,7 +314,10 @@ const SparePartsTab: React.FC = () => {
               fullWidth
               placeholder="Search by spare part name or SKU..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -373,7 +385,10 @@ const SparePartsTab: React.FC = () => {
                   <InputLabel>Group</InputLabel>
                   <Select
                     value={selectedGroup}
-                    onChange={(e) => setSelectedGroup(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedGroup(e.target.value);
+                      setPage(0);
+                    }}
                     label="Group"
                   >
                     <MenuItem value="">All Groups</MenuItem>
@@ -393,7 +408,10 @@ const SparePartsTab: React.FC = () => {
                   <InputLabel>Company</InputLabel>
                   <Select
                     value={selectedCompany}
-                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCompany(e.target.value);
+                      setPage(0);
+                    }}
                     label="Company"
                   >
                     <MenuItem value="">All Companies</MenuItem>
@@ -413,7 +431,10 @@ const SparePartsTab: React.FC = () => {
                   type="number"
                   label="Min Price"
                   value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
+                  onChange={(e) => {
+                    setMinPrice(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -425,7 +446,10 @@ const SparePartsTab: React.FC = () => {
                   type="number"
                   label="Max Price"
                   value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
+                  onChange={(e) => {
+                    setMaxPrice(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -437,7 +461,10 @@ const SparePartsTab: React.FC = () => {
                   type="number"
                   label="Min Stock"
                   value={minStock}
-                  onChange={(e) => setMinStock(e.target.value)}
+                  onChange={(e) => {
+                    setMinStock(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -449,7 +476,10 @@ const SparePartsTab: React.FC = () => {
                   type="number"
                   label="Max Stock"
                   value={maxStock}
-                  onChange={(e) => setMaxStock(e.target.value)}
+                  onChange={(e) => {
+                    setMaxStock(e.target.value);
+                    setPage(0);
+                  }}
                   inputProps={{ min: 0 }}
                 />
               </Grid>
@@ -498,7 +528,7 @@ const SparePartsTab: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredSpareParts.map((sparePart) => (
+                {paginatedSpareParts.map((sparePart) => (
                   <TableRow key={sparePart.id}>
                     <TableCell>
                       <Typography variant="body1" fontWeight={500}>
@@ -556,9 +586,7 @@ const SparePartsTab: React.FC = () => {
                           <UpdateIcon />
                         </IconButton>
                       </PermissionGate>
-                      <PermissionGate
-                        permission={PERMISSIONS.SPARE_PARTS_UPDATE}
-                      >
+                      <PermissionGate permission={PERMISSIONS.SPARE_PARTS_UPDATE}>
                         <IconButton
                           size="small"
                           onClick={() => {
@@ -570,9 +598,7 @@ const SparePartsTab: React.FC = () => {
                           <EditIcon />
                         </IconButton>
                       </PermissionGate>
-                      <PermissionGate
-                        permission={PERMISSIONS.SPARE_PARTS_DELETE}
-                      >
+                      <PermissionGate permission={PERMISSIONS.SPARE_PARTS_DELETE}>
                         <IconButton
                           size="small"
                           color="error"
@@ -591,6 +617,17 @@ const SparePartsTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Pagination */}
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredSpareParts.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
         </Card>
       )}
 

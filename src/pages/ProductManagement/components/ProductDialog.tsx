@@ -36,8 +36,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   const [formData, setFormData] = useState<CreateProductDto>({
     name: '',
     description: '',
-    sku: '',
-    categoryId: '',
+    sku: null,
+    categoryId: null,
     company: '',
     price: 0,
     stock: 0,
@@ -60,8 +60,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       setFormData({
         name: product.name,
         description: product.description || '',
-        sku: product.sku || '',
-        categoryId: product.categoryId || '',
+        sku: product.sku || null,
+        categoryId: product.categoryId || null,
         company: product.company || '',
         price: product.price,
         stock: product.stock,
@@ -74,8 +74,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       setFormData({
         name: '',
         description: '',
-        sku: '',
-        categoryId: '',
+        sku: null,
+        categoryId: null,
         company: '',
         price: 0,
         stock: 0,
