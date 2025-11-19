@@ -220,14 +220,14 @@ export interface AuthResponse {
 export interface CreateProductDto {
   name: string;
   description?: string;
-  sku?: string;
+  sku?: string | null;
   price: number;
   stock: number;
   hasWarranty?: boolean;
   warrantyMonths?: number;
   warrantyYears?: number;
   company?: string;
-  categoryId?: string;
+  categoryId?: string | null;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {}

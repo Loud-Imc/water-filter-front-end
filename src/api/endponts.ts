@@ -128,8 +128,8 @@ export const API_ENDPOINTS = {
 
   SYSTEM_SETTINGS: {  
     BASE: '/system-settings',
-    GET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
-    SET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
+   GET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
+    SET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
   },
 
 //   SYSTEM_SETTINGS: {  
