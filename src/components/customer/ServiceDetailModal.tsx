@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,25 +17,22 @@ import {
   ListItem,
   ListItemText,
   Slide,
-} from '@mui/material';
-import { TransitionProps } from '@mui/material/transitions';
-import CloseIcon from '@mui/icons-material/Close';
-import BuildIcon from '@mui/icons-material/Build';
-import HandymanIcon from '@mui/icons-material/Handyman';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import PersonIcon from '@mui/icons-material/Person';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PhoneIcon from '@mui/icons-material/Phone';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import { formatDate } from '../../utils/helpers';
-import WorkMediaGallery from '../../pages/service-requests/WorkMediaGallery';  // ✅ IMPORT YOUR COMPONENT
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import BuildIcon from "@mui/icons-material/Build";
+import HandymanIcon from "@mui/icons-material/Handyman";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import PersonIcon from "@mui/icons-material/Person";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import PhoneIcon from "@mui/icons-material/Phone";
+import TimerIcon from "@mui/icons-material/Timer";
+import { TransitionProps } from "@mui/material/transitions";
+import { formatDate } from "../../utils/helpers";
+import WorkMediaGallery from "../../pages/service-requests/WorkMediaGallery";
 
-// Slide transition
 const Transition = React.forwardRef(function Transition(
-  props: TransitionProps & {
-    children: React.ReactElement;
-  },
+  props: TransitionProps & { children: React.ReactElement },
   ref: React.Ref<unknown>
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -44,7 +41,7 @@ const Transition = React.forwardRef(function Transition(
 interface ServiceDetailModalProps {
   open: boolean;
   onClose: () => void;
-  service: any; // Use proper type if available
+  service: any; // replace with exact type if available
 }
 
 const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
@@ -54,50 +51,90 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
 }) => {
   if (!service) return null;
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type?: string) => {
     switch (type) {
-      case 'INSTALLATION':
-      case 'RE_INSTALLATION':
+      case "INSTALLATION":
+      case "RE_INSTALLATION":
         return <BuildIcon />;
-      case 'SERVICE':
+      case "SERVICE":
         return <HandymanIcon />;
-      case 'COMPLAINT':
+      case "COMPLAINT":
         return <ReportProblemIcon />;
-      case 'ENQUIRY':
+      case "ENQUIRY":
         return <HelpOutlineIcon />;
       default:
         return <HandymanIcon />;
     }
   };
 
-  const getTypeColor = (type: string): any => {
+  const getTypeColor = (type?: string): any => {
     switch (type) {
-      case 'INSTALLATION':
-        return 'primary';
-      case 'RE_INSTALLATION':
-        return 'secondary';
-      case 'SERVICE':
-        return 'success';
-      case 'COMPLAINT':
-        return 'error';
-      case 'ENQUIRY':
-        return 'info';
+      case "INSTALLATION":
+        return "primary";
+      case "RE_INSTALLATION":
+        return "secondary";
+      case "SERVICE":
+        return "success";
+      case "COMPLAINT":
+        return "error";
+      case "ENQUIRY":
+        return "info";
       default:
-        return 'default';
+        return "default";
     }
   };
 
-  const getStatusColor = (status: string): any => {
-    const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
-      COMPLETED: 'success',
-      IN_PROGRESS: 'info',
-      PENDING_APPROVAL: 'warning',
-      REJECTED: 'error',
-      ASSIGNED: 'default',
-      WORK_COMPLETED: 'success',
+  const getStatusColor = (status?: string): any => {
+    const statusColors: Record<
+      string,
+      "success" | "warning" | "error" | "info" | "default"
+    > = {
+      COMPLETED: "success",
+      IN_PROGRESS: "info",
+      PENDING_APPROVAL: "warning",
+      REJECTED: "error",
+      ASSIGNED: "default",
+      WORK_COMPLETED: "success",
     };
-    return statusColors[status] || 'default';
+    return status ? statusColors[status] || "default" : "default";
   };
+
+  // safe accessors + computed values
+  const requestId = service.id || service.requestId || "N/A";
+  const requestedBy = service.requestedBy || {
+    id: service.requestedById,
+    name: "N/A",
+    email: "",
+  };
+  const assignedTo =
+    service.assignedTo ||
+    (service.assignedToId
+      ? { id: service.assignedToId, name: service.assignedToId }
+      : null);
+  const approvedBy =
+    service.approvedBy ||
+    (service.approvedById ? { id: service.approvedById } : null);
+  const acknowledgedBy =
+    service.acknowledgedBy ||
+    (service.acknowledgedById ? { id: service.acknowledgedById } : null);
+  const region =
+    service.region ||
+    (service.regionId
+      ? { id: service.regionId, name: service.regionId }
+      : null);
+
+  // total work minutes/seconds from logs
+  const totalWorkDuration = (service.workLogs || []).reduce(
+    (sum: number, l: any) => sum + (l.duration || 0),
+    0
+  );
+
+  // prepare media for gallery — keep fileUrl as-is (WorkMediaGallery likely expects it)
+  const media = (service.workMedia || []).map((m: any) => ({
+    ...m,
+    // if your gallery needs absolute URLs uncomment next line and adjust base
+    // fileUrl: m.fileUrl && !m.fileUrl.startsWith('http') ? `${window.location.origin}${m.fileUrl}` : m.fileUrl,
+  }));
 
   return (
     <Dialog
@@ -106,27 +143,27 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
       onClose={onClose}
       TransitionComponent={Transition}
       sx={{
-        '& .MuiDialog-paper': {
-          bgcolor: 'background.default',
+        "& .MuiDialog-paper": {
+          bgcolor: "background.default",
         },
       }}
     >
       {/* Header */}
       <DialogTitle
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           borderBottom: 1,
-          borderColor: 'divider',
-          position: 'sticky',
+          borderColor: "divider",
+          position: "sticky",
           top: 0,
-          bgcolor: 'background.paper',
+          bgcolor: "background.paper",
           zIndex: 2,
           boxShadow: 1,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Avatar
             sx={{
               bgcolor: `${getTypeColor(service.type)}.main`,
@@ -138,13 +175,14 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
           </Avatar>
           <Box>
             <Typography variant="h6" fontWeight={600}>
-              {service.type.replace('_', ' ')}
+              {String(service.type || "REQUEST").replace("_", " ")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatDate(service.createdAt)}
+              {service.createdAt ? formatDate(service.createdAt) : "—"}
             </Typography>
           </Box>
         </Box>
+
         <IconButton
           edge="end"
           color="inherit"
@@ -158,19 +196,24 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
       {/* Content */}
       <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Grid container spacing={3}>
-          {/* Status & Type */}
+          {/* Top chips (type / status / priority / salesApproved) */}
           <Grid size={{ xs: 12 }}>
             <Card>
               <CardContent>
-                <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  flexWrap="wrap"
+                  alignItems="center"
+                >
                   <Chip
-                    label={service.type.replace('_', ' ')}
+                    label={String(service.type || "N/A").replace("_", " ")}
                     color={getTypeColor(service.type)}
                     icon={getTypeIcon(service.type)}
                   />
-                  {service.type !== 'ENQUIRY' && (
+                  {service.type !== "ENQUIRY" && (
                     <Chip
-                      label={service.status.replace('_', ' ')}
+                      label={String(service.status || "N/A").replace("_", " ")}
                       color={getStatusColor(service.status)}
                     />
                   )}
@@ -181,6 +224,7 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                       size="small"
                     />
                   )}
+             
                 </Stack>
               </CardContent>
             </Card>
@@ -194,37 +238,37 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                   Description
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  {service.description}
+                  {service.description || "N/A"}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Customer & Location Info */}
-          <Grid size={{ xs: 12 }}>
+          {/* Customer & Region info */}
+          <Grid size={{ xs: 12}}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                   Customer & Location
                 </Typography>
-                
+
                 <Stack spacing={2}>
-                  {/* Customer Name */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {/* Customer name if available; fallback to customerId */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <PersonIcon color="primary" fontSize="small" />
                     <Box>
                       <Typography variant="caption" color="text.secondary">
                         Customer
                       </Typography>
                       <Typography variant="body1" fontWeight={500}>
-                        {service.customer?.name || 'N/A'}
+                        {service.customer?.name || service.customerId || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
 
-                  {/* Phone */}
-                  {service.customer?.primaryPhone && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {/* Contact (customer) */}
+                  {service.customer?.primaryPhone ? (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <PhoneIcon color="primary" fontSize="small" />
                       <Box>
                         <Typography variant="caption" color="text.secondary">
@@ -235,23 +279,44 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                         </Typography>
                       </Box>
                     </Box>
-                  )}
+                  ) : service.requestedBy?.email ? (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <PhoneIcon color="primary" fontSize="small" />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Requested By (email)
+                        </Typography>
+                        <Typography variant="body1">
+                          {service.requestedBy.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ) : null}
 
-                  {/* Location/Region */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {/* Region */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <LocationOnIcon color="primary" fontSize="small" />
                     <Box>
                       <Typography variant="caption" color="text.secondary">
                         Region
                       </Typography>
                       <Typography variant="body1">
-                        {service.region?.name || 'N/A'}
+                        {region?.name || region?.id || "N/A"}
                       </Typography>
+                      {region?.city && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          {region.city} • {region.pincode || ""}
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
 
-                  {/* Installation */}
-                  {service.installation && (
+                  {/* Installation block (if exists) */}
+                  {service.installation ? (
                     <Box sx={{ pl: 4 }}>
                       <Typography variant="caption" color="text.secondary">
                         Installation Location
@@ -270,61 +335,192 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                         </Typography>
                       )}
                     </Box>
-                  )}
+                  ) : null}
                 </Stack>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Assigned Technician */}
-          {service.assignedTo && (
-            <Grid size={{ xs: 12 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Assigned Technician
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      {service.assignedTo.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body1" fontWeight={500}>
-                        {service.assignedTo.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {service.assignedTo.email}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
+          {/* Request meta (requestedBy / assigned / approval / created) */}
+          <Grid size={{ xs: 12}}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                  Request Details
+                </Typography>
 
-          {/* Used Products */}
-          {service.usedProducts && service.usedProducts.length > 0 && (
+                <Grid container spacing={1}>
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Request ID
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {requestId}
+                    </Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Requested By
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {requestedBy.name || requestedBy.id}
+                    </Typography>
+                    {requestedBy.email && (
+                      <Typography variant="caption" color="text.secondary">
+                        {requestedBy.email}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Assigned Technician
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {assignedTo?.name || assignedTo?.id || "N/A"}
+                    </Typography>
+                    {assignedTo?.email && (
+                      <Typography variant="caption" color="text.secondary">
+                        {assignedTo.email}
+                      </Typography>
+                    )}
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Approved By
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {approvedBy?.name || approvedBy?.id || "N/A"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Created At
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {service.createdAt
+                        ? formatDate(service.createdAt)
+                        : "N/A"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Category
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {service.category?.name || service.categoryId || "N/A"}
+                    </Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Acknowledged
+                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {service.acknowledgedAt
+                        ? formatDate(service.acknowledgedAt)
+                        : "Not acknowledged"}
+                    </Typography>
+                    {service.acknowledgmentComments && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        {service.acknowledgmentComments}
+                      </Typography>
+                    )}
+                    {acknowledgedBy && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        By: {acknowledgedBy.name || acknowledgedBy.id}
+                      </Typography>
+                    )}
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Work logs (if any) */}
+          {service.workLogs && service.workLogs.length > 0 && (
             <Grid size={{ xs: 12 }}>
               <Card>
                 <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Products Used
+                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                    Work Logs
                   </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1 }}
+                  >
+                    Sessions performed by technician
+                  </Typography>
+
                   <List>
-                    {service.usedProducts.map((item: any, index: number) => (
-                      <React.Fragment key={item.id || index}>
-                        {index > 0 && <Divider />}
-                        <ListItem>
+                    {service.workLogs.map((log: any, idx: number) => (
+                      <React.Fragment key={log.id || idx}>
+                        {idx > 0 && <Divider />}
+                        <ListItem alignItems="flex-start" sx={{ py: 1 }}>
+                          <Avatar sx={{ bgcolor: "primary.main", mr: 2 }}>
+                            <TimerIcon />
+                          </Avatar>
                           <ListItemText
-                            primary={item.product?.name || 'Unknown Product'}
-                            secondary={
-                              <Box>
-                                <Typography variant="caption" component="div">
-                                  Quantity: {item.quantityUsed}
+                            primary={
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Typography
+                                  variant="subtitle2"
+                                  fontWeight={600}
+                                >
+                                  Session #{idx + 1}
                                 </Typography>
-                                {item.notes && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    Notes: {item.notes}
+                                <Chip
+                                  label={`${log.duration || 0} sec`}
+                                  size="small"
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Box sx={{ mt: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  Started:{" "}
+                                  {log.startTime
+                                    ? formatDate(log.startTime)
+                                    : "N/A"}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  Ended:{" "}
+                                  {log.endTime
+                                    ? formatDate(log.endTime)
+                                    : "In Progress"}
+                                </Typography>
+                                {log.notes && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ mt: 0.5 }}
+                                  >
+                                    {log.notes}
                                   </Typography>
                                 )}
                               </Box>
@@ -334,12 +530,29 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                       </React.Fragment>
                     ))}
                   </List>
+
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: "primary.light",
+                      borderRadius: 1,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      Total Work Duration:
+                    </Typography>
+                    <Chip label={`${totalWorkDuration} seconds`} />
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
           )}
 
-          {/* Approval History */}
+          {/* Approval history (if any) */}
           {service.approvalHistory && service.approvalHistory.length > 0 && (
             <Grid size={{ xs: 12 }}>
               <Card>
@@ -348,35 +561,51 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                     Approval History
                   </Typography>
                   <List>
-                    {service.approvalHistory.map((approval: any, index: number) => (
-                      <React.Fragment key={approval.id || index}>
-                        {index > 0 && <Divider />}
+                    {service.approvalHistory.map((a: any, i: number) => (
+                      <React.Fragment key={a.id || i}>
+                        {i > 0 && <Divider />}
                         <ListItem>
                           <ListItemText
                             primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography variant="body2" fontWeight={500}>
-                                  {approval.approver?.name || 'Unknown'}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 1,
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Typography variant="body2" fontWeight={600}>
+                                  {a.approver?.name ||
+                                    a.approverId ||
+                                    "Unknown"}
                                 </Typography>
                                 <Chip
-                                  label={approval.status}
+                                  label={a.status}
                                   size="small"
-                                  color={approval.status === 'APPROVED' ? 'success' : 'error'}
+                                  color={
+                                    a.status === "APPROVED"
+                                      ? "success"
+                                      : "error"
+                                  }
                                 />
                               </Box>
                             }
                             secondary={
                               <Box>
-                                <Typography variant="caption" color="text.secondary">
-                                  {approval.approverRole} • {formatDate(approval.approvedAt)}
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {a.approverRole} •{" "}
+                                  {a.approvedAt ? formatDate(a.approvedAt) : ""}
                                 </Typography>
-                                {approval.comments && (
+                                {a.comments && (
                                   <Typography
                                     variant="body2"
                                     color="text.secondary"
                                     sx={{ mt: 0.5 }}
                                   >
-                                    {approval.comments}
+                                    {a.comments}
                                   </Typography>
                                 )}
                               </Box>
@@ -391,48 +620,14 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
             </Grid>
           )}
 
-          {/* Timestamps */}
-          <Grid size={{ xs: 12 }}>
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                  Timeline
-                </Typography>
-                <Stack spacing={1}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarTodayIcon fontSize="small" color="action" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Created
-                      </Typography>
-                      <Typography variant="body2">
-                        {formatDate(service.createdAt)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  {service.acknowledgedAt && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CalendarTodayIcon fontSize="small" color="action" />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Completed
-                        </Typography>
-                        <Typography variant="body2">
-                          {formatDate(service.acknowledgedAt)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
 
-        {/* ✅ UPDATED: Use WorkMediaGallery component instead of ImageList */}
-        {service.workMedia && service.workMedia.length > 0 && (
-          <WorkMediaGallery media={service.workMedia} />
-        )}
+          {/* Media gallery (bottom) */}
+          {media.length > 0 && (
+            <Grid size={{ xs: 12 }}>
+              <WorkMediaGallery media={media} />
+            </Grid>
+          )}
+        </Grid>
       </DialogContent>
     </Dialog>
   );

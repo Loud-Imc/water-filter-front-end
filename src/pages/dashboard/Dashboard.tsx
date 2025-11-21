@@ -10,15 +10,10 @@ import RequestsByType from "../../components/dashboard/RequestsByType";
 import StockAlertBar from "../../components/dashboard/StockAlertBar";
 import ReportsSection from "../../components/dashboard/ReportsSection"; // ✅ NEW
 
-// Icons
-import AssignmentIcon from "@mui/icons-material/Assignment";
-// import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-// import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
 
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import type { RequestStatus } from "../../types";
@@ -50,7 +45,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const isTechnician = user?.role.name === "Technician";
+  // const isTechnician = user?.role.name === "Technician";
   const isSuperAdmin = user?.role.name === "Super Admin"; // ✅ NEW
 
   return (
@@ -69,7 +64,7 @@ const Dashboard: React.FC = () => {
       {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {/* Total Requests - Blue/Primary */}
-        {!isTechnician && (
+        {/* {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Total Requests"
@@ -79,7 +74,7 @@ const Dashboard: React.FC = () => {
               onClick={() => handleCardClick()}
             />
           </Grid>
-        )}
+        )} */}
 
         {/* Assigned - Purple/Secondary */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -89,6 +84,17 @@ const Dashboard: React.FC = () => {
             icon={<PersonAddIcon />}
             color="#9c27b0" // Purple
             onClick={() => handleCardClick("ASSIGNED")}
+          />
+        </Grid>
+
+        {/* Re Assigned - Bright Gold/Yellow */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <StatCard
+            title="Re Assigned"
+            value={stats.reAssigned} // Use correct stat count for Re Assigned
+            icon={<PersonAddIcon />}
+            color="#e3c845ff" // Bright yellow/gold for highlight
+            onClick={() => handleCardClick("RE_ASSIGNED")}
           />
         </Grid>
 
@@ -106,7 +112,7 @@ const Dashboard: React.FC = () => {
         {/* Work Completed - Teal */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
-            title="Work Completed"
+            title="Work Completed, Pending for acknowledgement"
             value={stats.workCompleted}
             icon={<TaskAltIcon />}
             color="#039688ff" // Teal
@@ -126,7 +132,7 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         {/* Rejected - Red/Error */}
-        {!isTechnician && (
+        {/* {!isTechnician && (
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <StatCard
               title="Rejected"
@@ -136,7 +142,7 @@ const Dashboard: React.FC = () => {
               onClick={() => handleCardClick("REJECTED")}
             />
           </Grid>
-        )}
+        )} */}
       </Grid>
 
       {/* Charts and Recent Activity */}

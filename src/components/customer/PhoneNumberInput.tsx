@@ -36,7 +36,6 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   const [error, setError] = useState("");
 
   const validatePhone = (phone: string): boolean => {
-    // Basic validation: 10 digits
     const phoneRegex = /^[0-9]{10}$/;
     return phoneRegex.test(phone.replace(/\s/g, ""));
   };
@@ -54,7 +53,6 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
       return;
     }
 
-    // Check if phone already exists
     if (
       primaryPhone === trimmedPhone ||
       additionalPhones.includes(trimmedPhone)
@@ -73,6 +71,30 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
     onAdditionalPhonesChange(updated);
   };
 
+  // Helper text for primary phone
+  const getPrimaryPhoneHelper = () => {
+    if (errors?.primaryPhone) return errors.primaryPhone;
+    if (primaryPhone.length > 0 && primaryPhone.length < 10) {
+      return `${10 - primaryPhone.length} more digit${10 - primaryPhone.length > 1 ? 's' : ''} needed`;
+    }
+    return "Main contact number (10 digits)";
+  };
+
+  // Helper text for additional phone
+  const getAdditionalPhoneHelper = () => {
+    if (error) return error;
+    if (newPhone.length > 0 && newPhone.length < 10) {
+      return `${10 - newPhone.length} more digit${10 - newPhone.length > 1 ? 's' : ''} needed`;
+    }
+    return "Press Enter or click Add";
+  };
+
+  // Check if primary phone is incomplete (has input but less than 10 digits)
+  const isPrimaryPhoneIncomplete = primaryPhone.length > 0 && primaryPhone.length < 10;
+  
+  // Check if additional phone is incomplete
+  const isAdditionalPhoneIncomplete = newPhone.length > 0 && newPhone.length < 10;
+
   return (
     <Box>
       {/* Primary Phone */}
@@ -82,12 +104,12 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
         label="Primary Phone Number"
         value={primaryPhone}
         onChange={(e) => {
-          const value = e.target.value.replace(/[^0-9]/g, ""); // Only numbers
+          const value = e.target.value.replace(/[^0-9]/g, "");
           onPrimaryPhoneChange(value);
         }}
         disabled={disabled}
-        error={!!errors?.primaryPhone}
-        helperText={errors?.primaryPhone || "Main contact number (10 digits)"}
+        error={!!errors?.primaryPhone || isPrimaryPhoneIncomplete}
+        helperText={getPrimaryPhoneHelper()}
         placeholder="9876543210"
         inputProps={{ maxLength: 10 }}
         InputProps={{
@@ -96,6 +118,16 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
               <PhoneIcon sx={{ color: "text.secondary" }} />
             </InputAdornment>
           ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+              borderColor: isPrimaryPhoneIncomplete ? 'error.main' : undefined,
+            },
+          },
+          '& .MuiFormHelperText-root': {
+            color: isPrimaryPhoneIncomplete ? 'error.main' : undefined,
+          },
         }}
       />
 
@@ -141,8 +173,8 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
               setError("");
             }}
             disabled={disabled}
-            error={!!error}
-            helperText={error || "Press Enter or click Add"}
+            error={!!error || isAdditionalPhoneIncomplete}
+            helperText={getAdditionalPhoneHelper()}
             placeholder="9876543211"
             inputProps={{ maxLength: 10 }}
             onKeyPress={(e) => {
@@ -157,6 +189,16 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
                   <PhoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
                 </InputAdornment>
               ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: isAdditionalPhoneIncomplete ? 'error.main' : undefined,
+                },
+              },
+              '& .MuiFormHelperText-root': {
+                color: isAdditionalPhoneIncomplete ? 'error.main' : undefined,
+              },
             }}
           />
           <Button

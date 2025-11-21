@@ -76,7 +76,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         description: '',
         sku: null,
         categoryId: null,
-        company: '',
+        company: "Leewaa",
         price: 0,
         stock: 0,
         hasWarranty: false,

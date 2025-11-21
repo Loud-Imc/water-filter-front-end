@@ -64,7 +64,7 @@ const CustomerManagement: React.FC = () => {
     address: "",
     primaryPhone: "",
     phoneNumbers: [],
-    email: "",
+    email: null,
     regionId: "",
   });
 
@@ -142,7 +142,7 @@ const CustomerManagement: React.FC = () => {
         address: customer.address,
         primaryPhone: customer.primaryPhone,
         phoneNumbers: customer.phoneNumbers || [],
-        email: customer.email || "",
+        email: customer.email || null,
         regionId: customer.regionId,
         latitude: customer.latitude,
         longitude: customer.longitude,
@@ -154,7 +154,7 @@ const CustomerManagement: React.FC = () => {
         address: "",
         primaryPhone: "",
         phoneNumbers: [],
-        email: "",
+        email: null,
         regionId: "",
       });
     }
@@ -169,7 +169,7 @@ const CustomerManagement: React.FC = () => {
       address: "",
       primaryPhone: "",
       phoneNumbers: [],
-      email: "",
+      email: null,
       regionId: "",
     });
   };

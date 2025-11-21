@@ -40,8 +40,10 @@ import QuickAddInstallationDialog from "../../components/installation/QuickAddIn
 import BusinessIcon from "@mui/icons-material/Business";
 import { productCategoriesService } from "../../api/services/productCategoriesService";
 import type { ProductCategory } from "../../types";
-import CategoryIcon from '@mui/icons-material/Category';
-
+import CategoryIcon from "@mui/icons-material/Category";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import QuickAddTechnicianDialog from "../../components/services/QuickAddTechnicianDialog";
 
 // Validation schema with proper enum types
 // ✅ UPDATED: Add optional installationId
@@ -111,6 +113,12 @@ const CreateServiceRequest: React.FC = () => {
   const [loadingInstallations, setLoadingInstallations] = useState(false); // ✅ NEW
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [showAllTechnicians, setShowAllTechnicians] = useState(false); // Toggle for all regions
+  const [technicianDialog, setTechnicianDialog] = useState(false); // Quick add technician dialog
+  const [allTechnicians, setAllTechnicians] = useState<
+    TechnicianWithWorkload[]
+  >([]); // All technicians (any region)
+
   const [selectedCustomerName, setSelectedCustomerName] = useState(
     prefilledData?.customerName || ""
   );
@@ -201,6 +209,51 @@ const CreateServiceRequest: React.FC = () => {
     } finally {
       setLoadingTechnicians(false);
     }
+  };
+
+  // 🆕 NEW: Fetch all technicians (from any region)
+  const fetchAllTechnicians = async () => {
+    setLoadingTechnicians(true);
+    try {
+      // Call backend without regionId to get all technicians
+      const data = await requestService.getTechniciansWithWorkload();
+      setAllTechnicians(data);
+    } catch (error) {
+      console.error("Failed to fetch all technicians:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to load technicians",
+        severity: "error",
+      });
+    } finally {
+      setLoadingTechnicians(false);
+    }
+  };
+
+  // 🆕 NEW: Fetch all technicians when toggle is enabled
+  useEffect(() => {
+    if (showAllTechnicians) {
+      fetchAllTechnicians();
+    }
+  }, [showAllTechnicians]);
+
+  // 🆕 NEW: Handle technician created
+  const handleTechnicianCreated = async (technicianId: string) => {
+    setValue("assignedToId", technicianId);
+
+    // Refresh technician lists
+    if (watchRegionId) {
+      await fetchTechnicians(watchRegionId);
+    }
+    if (showAllTechnicians) {
+      await fetchAllTechnicians();
+    }
+
+    setSnackbar({
+      open: true,
+      message: "Technician created and assigned successfully!",
+      severity: "success",
+    });
   };
 
   const fetchInstallations = async (customerId: string) => {
@@ -386,7 +439,7 @@ const CreateServiceRequest: React.FC = () => {
                           Re-Installation
                         </MenuItem>
                         <MenuItem value="COMPLAINT">Complaint</MenuItem>
-                        <MenuItem value="ENQUIRY">Enquiry</MenuItem>
+                        {/* <MenuItem value="ENQUIRY">Enquiry</MenuItem> */}
                       </TextField>
                     )}
                   />
@@ -422,9 +475,7 @@ const CreateServiceRequest: React.FC = () => {
                             }}
                           >
                             <Chip label="High" color="error" size="small" />
-                            <Typography variant="body2">
-                              Urgent - VIP
-                            </Typography>
+                            <Typography variant="body2">Urgent</Typography>
                           </Box>
                         </MenuItem>
                         <MenuItem value="MEDIUM">
@@ -811,7 +862,51 @@ const CreateServiceRequest: React.FC = () => {
 
               {/* Technician Assignment */}
 
+              {/* Technician Assignment */}
               <Box>
+                {/* 🆕 Toggle to show all technicians */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1,
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showAllTechnicians}
+                        onChange={(e) =>
+                          setShowAllTechnicians(e.target.checked)
+                        }
+                        disabled={!watchRegionId}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" color="text.secondary">
+                        Show technicians from all regions
+                      </Typography>
+                    }
+                  />
+
+                  {/* 🆕 Quick Add Technician Button */}
+                  <Tooltip title="Create new technician">
+                    <IconButton
+                      color="primary"
+                      onClick={() => setTechnicianDialog(true)}
+                      disabled={!watchRegionId}
+                      sx={{
+                        border: 1,
+                        borderColor: "primary.main",
+                        borderRadius: 1,
+                      }}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
                 <Controller
                   name="assignedToId"
                   control={control}
@@ -825,7 +920,9 @@ const CreateServiceRequest: React.FC = () => {
                       error={!!formErrors.assignedToId}
                       helperText={
                         formErrors.assignedToId?.message ||
-                        "Select technician to assign this request"
+                        (showAllTechnicians
+                          ? "Showing all technicians (any region)"
+                          : "Showing technicians from selected region only")
                       }
                       disabled={!watchRegionId || loadingTechnicians}
                       InputProps={{
@@ -840,84 +937,103 @@ const CreateServiceRequest: React.FC = () => {
                         <MenuItem disabled>
                           <LinearProgress sx={{ width: "100%" }} />
                         </MenuItem>
-                      ) : technicians.length === 0 ? (
+                      ) : (showAllTechnicians ? allTechnicians : technicians)
+                          .length === 0 ? (
                         <MenuItem disabled>
-                          No technicians available in this region
+                          {showAllTechnicians
+                            ? "No technicians available"
+                            : "No technicians in this region"}
                         </MenuItem>
                       ) : (
-                        technicians.map((tech) => (
-                          <MenuItem key={tech.id} value={tech.id}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                width: "100%",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              {/* Left: Name and Region */}
-                              <Box sx={{ flex: 1 }}>
-                                <Typography variant="body2" fontWeight={500}>
-                                  {tech.name}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {tech.region?.name || "N/A"}
-                                </Typography>
-                              </Box>
-
-                              {/* Right: Badges */}
+                        (showAllTechnicians ? allTechnicians : technicians).map(
+                          (tech) => (
+                            <MenuItem key={tech.id} value={tech.id}>
                               <Box
                                 sx={{
                                   display: "flex",
-                                  gap: 0.5,
+                                  justifyContent: "space-between",
+                                  width: "100%",
                                   alignItems: "center",
+                                  gap: 1,
                                 }}
                               >
-                                {/* ✅ Technician Type Badge */}
-                                <Chip
-                                  icon={
-                                    tech.isExternal ? (
-                                      <BusinessIcon />
-                                    ) : (
-                                      <PersonIcon />
-                                    )
-                                  }
-                                  label={
-                                    tech.isExternal ? "External" : "In-House"
-                                  }
-                                  size="small"
-                                  color={
-                                    tech.isExternal ? "warning" : "primary"
-                                  }
-                                  variant="outlined"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: "0.7rem",
-                                    "& .MuiChip-icon": { fontSize: 14 },
-                                  }}
-                                />
+                                {/* Left: Name and Region */}
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="body2" fontWeight={500}>
+                                    {tech.name}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {tech.region?.name || "N/A"}
+                                    {/* 🆕 Show region prominently when showing all technicians */}
+                                    {showAllTechnicians &&
+                                      tech.regionId !== watchRegionId && (
+                                        <Chip
+                                          label="Different Region"
+                                          size="small"
+                                          color="warning"
+                                          sx={{
+                                            ml: 1,
+                                            height: 16,
+                                            fontSize: "0.65rem",
+                                          }}
+                                        />
+                                      )}
+                                  </Typography>
+                                </Box>
 
-                                {/* Pending Tasks Badge */}
-                                <Chip
-                                  label={`${tech.pendingTasks} pending`}
-                                  size="small"
-                                  color={
-                                    tech.pendingTasks === 0
-                                      ? "success"
-                                      : tech.pendingTasks <= 2
-                                      ? "warning"
-                                      : "error"
-                                  }
-                                  sx={{ height: 20, fontSize: "0.7rem" }}
-                                />
+                                {/* Right: Badges */}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 0.5,
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  {/* Technician Type Badge */}
+                                  <Chip
+                                    icon={
+                                      tech.isExternal ? (
+                                        <BusinessIcon />
+                                      ) : (
+                                        <PersonIcon />
+                                      )
+                                    }
+                                    label={
+                                      tech.isExternal ? "External" : "In-House"
+                                    }
+                                    size="small"
+                                    color={
+                                      tech.isExternal ? "warning" : "primary"
+                                    }
+                                    variant="outlined"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: "0.7rem",
+                                      "& .MuiChip-icon": { fontSize: 14 },
+                                    }}
+                                  />
+
+                                  {/* Pending Tasks Badge */}
+                                  <Chip
+                                    label={`${tech.pendingTasks} pending`}
+                                    size="small"
+                                    color={
+                                      tech.pendingTasks === 0
+                                        ? "success"
+                                        : tech.pendingTasks <= 2
+                                        ? "warning"
+                                        : "error"
+                                    }
+                                    sx={{ height: 20, fontSize: "0.7rem" }}
+                                  />
+                                </Box>
                               </Box>
-                            </Box>
-                          </MenuItem>
-                        ))
+                            </MenuItem>
+                          )
+                        )
                       )}
                     </TextField>
                   )}
@@ -1022,6 +1138,14 @@ const CreateServiceRequest: React.FC = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* 🆕 NEW: Quick Add Technician Dialog */}
+      <QuickAddTechnicianDialog
+        open={technicianDialog}
+        onClose={() => setTechnicianDialog(false)}
+        onTechnicianCreated={handleTechnicianCreated}
+        preSelectedRegionId={watchRegionId}
+      />
 
       {/* Quick Add Customer Dialog */}
       <QuickAddCustomerDialog

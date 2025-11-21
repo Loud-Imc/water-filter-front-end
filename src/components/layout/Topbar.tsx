@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -12,15 +12,15 @@ import {
   ListItemIcon,
   useTheme,
   useMediaQuery,
-} from '@mui/material';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { logout } from '../../app/slices/authSlice';
-import NotificationBadge from '../common/NotificationBadge';
-import logoMobile from '../../assets/images/Leewa_logo_mobile.png'
+} from "@mui/material";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { logout } from "../../app/slices/authSlice";
+import NotificationBadge from "../common/NotificationBadge";
+import logoMobile from "../../assets/images/Leewa_logo_mobile.png";
+import ChangePasswordDialog from "../common/ChangePasswordDialog";
 
 const DRAWER_WIDTH = 260;
 
@@ -29,8 +29,9 @@ const Topbar: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -40,22 +41,22 @@ const Topbar: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleProfile = () => {
-    navigate('/profile');
-    handleClose();
-  };
+  // const handleProfile = () => {
+  //   navigate("/profile");
+  //   handleClose();
+  // };
 
   const handleLogout = async () => {
     await dispatch(logout());
-    navigate('/login');
+    navigate("/login");
     handleClose();
   };
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -64,10 +65,10 @@ const Topbar: React.FC = () => {
     <AppBar
       position="fixed"
       sx={{
-        width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
+        width: isMobile ? "100%" : `calc(100% - ${DRAWER_WIDTH}px)`,
         ml: isMobile ? 0 : `${DRAWER_WIDTH}px`,
-        backgroundColor: 'background.paper',
-        color: 'text.primary',
+        backgroundColor: "background.paper",
+        color: "text.primary",
         boxShadow: 1,
         zIndex: (theme) => theme.zIndex.drawer - 1,
       }}
@@ -75,7 +76,7 @@ const Topbar: React.FC = () => {
       <Toolbar>
         {/* ✅ Logo on Mobile (Left side) */}
         {isMobile && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
             <img
               src={logoMobile}
               alt="Water Filter Logo"
@@ -85,8 +86,8 @@ const Topbar: React.FC = () => {
         )}
 
         {/* User Info */}
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             flexGrow: 1,
             ml: isMobile ? 0 : 0, // Remove extra margin since logo is there
           }}
@@ -96,8 +97,8 @@ const Topbar: React.FC = () => {
               Welcome back,
             </Typography>
           )}
-          <Typography 
-            variant={isMobile ? 'body1' : 'h6'} 
+          <Typography
+            variant={isMobile ? "body1" : "h6"}
             fontWeight={500}
             noWrap
           >
@@ -106,15 +107,23 @@ const Topbar: React.FC = () => {
         </Box>
 
         {/* Right side: Notifications & User Menu */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? 0.5 : 1,
+          }}
+        >
           <NotificationBadge />
 
-          <IconButton onClick={handleMenu} size={isMobile ? 'small' : 'large'}>
-            <Avatar sx={{ 
-              width: isMobile ? 32 : 36, 
-              height: isMobile ? 32 : 36, 
-              bgcolor: 'primary.main' 
-            }}>
+          <IconButton onClick={handleMenu} size={isMobile ? "small" : "large"}>
+            <Avatar
+              sx={{
+                width: isMobile ? 32 : 36,
+                height: isMobile ? 32 : 36,
+                bgcolor: "primary.main",
+              }}
+            >
               {user ? getInitials(user.name) : <AccountCircle />}
             </Avatar>
           </IconButton>
@@ -123,8 +132,8 @@ const Topbar: React.FC = () => {
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            transformOrigin={{ horizontal: "right", vertical: "top" }}
+            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
             PaperProps={{
               sx: { width: 220, mt: 1 },
             }}
@@ -138,17 +147,13 @@ const Topbar: React.FC = () => {
               </Typography>
             </Box>
             <Divider />
-            <MenuItem onClick={handleProfile}>
-              <ListItemIcon>
-                <AccountCircle fontSize="small" />
-              </ListItemIcon>
-              Profile
-            </MenuItem>
-            <MenuItem onClick={handleClose}>
-              <ListItemIcon>
-                <SettingsIcon fontSize="small" />
-              </ListItemIcon>
-              Settings
+            <MenuItem
+              onClick={() => {
+                setOpenPasswordDialog(true);
+                handleClose();
+              }}
+            >
+              Change Password
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleLogout}>
@@ -159,7 +164,12 @@ const Topbar: React.FC = () => {
             </MenuItem>
           </Menu>
         </Box>
-      </Toolbar>
+      </Toolbar> 
+  <ChangePasswordDialog
+    open={openPasswordDialog}
+    onClose={() => setOpenPasswordDialog(false)}
+    userId={user?.id} // pass current user id
+  />
     </AppBar>
   );
 };

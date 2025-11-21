@@ -59,7 +59,7 @@ export interface Customer {
   address: string;
   primaryPhone: string; // ✅ Changed from 'contact'
   phoneNumbers: string[]; // ✅ New: Additional phones
-  email?: string;
+  email?: string | null;
   regionId: string;
   region?: Region;
   latitude?: number; // ✅ New: For Google Maps
@@ -74,7 +74,7 @@ export interface CreateCustomerDto {
   address: string;
   primaryPhone: string;
   phoneNumbers?: string[];
-  email?: string;
+  email?: string | null| undefined;
   regionId: string;
   latitude?: number;
   longitude?: number;
@@ -98,10 +98,23 @@ export type RequestStatus =
   | "IN_PROGRESS"
   | "WORK_COMPLETED"
   | "COMPLETED"
-  | "REJECTED";
+  | "REJECTED"
+  | "RE_ASSIGNED";
 
 // ✅ ADD: Priority enum
 export type ServicePriority = "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
+
+export interface ReassignmentHistory {
+  id: string;
+  requestId: string;
+  reassignedBy: string;
+  previousTechId?: string;
+  newTechId: string;
+  reason: string;
+  createdAt: string;
+  // Add more fields if your backend returns them...
+}
+
 
 // ✅ UPDATE: ServiceRequest interface
 export interface ServiceRequest {
@@ -109,8 +122,10 @@ export interface ServiceRequest {
   type: RequestType;
   description: string;
   acknowledgmentComments?: string;
+  acknowledgedAt?: string;
   status: RequestStatus;
   priority: ServicePriority; // ✅ NEW
+  reassignmentHistory?: ReassignmentHistory[];
   requestedById: string;
   approvedById?: string;
   assignedToId?: string;
@@ -129,7 +144,9 @@ export interface ServiceRequest {
   approvalHistory: ApprovalHistory[];
   workLogs?: WorkLog[];
   workMedia?: WorkMedia[];
+  acknowledgedBy?:User;
   installation?: Installation;
+  postWorkReassignCount?: number;
 }
 
 // ✅ ADD: Technician with workload interface
@@ -140,6 +157,7 @@ export interface TechnicianWithWorkload {
   region: {
     name: string;
   } | null;
+  regionId: string;
   pendingTasks: number;
   isExternal?: boolean;
 }
@@ -162,6 +180,7 @@ export interface WorkLog {
   startTime?: string;
   endTime?: string;
   duration?: number;
+  notes?: string;
 }
 
 export interface WorkMedia {
@@ -318,16 +337,72 @@ export interface ProductUsage {
   totalProductsUsed: number;
 }
 
+// ✅ NEW: Quality Metrics
+export interface QualityMetrics {
+  firstTimeFixRate: string;
+  reworkRate: string;
+  totalReassignments: number;
+  avgReassignmentsPerRequest: string;
+  workMediaUploadCompliance: string;
+}
+
+// ✅ NEW: Reassignment Analysis
+export interface ReassignmentAnalysis {
+  totalReassignments: number;
+  preWorkReassignments: number;
+  postWorkReassignments: number;
+  topReassignmentReasons: Array<{
+    reason: string;
+    count: number;
+    percentage: string;
+  }>;
+}
+
+// ✅ NEW: Operational Efficiency
+export interface OperationalEfficiency {
+  backlogCount: number;
+  agingRequests: Array<{
+    ageRange: string;
+    count: number;
+  }>;
+}
+
+export interface SparePartUsageSummary {
+  sparePartId: string;
+  name: string;
+  sku: string;
+  currentStock: number;
+  totalQuantityUsed: number;
+  timesUsed: number;
+  estimatedValue: number;
+}
+export interface SparePartUsage {
+  mostUsedSpareParts: SparePartUsageSummary[];
+  totalSparePartsUsed: number;
+  totalSparePartsValue: string;
+}
+
+export interface AssemblyUsage {
+  totalAssemblies: number;
+  totalAssemblyCost: string;
+  mostAssembledProducts: Record<string, number>;
+  usedPartsCount: number;
+}
 export interface ComprehensiveReport {
   period: {
     startDate: Date;
     endDate: Date;
   };
-  serviceRequests: ServiceRequestsReport;
+    serviceRequests: ServiceRequestsReport;
   technicianPerformance: TechnicianPerformance[];
   regionalBreakdown: RegionalBreakdown[];
   customerActivity: CustomerActivity;
   productUsage: ProductUsage;
+  qualityMetrics?: QualityMetrics;              // ✅ NEW
+  reassignmentAnalysis?: ReassignmentAnalysis;  // ✅ NEW
+  operationalMetrics?: OperationalEfficiency;   // ✅ NEW
+  sparePartUsage?: SparePartUsage;
+  assemblyUsage?: AssemblyUsage;
   generatedAt: Date;
 }
 

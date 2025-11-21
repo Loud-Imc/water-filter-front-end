@@ -11,6 +11,7 @@ interface DashboardStats {
   workCompleted: number;
   completed: number;
   rejected: number;
+  reAssigned: number;
   byType: Array<{ type: string; count: number }>;
   recentRequests: any[];
   myTasks: {
