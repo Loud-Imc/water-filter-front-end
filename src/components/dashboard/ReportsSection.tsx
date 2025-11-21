@@ -10,23 +10,38 @@ import {
   Divider,
   Alert,
   CircularProgress,
+  Tabs,
+  Tab,
+  Chip,
 } from "@mui/material";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-// import DownloadIcon from '@mui/icons-material/Download';
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import TableViewIcon from "@mui/icons-material/TableView";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import GroupIcon from "@mui/icons-material/Group";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import WarningIcon from "@mui/icons-material/Warning";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchComprehensiveReport } from "../../app/slices/dashboardSlice";
 import {
   exportReportToPDF,
   exportReportToExcel,
 } from "../../utils/reportExport";
+
 import ServiceRequestsChart from "./ServiceRequestsChart";
 import TechnicianPerformanceTable from "./TechnicianPerformanceTable";
 import RegionalBreakdownTable from "./RegionalBreakdownTable";
 import CustomerInsightsCard from "./CustomerInsightsCard";
 import ProductUsageCard from "./ProductUsageCard";
+
+import QualityMetricsCard from "./QualityMetricsCard";
+import ReassignmentAnalysisCard from "./ReassignmentAnalysisCard";
+import OperationalEfficiencyCard from "./OperationalEfficiencyCard";
+import SparePartUsageCard from "./SparePartUsageCard";
+import AssemblyUsageCard from "./AssemblyUsageCard";
 
 const ReportsSection: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -41,28 +56,30 @@ const ReportsSection: React.FC = () => {
     firstDayOfMonth.toISOString().split("T")[0]
   );
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [activeTab, setActiveTab] = useState(0);
 
   const handleGenerateReport = () => {
-    dispatch(
-      fetchComprehensiveReport({
-        startDate,
-        endDate,
-      })
-    );
+    dispatch(fetchComprehensiveReport({ startDate, endDate }));
   };
 
-  // ✅ FIXED: PDF Export
   const handleExportPDF = () => {
-    if (report) {
-      exportReportToPDF(report);
-    }
+    if (report) exportReportToPDF(report);
   };
 
-  // ✅ FIXED: Excel Export
   const handleExportExcel = () => {
-    if (report) {
-      exportReportToExcel(report);
-    }
+    if (report) exportReportToExcel(report);
+  };
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
+  const setDateRange = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
   };
 
   return (
@@ -78,15 +95,16 @@ const ReportsSection: React.FC = () => {
                 Reports & Analytics
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Generate comprehensive business insights
+                Generate comprehensive business insights and performance metrics
               </Typography>
             </Box>
           </Box>
 
           <Divider sx={{ mb: 3 }} />
 
+          {/* Date Range Fields */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid sx={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -102,7 +120,7 @@ const ReportsSection: React.FC = () => {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid sx={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -118,7 +136,7 @@ const ReportsSection: React.FC = () => {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid sx={{ xs: 12, md: 3 }}>
               <Button
                 fullWidth
                 variant="contained"
@@ -136,6 +154,26 @@ const ReportsSection: React.FC = () => {
                 {reportLoading ? "Generating..." : "Generate Report"}
               </Button>
             </Grid>
+
+            <Grid sx={{ xs: 12, md: 3 }}>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Chip
+                  label="Last 7 Days"
+                  onClick={() => setDateRange(7)}
+                  clickable
+                />
+                <Chip
+                  label="Last 30 Days"
+                  onClick={() => setDateRange(30)}
+                  clickable
+                />
+                <Chip
+                  label="Last 90 Days"
+                  onClick={() => setDateRange(90)}
+                  clickable
+                />
+              </Box>
+            </Grid>
           </Grid>
 
           {error && (
@@ -146,79 +184,181 @@ const ReportsSection: React.FC = () => {
 
           {report && (
             <Box>
-              <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-                {/* ✅ Updated PDF Button */}
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<PictureAsPdfIcon />}
-                  onClick={handleExportPDF}
-                >
-                  Export PDF
-                </Button>
-
-                {/* ✅ Updated Excel Button */}
-                <Button
-                  variant="outlined"
-                  color="success"
-                  startIcon={<TableViewIcon />}
-                  onClick={handleExportExcel}
-                >
-                  Export Excel
-                </Button>
-              </Box>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mb: 3, display: "block" }}
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  mb: 3,
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
               >
-                Report Period:{" "}
-                {new Date(report.period.startDate).toLocaleDateString()} -{" "}
-                {new Date(report.period.endDate).toLocaleDateString()}
-              </Typography>
-
-              {/* Service Requests Overview */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Service Requests Overview
+                <Typography variant="caption" color="text.secondary">
+                  Report Period:{" "}
+                  {new Date(report.period.startDate).toLocaleDateString()} -{" "}
+                  {new Date(report.period.endDate).toLocaleDateString()}
                 </Typography>
-                <ServiceRequestsChart data={report.serviceRequests} />
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<PictureAsPdfIcon />}
+                    onClick={handleExportPDF}
+                  >
+                    Export PDF
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    startIcon={<TableViewIcon />}
+                    onClick={handleExportExcel}
+                  >
+                    Export Excel
+                  </Button>
+                </Box>
               </Box>
 
-              {/* Technician Performance */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Technician Performance
-                </Typography>
-                <TechnicianPerformanceTable
-                  data={report.technicianPerformance}
+              <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
+                <Tab
+                  icon={<TrendingUpIcon />}
+                  label="Overview"
+                  iconPosition="start"
                 />
-              </Box>
+                <Tab
+                  icon={<GroupIcon />}
+                  label="Technicians"
+                  iconPosition="start"
+                />
+                <Tab
+                  icon={<LocationOnIcon />}
+                  label="Regions"
+                  iconPosition="start"
+                />
+                <Tab
+                  icon={<ShoppingCartIcon />}
+                  label="Products"
+                  iconPosition="start"
+                />
+                <Tab
+                  icon={<WarningIcon />}
+                  label="Quality"
+                  iconPosition="start"
+                />
+                <Tab
+                  icon={<AttachMoneyIcon />}
+                  label="Financial"
+                  iconPosition="start"
+                />
+              </Tabs>
 
-              {/* Regional Breakdown */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Regional Breakdown
-                </Typography>
-                <RegionalBreakdownTable data={report.regionalBreakdown} />
-              </Box>
+              {activeTab === 0 && (
+                <Box>
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Service Requests Overview
+                    </Typography>
+                    <ServiceRequestsChart data={report.serviceRequests} />
+                  </Box>
 
-              {/* Customer & Product Insights */}
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <CustomerInsightsCard data={report.customerActivity} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <ProductUsageCard data={report.productUsage} />
-                </Grid>
-              </Grid>
+                  {report.operationalMetrics && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" fontWeight={600} gutterBottom>
+                        Operational Efficiency
+                      </Typography>
+                      <OperationalEfficiencyCard
+                        data={report.operationalMetrics}
+                      />
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {activeTab === 1 && (
+                <Box>
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Technician Performance
+                    </Typography>
+                    <TechnicianPerformanceTable
+                      data={report.technicianPerformance}
+                    />
+                  </Box>
+                </Box>
+              )}
+
+              {activeTab === 2 && (
+                <Box>
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      Regional Breakdown
+                    </Typography>
+                    <RegionalBreakdownTable data={report.regionalBreakdown} />
+                  </Box>
+                </Box>
+              )}
+
+              {activeTab === 3 && (
+                <Box>
+                  <Grid  spacing={3}>
+                    <Grid sx={{xs: 12, md: 4}}>
+                      <CustomerInsightsCard data={report.customerActivity} />
+                    </Grid>
+                    <Grid sx={{xs: 12, md: 4}}>
+                      <ProductUsageCard data={report.productUsage} />
+                    </Grid>
+                    {report.sparePartUsage && (
+                      <Grid sx={{xs: 12, md: 4}}>
+                        <SparePartUsageCard data={report.sparePartUsage} />
+                      </Grid>
+                    )}
+                    {report.assemblyUsage && (
+                      <Grid sx={{xs: 12, md: 4}}>
+                        <AssemblyUsageCard data={report.assemblyUsage} />
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+              )}
+
+              {activeTab === 4 && (
+                <Box>
+                  {report.qualityMetrics && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" fontWeight={600} gutterBottom>
+                        Quality & Performance Metrics
+                      </Typography>
+                      <QualityMetricsCard data={report.qualityMetrics} />
+                    </Box>
+                  )}
+
+                  {report.reassignmentAnalysis && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" fontWeight={600} gutterBottom>
+                        Reassignment Analysis
+                      </Typography>
+                      <ReassignmentAnalysisCard
+                        data={report.reassignmentAnalysis}
+                      />
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {activeTab === 5 && (
+                <Box>
+                  <Alert severity="info" icon={<AttachMoneyIcon />}>
+                    Financial analytics coming soon. Track revenue, costs, and
+                    profitability.
+                  </Alert>
+                </Box>
+              )}
             </Box>
           )}
 
           {!report && !reportLoading && (
-            <Alert severity="info">
-              Select a date range and click "Generate Report" to view analytics
+            <Alert severity="info" icon={<AssessmentIcon />}>
+              Select a date range and click "Generate Report" to view
+              comprehensive analytics
             </Alert>
           )}
         </CardContent>

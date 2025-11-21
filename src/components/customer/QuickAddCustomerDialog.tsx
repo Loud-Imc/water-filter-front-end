@@ -46,7 +46,7 @@ const QuickAddCustomerDialog: React.FC<QuickAddCustomerDialogProps> = ({
     address: '',
     primaryPhone: '',
     phoneNumbers: [],
-    email: '',
+    email: null,
     regionId: preSelectedRegionId || '',
   });
 

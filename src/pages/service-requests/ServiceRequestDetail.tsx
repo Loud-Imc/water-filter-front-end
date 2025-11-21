@@ -33,6 +33,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import StopIcon from "@mui/icons-material/Stop";
 import UploadIcon from "@mui/icons-material/Upload";
 import TimerIcon from "@mui/icons-material/Timer";
@@ -118,7 +119,6 @@ const ServiceRequestDetail: React.FC = () => {
   const [assignDialog, setAssignDialog] = useState(false);
   const [comments, setComments] = useState("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState("");
-  const [reassignDialog, setReassignDialog] = useState(false);
   const [usedProductsDialog, setUsedProductsDialog] = useState(false);
   const [usedProducts, setUsedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -128,6 +128,8 @@ const ServiceRequestDetail: React.FC = () => {
   const [customerHistory, setCustomerHistory] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [technicianStock, setTechnicianStock] = useState<TechnicianStock[]>([]);
+  const [reassignDialog, setReassignDialog] = useState(false);
+  const [reassignForReworkDialog, setReassignForReworkDialog] = useState(false);
 
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
@@ -149,6 +151,33 @@ const ServiceRequestDetail: React.FC = () => {
       setLoadingHistory(false);
     }
   };
+
+  // For pre-work reassignment
+  const handleReassign = async (techId: string, reason: string) => {
+    await dispatch(
+      reassignTechnician({
+        id: request.id,
+        newTechnicianId: techId,
+        reason,
+      })
+    ).unwrap();
+    dispatch(fetchRequestById(request.id));
+    setReassignDialog(false);
+  };
+
+  // For rework reassignment
+  const handleReassignForRework = async (techId: string, reason: string) => {
+    await dispatch(
+      reassignTechnician({
+        id: request.id,
+        newTechnicianId: techId,
+        reason,
+      })
+    ).unwrap();
+    dispatch(fetchRequestById(request.id));
+    setReassignForReworkDialog(false);
+  };
+
 
   // ✅ NEW: Close modal
   const handleCloseHistoryModal = () => {
@@ -525,38 +554,38 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
-  const handleReassignTechnician = async (
-    newTechnicianId: string,
-    reason: string
-  ) => {
-    if (!request.id) return;
+  // const handleReassignTechnician = async (
+  //   newTechnicianId: string,
+  //   reason: string
+  // ) => {
+  //   if (!request.id) return;
 
-    try {
-      await dispatch(
-        reassignTechnician({
-          id: request.id,
-          newTechnicianId,
-          reason,
-        })
-      ).unwrap();
+  //   try {
+  //     await dispatch(
+  //       reassignTechnician({
+  //         id: request.id,
+  //         newTechnicianId,
+  //         reason,
+  //       })
+  //     ).unwrap();
 
-      setSnackbar({
-        open: true,
-        message:
-          "Technician reassigned successfully! Old technician has been notified.",
-        severity: "success",
-      });
+  //     setSnackbar({
+  //       open: true,
+  //       message:
+  //         "Technician reassigned successfully! Old technician has been notified.",
+  //       severity: "success",
+  //     });
 
-      // Fetch updated request
-      dispatch(fetchRequestById(request.id));
-    } catch (error: any) {
-      setSnackbar({
-        open: true,
-        message: error || "Failed to reassign technician",
-        severity: "error",
-      });
-    }
-  };
+  //     // Fetch updated request
+  //     dispatch(fetchRequestById(request.id));
+  //   } catch (error: any) {
+  //     setSnackbar({
+  //       open: true,
+  //       message: error || "Failed to reassign technician",
+  //       severity: "error",
+  //     });
+  //   }
+  // };
 
   const availableTechnicians = users.filter(
     (u) =>
@@ -574,7 +603,6 @@ const ServiceRequestDetail: React.FC = () => {
           { label: "Details" },
         ]}
       />
-
       <Grid container spacing={3}>
         {/* ✅ SERVICE LOCATION DETAILS - VISIBLE TO ALL USERS */}
         <Grid size={12}>
@@ -898,7 +926,11 @@ const ServiceRequestDetail: React.FC = () => {
                   Request Information
                 </Typography>
                 {request.type !== "ENQUIRY" && (
-                  <StatusChip status={request.status} size="medium" />
+                  <StatusChip
+                    postWorkReassignCount={request.postWorkReassignCount ?? 0} // pass zero if undefined
+                    status={request.status}
+                    size="medium"
+                  />
                 )}
               </Box>
 
@@ -917,6 +949,31 @@ const ServiceRequestDetail: React.FC = () => {
                     Type
                   </Typography>
                   <Chip label={request.type} color="primary" size="small" />
+                </Grid>
+
+                {/* 🆕 NEW: Priority Status */}
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Priority
+                  </Typography>
+                  <Chip
+                    label={request.priority}
+                    color={
+                      request.priority === "HIGH"
+                        ? "error"
+                        : request.priority === "MEDIUM"
+                        ? "warning"
+                        : request.priority === "NORMAL"
+                        ? "info"
+                        : "default"
+                    }
+                    icon={
+                      request.priority === "HIGH" ? (
+                        <PriorityHighIcon />
+                      ) : undefined
+                    }
+                    size="small"
+                  />
                 </Grid>
 
                 <Grid size={12}>
@@ -1112,11 +1169,13 @@ const ServiceRequestDetail: React.FC = () => {
                   </Typography>
                 </Grid>
 
-                <Grid size={12}>
+                {/* Divider */}
+                <Grid size={{ xs: 12}}>
                   <Divider sx={{ my: 1 }} />
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* Description */}
+                <Grid size={{ xs: 12}}>
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -1127,7 +1186,37 @@ const ServiceRequestDetail: React.FC = () => {
                   <Typography variant="body1">{request.description}</Typography>
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* Reassignment Reasons */}
+                {request.reassignmentHistory &&
+                  request.reassignmentHistory.length > 0 && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        Reassignment Reason
+                        {request.reassignmentHistory.length > 1 ? "s" : ""}
+                      </Typography>
+                      {request.reassignmentHistory.map((history) => (
+                        <Typography
+                          key={history.id}
+                          variant="body1"
+                          sx={{
+                            fontWeight: "bold",
+                            color: "warning.dark", // Highlight with a warning color
+                            mb: 1,
+                            whiteSpace: "pre-line", // Preserves line breaks if any
+                          }}
+                        >
+                          {history.reason}
+                        </Typography>
+                      ))}
+                    </Grid>
+                  )}
+
+                {/* Category */}
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -1141,8 +1230,9 @@ const ServiceRequestDetail: React.FC = () => {
                   </Typography>
                 </Grid>
 
+                {/* Approval Remarks */}
                 {request.approvalHistory.length > 0 && (
-                  <Grid size={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -1169,7 +1259,7 @@ const ServiceRequestDetail: React.FC = () => {
                   </Typography>
                 </Grid>
 
-                <Grid  size={12}>
+                <Grid size={12}>
                   {/* Used Products & Spare Parts Summary */}
                   {usedProducts.length > 0 && (
                     <Box sx={{ mt: 3 }}>
@@ -1311,7 +1401,32 @@ const ServiceRequestDetail: React.FC = () => {
                     </Button>
                   )}
 
+                  {/* {(request.status === "WORK_COMPLETED" ||
+                      request.status === "COMPLETED") && (
+                      <Button
+                        variant="contained"
+                        startIcon={<SwapHorizIcon />}
+                        onClick={() => setReassignForReworkDialog(true)}
+                      >
+                        Reassign for Rework
+                      </Button>
+                    )} */}
+
                   {/* Change Technician Button - Only if ASSIGNED and already has technician */}
+                  {/* {userCanAssign &&
+                    request.status === "ASSIGNED" &&
+                    request.assignedTo && (
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        startIcon={<SwapHorizIcon />}
+                        onClick={() => setReassignDialog(true)}
+                      >
+                        Change Technician
+                      </Button>
+                    )} */}
+
+                  {/* Change Technician - Only when ASSIGNED (before work starts) */}
                   {userCanAssign &&
                     request.status === "ASSIGNED" &&
                     request.assignedTo && (
@@ -1324,15 +1439,170 @@ const ServiceRequestDetail: React.FC = () => {
                         Change Technician
                       </Button>
                     )}
+
+                  {/* Reassign for Rework - Only when WORK_COMPLETED or COMPLETED */}
+                  {userCanAssign &&
+                    (request.status === "WORK_COMPLETED" ||
+                      request.status === "COMPLETED") && (
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        startIcon={<SwapHorizIcon />}
+                        onClick={() => setReassignForReworkDialog(true)}
+                      >
+                        Reassign for Rework
+                      </Button>
+                    )}
                 </Box>
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Approval History */}
+        {/* Approval History and all comments and remarks */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card>
+            <CardContent>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Comments & Remarks
+              </Typography>
+
+              {/* Acknowledgment Comments */}
+              {request.acknowledgmentComments && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    color="success.main"
+                    gutterBottom
+                  >
+                    ✅ Acknowledgment Comments
+                  </Typography>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: "success.lighter",
+                      borderRadius: 1,
+                      border: 1,
+                      borderColor: "success.light",
+                    }}
+                  >
+                    <Typography variant="body2">
+                      {request.acknowledgmentComments}
+                    </Typography>
+                    {request.acknowledgedBy && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mt: 1 }}
+                      >
+                        By: {request.acknowledgedBy.name} •{" "}
+                        {request.acknowledgedAt
+                          ? formatDate(request.acknowledgedAt)
+                          : "N/A"}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Work Notes from WorkLogs */}
+              {request.workLogs?.some((log) => log.notes) && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    color="info.main"
+                    gutterBottom
+                  >
+                    📝 Technician Work Notes
+                  </Typography>
+                  {request.workLogs
+                    .filter((log) => log.notes)
+                    .map((log, index) => (
+                      <Box
+                        key={log.id}
+                        sx={{
+                          p: 1.5,
+                          bgcolor: "info.lighter",
+                          borderRadius: 1,
+                          border: 1,
+                          borderColor: "info.light",
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          fontWeight={600}
+                          display="block"
+                        >
+                          Session #{index + 1}
+                        </Typography>
+                        <Typography variant="body2">{log.notes}</Typography>
+                      </Box>
+                    ))}
+                </Box>
+              )}
+
+              {/* Approval History Comments */}
+              {request.approvalHistory?.some(
+                (approval) => approval.comments
+              ) && (
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={600}
+                    color="warning.main"
+                    gutterBottom
+                  >
+                    💬 Approval Remarks
+                  </Typography>
+                  {request.approvalHistory
+                    .filter((approval) => approval.comments)
+                    .map((approval) => (
+                      <Box
+                        key={approval.id}
+                        sx={{
+                          p: 1.5,
+                          bgcolor: "warning.lighter",
+                          borderRadius: 1,
+                          border: 1,
+                          borderColor: "warning.light",
+                          mb: 1,
+                        }}
+                      >
+                        <Typography variant="body2">
+                          {approval.comments}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mt: 0.5 }}
+                        >
+                          By: {approval.approver?.name} •{" "}
+                          {approval.approverRole}
+                        </Typography>
+                      </Box>
+                    ))}
+                </Box>
+              )}
+
+              {/* No comments state */}
+              {!request.acknowledgmentComments &&
+                !request.workLogs?.some((log) => log.notes) &&
+                !request.approvalHistory?.some(
+                  (approval) => approval.comments
+                ) && (
+                  <Typography variant="body2" color="text.secondary">
+                    No comments or remarks available
+                  </Typography>
+                )}
+            </CardContent>
+          </Card>
+
+          {/* <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
                 Approval History
@@ -1384,10 +1654,136 @@ const ServiceRequestDetail: React.FC = () => {
                 </Typography>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </Grid>
-      </Grid>
+        {/* 🆕 NEW: Work Logs - Show technician work details */}
+        {request.workLogs && request.workLogs.length > 0 && (
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Work Logs
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  Detailed timeline of technician work sessions
+                </Typography>
 
+                <List>
+                  {request.workLogs.map((log, index) => (
+                    <React.Fragment key={log.id}>
+                      <ListItem
+                        alignItems="flex-start"
+                        sx={{
+                          bgcolor: "background.default",
+                          borderRadius: 1,
+                          mb: 1,
+                          border: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: "primary.main" }}>
+                            <TimerIcon />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: 1,
+                              }}
+                            >
+                              <Typography variant="subtitle2" fontWeight={600}>
+                                Session #{index + 1}
+                              </Typography>
+                              <Chip
+                                label={`${log.duration} seconds`}
+                                size="small"
+                                color="primary"
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            <Box sx={{ mt: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                ⏰ <strong>Started:</strong>{" "}
+                                {log?.startTime ? formatDate(log.startTime) : "N/A"}
+
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                🏁 <strong>Ended:</strong>{" "}
+                                {log.endTime
+                                  ? formatDate(log.endTime)
+                                  : "In Progress"}
+                              </Typography>
+                              {log.notes && (
+                                <Box
+                                  sx={{
+                                    mt: 1,
+                                    p: 1,
+                                    bgcolor: "grey.100",
+                                    borderRadius: 1,
+                                  }}
+                                >
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    <strong>Notes:</strong> {log.notes}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+
+                {/* Summary Box */}
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: "primary.light",
+                    borderRadius: 1,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Total Work Duration:
+                  </Typography>
+                  <Chip
+                    label={`${request.workLogs.reduce(
+                      (total, log) => total + (log.duration || 0),
+                      0
+                    )} seconds`}
+                    color="primary"
+                    size="medium"
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
       <Dialog
         fullScreen
         open={historyModalOpen}
@@ -1602,7 +1998,6 @@ const ServiceRequestDetail: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
-
       {/* Approve Dialog */}
       <Dialog
         open={approveDialog}
@@ -1629,7 +2024,6 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Reject Dialog */}
       <Dialog
         open={rejectDialog}
@@ -1662,7 +2056,6 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Assign Technician Dialog */}
       <Dialog
         open={assignDialog}
@@ -1727,7 +2120,6 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Upload Images Dialog */}
       {/* ✅ ENHANCED: Image Upload Dialog with Camera & Preview */}
       <Dialog
@@ -1875,7 +2267,6 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Acknowledge Completion Dialog */}
       <Dialog
         open={acknowledgeDialog}
@@ -1910,24 +2301,21 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* ✅ FIXED: ReassignTechnicianDialog with correct props */}
-      <ReassignTechnicianDialog
+      {/* <ReassignTechnicianDialog
         open={reassignDialog}
         currentTechnician={request.assignedTo || null}
         availableTechnicians={availableTechnicians}
         onClose={() => setReassignDialog(false)}
         onReassign={handleReassignTechnician}
         loading={loading}
-      />
-
+      /> */}
       <SnackbarNotification
         open={snackbar.open}
         message={snackbar.message}
         severity={snackbar.severity}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       />
-
       <AddUsedProductsDialog
         open={usedProductsDialog}
         onClose={() => setUsedProductsDialog(false)}
@@ -1936,6 +2324,28 @@ const ServiceRequestDetail: React.FC = () => {
         allSpareParts={allSpareParts}
         technicianStock={technicianStock}
         loading={loading}
+      />
+      {/* // Reassign dialog */}
+      <ReassignTechnicianDialog
+        open={reassignDialog}
+        currentTechnician={request.assignedTo}
+        availableTechnicians={availableTechnicians}
+        onClose={() => setReassignDialog(false)}
+        onReassign={handleReassign}
+        title="Change Technician"
+        reasonRequired={false}
+        allowCurrentTechnician={false}
+      />
+      <ReassignTechnicianDialog
+        open={reassignForReworkDialog}
+        currentTechnician={request.assignedTo}
+        availableTechnicians={availableTechnicians}
+        onClose={() => setReassignForReworkDialog(false)}
+        onReassign={handleReassignForRework}
+        title="Reassign for Rework"
+        subtitle="Customer says issue unresolved. Please select a technician."
+        reasonRequired={true}
+        allowCurrentTechnician={true}
       />
     </Box>
   );
