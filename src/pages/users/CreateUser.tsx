@@ -31,7 +31,7 @@ interface FormData {
   email: string;
   password: string;
   roleId: string;
-  regionId: string;
+  regionId?: string;
   phone: string;
   isExternal?: boolean; // ✅ Add this
 }
@@ -41,6 +41,7 @@ const CreateUser: React.FC = () => {
   const dispatch = useAppDispatch();
   const { assignableRoles } = useAppSelector((state) => state.users);
   const { user } = useAppSelector((state) => state.auth);
+  const [selectedRoleName, setSelectedRoleName] = useState('')
 
   const [regions, setRegions] = useState<Region[]>([]);
   const [snackbar, setSnackbar] = useState({
@@ -49,23 +50,24 @@ const CreateUser: React.FC = () => {
     severity: "success" as any,
   });
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(userSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      roleId: "",
-      regionId: "",
-      phone: "",
-      isExternal: false, // ✅ Default to in-house
-    },
-  });
+const {
+  control,
+  handleSubmit,
+  watch,
+  formState: { errors },
+} = useForm<FormData>({
+  resolver: yupResolver(userSchema),
+  context: { selectedRoleName }, // ⬅️ correct place
+  defaultValues: {
+    name: "",
+    email: "",
+    password: "",
+    roleId: "",
+    regionId: "",
+    phone: "",
+    isExternal: false,
+  },
+});
 
   // ✅ Watch the selected role
   const selectedRoleId = watch("roleId");
@@ -76,6 +78,12 @@ const CreateUser: React.FC = () => {
     (role) => role.id === selectedRoleId
   );
   const isTechnicianRole = selectedRole?.name === "Technician";
+
+useEffect(() => {
+  const foundRole = assignableRoles.find(role => role.id === selectedRoleId);
+  setSelectedRoleName(foundRole?.name || ""); // ⬅️ always update
+}, [selectedRoleId, assignableRoles]);
+
 
   useEffect(() => {
     dispatch(fetchAssignableRoles());
@@ -90,6 +98,7 @@ const CreateUser: React.FC = () => {
     };
     fetchRegions();
   }, [dispatch]);
+  
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -225,29 +234,31 @@ const CreateUser: React.FC = () => {
               </Grid>
 
               {/* Region */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="regionId"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      label="Region"
-                      error={!!errors.regionId}
-                      helperText={errors.regionId?.message}
-                    >
-                      <MenuItem value="">None</MenuItem>
-                      {regions.map((region) => (
-                        <MenuItem key={region.id} value={region.id}>
-                          {region.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Grid>
+              {isTechnicianRole && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Controller
+                    name="regionId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Region"
+                        error={!!errors.regionId}
+                        helperText={errors.regionId?.message}
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        {regions.map((region) => (
+                          <MenuItem key={region.id} value={region.id}>
+                            {region.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+              )}
 
               {/* ✅ Technician Type (Only show if role is Technician) */}
               <Grid size={12}>

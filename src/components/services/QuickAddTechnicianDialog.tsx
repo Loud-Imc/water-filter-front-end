@@ -17,7 +17,7 @@ import {
 import { Grid } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { userSchema } from "../../utils/validators";
+import { quickAddTehcnicianSchema } from "../../utils/validators";
 import { userService } from "../../api/services/userService";
 import { regionService } from "../../api/services/regionService";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -60,7 +60,7 @@ const QuickAddTechnicianDialog: React.FC<QuickAddTechnicianDialogProps> = ({
     setValue,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(userSchema),
+    resolver: yupResolver(quickAddTehcnicianSchema),
     defaultValues: {
       name: "",
       email: "",
