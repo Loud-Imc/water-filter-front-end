@@ -76,12 +76,12 @@ const ServiceHistoryTimeline: React.FC<ServiceHistoryTimelineProps> = ({
 
   const getStatusColor = (status: string) => {
     const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
-      COMPLETED: 'success',
+      // PENDING_APPROVAL: 'warning',
+      ASSIGNED: 'info',
+      RE_ASSIGNED: 'error',
       IN_PROGRESS: 'info',
-      PENDING_APPROVAL: 'warning',
-      REJECTED: 'error',
-      ASSIGNED: 'default',
       WORK_COMPLETED: 'success',
+      COMPLETED: 'success',
     };
     return statusColors[status] || 'default';
   };

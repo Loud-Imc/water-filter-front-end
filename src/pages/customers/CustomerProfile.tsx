@@ -457,11 +457,11 @@ const CustomerProfile: React.FC = () => {
                           >
                             Create Service
                           </Button>
-                          <Tooltip title="Edit installation">
+                          {/* <Tooltip title="Edit installation">
                             <IconButton size="small" color="primary">
                               <EditIcon fontSize="small" />
                             </IconButton>
-                          </Tooltip>
+                          </Tooltip> */}
                         </Box>
                       </ListItem>
                     </React.Fragment>

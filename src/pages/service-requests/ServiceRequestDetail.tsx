@@ -178,7 +178,6 @@ const ServiceRequestDetail: React.FC = () => {
     setReassignForReworkDialog(false);
   };
 
-
   // ✅ NEW: Close modal
   const handleCloseHistoryModal = () => {
     setHistoryModalOpen(false);
@@ -615,7 +614,12 @@ const ServiceRequestDetail: React.FC = () => {
               {/* ✅ Installation Information */}
               {request.installation ? (
                 <Box
-                  sx={{ p: 2, bgcolor: "info.light", borderRadius: 1, mb: 2 }}
+                  sx={{
+                    p: 2,
+                    bgcolor: "background.default",
+                    borderRadius: 1,
+                    mb: 2,
+                  }}
                 >
                   <Box
                     sx={{
@@ -760,7 +764,8 @@ const ServiceRequestDetail: React.FC = () => {
                       Work Progress
                     </Typography>
 
-                    {request.status === "ASSIGNED" && (
+                    {(request.status === "ASSIGNED" ||
+                      request.status === "RE_ASSIGNED") && (
                       <>
                         <Alert severity="info" sx={{ mb: 2 }}>
                           Click "Start Work" to begin this task. Timer will
@@ -1038,7 +1043,7 @@ const ServiceRequestDetail: React.FC = () => {
                 </Grid>
 
                 {/* ✅ NEW: Installation Information */}
-                {request.installation && (
+                {/* {request.installation && (
                   <>
                     <Grid size={12}>
                       <Divider sx={{ my: 1 }} />
@@ -1135,7 +1140,7 @@ const ServiceRequestDetail: React.FC = () => {
                       </Box>
                     </Grid>
                   </>
-                )}
+                )} */}
 
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="body2" color="text.secondary">
@@ -1170,12 +1175,12 @@ const ServiceRequestDetail: React.FC = () => {
                 </Grid>
 
                 {/* Divider */}
-                <Grid size={{ xs: 12}}>
+                <Grid size={{ xs: 12 }}>
                   <Divider sx={{ my: 1 }} />
                 </Grid>
 
                 {/* Description */}
-                <Grid size={{ xs: 12}}>
+                <Grid size={{ xs: 12 }}>
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -1718,8 +1723,9 @@ const ServiceRequestDetail: React.FC = () => {
                                 color="text.secondary"
                               >
                                 ⏰ <strong>Started:</strong>{" "}
-                                {log?.startTime ? formatDate(log.startTime) : "N/A"}
-
+                                {log?.startTime
+                                  ? formatDate(log.startTime)
+                                  : "N/A"}
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -2335,6 +2341,7 @@ const ServiceRequestDetail: React.FC = () => {
         title="Change Technician"
         reasonRequired={false}
         allowCurrentTechnician={false}
+        watchRegionId={request.region.id} // from parent state
       />
       <ReassignTechnicianDialog
         open={reassignForReworkDialog}
@@ -2346,6 +2353,7 @@ const ServiceRequestDetail: React.FC = () => {
         subtitle="Customer says issue unresolved. Please select a technician."
         reasonRequired={true}
         allowCurrentTechnician={true}
+        watchRegionId={request.region.id} // from parent state
       />
     </Box>
   );
