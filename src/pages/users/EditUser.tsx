@@ -18,7 +18,7 @@ import {
   Chip,
 } from "@mui/material";
 import { Grid } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Visibility from "@mui/icons-material/Visibility";
@@ -52,7 +52,7 @@ interface EditUserFormData {
   email: string;
   phone: string;
   roleId: string;
-  regionId: string;
+  regionId?: string; // 🆕 Make optional
   status: string;
   isExternal?: boolean;
 }
@@ -62,12 +62,17 @@ interface PasswordResetFormData {
   confirmPassword: string;
 }
 
+// 🆕 Updated schema with conditional region validation
 const editUserSchema = yup.object().shape({
   name: yup.string().required("Name is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
   phone: yup.string().required("Phone is required"),
   roleId: yup.string().required("Role is required"),
-  regionId: yup.string().required("Region is required"),
+  regionId: yup.string().when("$selectedRoleName", {
+    is: (roleName: string) => roleName === "Technician",
+    then: (schema) => schema.optional(),
+    otherwise: (schema) => schema.optional(),
+  }),
   status: yup.string().required("Status is required"),
   isExternal: yup.boolean().optional(),
 });
@@ -90,6 +95,10 @@ const passwordResetSchema = yup.object().shape({
 const EditUser: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation(); // 🆕 Get location
+
+  // 🆕 Get isSuperAdmin from navigation state
+  const isSuperAdminFromState = location.state?.isSuperAdmin || false;
 
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<any[]>([]);
@@ -98,6 +107,8 @@ const EditUser: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [selectedRoleName, setSelectedRoleName] = useState(""); // 🆕 Track role name
+  const [isSuperAdmin, setIsSuperAdmin] = useState(isSuperAdminFromState);
 
   const [customPermissions, setCustomPermissions] = useState<{
     add: string[];
@@ -118,6 +129,7 @@ const EditUser: React.FC = () => {
     reset,
   } = useForm<EditUserFormData>({
     resolver: yupResolver(editUserSchema),
+    context: { selectedRoleName }, // 🆕 Pass role name to validator
   });
 
   const {
@@ -136,6 +148,12 @@ const EditUser: React.FC = () => {
   // ✅ Check if selected role is Technician
   const selectedRole = roles.find((role) => role.id === selectedRoleId);
   const isTechnicianRole = selectedRole?.name === "Technician";
+
+  // 🆕 Update selectedRoleName when role changes
+  useEffect(() => {
+    const foundRole = roles.find((role) => role.id === selectedRoleId);
+    setSelectedRoleName(foundRole?.name || "");
+  }, [selectedRoleId, roles]);
 
   useEffect(() => {
     fetchData();
@@ -159,6 +177,9 @@ const EditUser: React.FC = () => {
         status: userResponse.data.status,
         isExternal: userResponse.data.isExternal || false,
       });
+
+      const userIsSuperAdmin = userResponse.data.role?.name === "Super Admin";
+      setIsSuperAdmin(userIsSuperAdmin);
 
       setRoles(rolesResponse.data);
     } catch (error: any) {
@@ -202,7 +223,13 @@ const EditUser: React.FC = () => {
 
   const onSubmit = async (data: EditUserFormData) => {
     try {
-      await axiosInstance.put(`/users/${id}`, data);
+      // 🆕 Only include isExternal if role is Technician
+      const payload = {
+        ...data,
+        ...(isTechnicianRole && { isExternal: data.isExternal || false }),
+      };
+
+      await axiosInstance.put(`/users/${id}`, payload);
 
       if (
         customPermissions.add.length > 0 ||
@@ -360,7 +387,7 @@ const EditUser: React.FC = () => {
               </Grid>
 
               {/* Role */}
-              <Grid size={{ xs: 12, md: 6 }}>
+              {/* <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="roleId"
                   control={control}
@@ -381,26 +408,55 @@ const EditUser: React.FC = () => {
                     </TextField>
                   )}
                 />
-              </Grid>
+              </Grid> */}
 
-              {/* Region */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="regionId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label="Select Region"
-                      value={field.value}
-                      onChange={field.onChange}
-                      endpoint="/regions"
-                      placeholder="Search region..."
-                      error={!!errors.regionId}
-                      helperText={errors.regionId?.message}
-                    />
-                  )}
-                />
-              </Grid>
+              {/* Role - Hide if Super Admin */}
+              {!isSuperAdmin && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Controller
+                    name="roleId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Role"
+                        error={!!errors.roleId}
+                        helperText={errors.roleId?.message}
+                        disabled={isSuperAdmin} // Extra safety
+                      >
+                        {roles.map((role) => (
+                          <MenuItem key={role.id} value={role.id}>
+                            {role.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+              )}
+
+              {/* 🆕 Region - Only show if Technician */}
+              {isTechnicianRole && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Controller
+                    name="regionId"
+                    control={control}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        label="Select Region (Optional)"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        endpoint="/regions"
+                        placeholder="Search region..."
+                        error={!!errors.regionId}
+                        helperText={errors.regionId?.message}
+                      />
+                    )}
+                  />
+                </Grid>
+              )}
 
               {/* ✅ Technician Type (Only show if role is Technician) */}
               <Grid size={12}>

@@ -106,13 +106,19 @@ const UserList: React.FC = () => {
     setSortOrder("asc");
   };
 
-  const roles = Array.from(new Set(users.map((u) => u.role?.name).filter(Boolean)));
-  const regions = Array.from(new Set(users.map((u) => u.region?.name).filter(Boolean)));
+  const roles = Array.from(
+    new Set(users.map((u) => u.role?.name).filter(Boolean))
+  );
+  const regions = Array.from(
+    new Set(users.map((u) => u.region?.name).filter(Boolean))
+  );
 
   const technicianCount = {
     all: users.filter((u) => u.role?.name === "Technician").length,
-    inhouse: users.filter((u) => u.role?.name === "Technician" && !u.isExternal).length,
-    external: users.filter((u) => u.role?.name === "Technician" && u.isExternal).length,
+    inhouse: users.filter((u) => u.role?.name === "Technician" && !u.isExternal)
+      .length,
+    external: users.filter((u) => u.role?.name === "Technician" && u.isExternal)
+      .length,
   };
 
   const filteredUsers = users
@@ -138,6 +144,14 @@ const UserList: React.FC = () => {
       return true;
     })
     .sort((a, b) => {
+      // 🆕 Always show Super Admin first
+      const aIsSuperAdmin = a.role?.name === "Super Admin";
+      const bIsSuperAdmin = b.role?.name === "Super Admin";
+
+      if (aIsSuperAdmin && !bIsSuperAdmin) return -1;
+      if (!aIsSuperAdmin && bIsSuperAdmin) return 1;
+
+      // Then apply regular sorting
       let comparison = 0;
       switch (sortBy) {
         case "name":
@@ -150,7 +164,9 @@ const UserList: React.FC = () => {
           comparison = (a.role?.name || "").localeCompare(b.role?.name || "");
           break;
         case "region":
-          comparison = (a.region?.name || "").localeCompare(b.region?.name || "");
+          comparison = (a.region?.name || "").localeCompare(
+            b.region?.name || ""
+          );
           break;
         default:
           comparison = 0;
@@ -212,29 +228,40 @@ const UserList: React.FC = () => {
       id: "actions",
       label: "Actions",
       minWidth: 150,
-      format: (_: any, row: User) => (
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => navigate(`/users/edit/${row.id}`)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedUserId(row.id);
-              setDeleteDialog(true);
-            }}
-          >
-            Delete
-          </Button>
-        </Box>
-      ),
+      format: (_: any, row: User) => {
+        const isSuperAdmin = row.role?.name === "Super Admin";
+
+        return (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() =>
+                navigate(`/users/edit/${row.id}`, {
+                  state: { isSuperAdmin }, // 🆕 Pass isSuperAdmin via state
+                })
+              }
+            >
+              Edit
+            </Button>
+            {/* 🆕 Only show delete button if NOT Super Admin */}
+            {!isSuperAdmin && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedUserId(row.id);
+                  setDeleteDialog(true);
+                }}
+              >
+                Delete
+              </Button>
+            )}
+          </Box>
+        );
+      },
     },
   ];
 
@@ -322,7 +349,10 @@ const UserList: React.FC = () => {
                   ),
                   endAdornment: searchTerm && (
                     <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearchTerm("")}
+                      >
                         <ClearIcon />
                       </IconButton>
                     </InputAdornment>
@@ -352,7 +382,9 @@ const UserList: React.FC = () => {
                 <InputLabel>Order</InputLabel>
                 <Select
                   value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                  onChange={(e) =>
+                    setSortOrder(e.target.value as "asc" | "desc")
+                  }
                   label="Order"
                 >
                   <MenuItem value="asc">Ascending</MenuItem>
@@ -438,7 +470,11 @@ const UserList: React.FC = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
                     <Typography variant="body2" color="text.secondary">
                       Showing {filteredUsers.length} of {users.length} users
                     </Typography>
