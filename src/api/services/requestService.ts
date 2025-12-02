@@ -3,8 +3,8 @@ import { API_ENDPOINTS } from "../endponts";
 import { type TechnicianWithWorkload, type ServiceRequest } from "../../types";
 
 interface UsedItem {
-  type: 'product' | 'sparePart';
-  id: string;  // productId or sparePartId
+  type: "product" | "sparePart";
+  id: string; // productId or sparePartId
   quantityUsed: number;
   notes?: string;
 }
@@ -17,14 +17,13 @@ export const requestService = {
     return data;
   },
 
-//   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
-//   const { data } = await axiosInstance.post(
-//     API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
-//     { usedItems }
-//   );
-//   return data;
-// },
-
+  //   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
+  //   const { data } = await axiosInstance.post(
+  //     API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
+  //     { usedItems }
+  //   );
+  //   return data;
+  // },
 
   // Get request by ID
   async getRequestById(id: string): Promise<ServiceRequest> {
@@ -246,12 +245,12 @@ export const requestService = {
   // },
 
   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
-  const { data } = await axiosInstance.post(
-    API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
-    { usedItems }
-  );
-  return data;
-},
+    const { data } = await axiosInstance.post(
+      API_ENDPOINTS.SERVICE_REQUESTS.ADD_USED_PRODUCTS(requestId),
+      { usedItems }
+    );
+    return data;
+  },
   // Get used products
   async getUsedProducts(requestId: string): Promise<any[]> {
     const { data } = await axiosInstance.get(
@@ -261,16 +260,99 @@ export const requestService = {
   },
 
   async getUsedSpareParts(requestId: string): Promise<any[]> {
-  const { data } = await axiosInstance.get(
-    API_ENDPOINTS.SERVICE_REQUESTS.GET_USED_SPARE_PARTS(requestId)
-  );
-  return data;
-},
-
+    const { data } = await axiosInstance.get(
+      API_ENDPOINTS.SERVICE_REQUESTS.GET_USED_SPARE_PARTS(requestId)
+    );
+    return data;
+  },
 
   async getCustomerServiceHistory(serviceRequestId: string) {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.SERVICE_REQUESTS.CUSTOMER_SERVICE_HISTORY(serviceRequestId)
+    );
+    return data;
+  },
+
+  async importInstallationData(formData: FormData): Promise<{
+    success: boolean;
+    summary: {
+      regions: number;
+      technicians: number;
+      products: number;
+      customers: number;
+      installations: number;
+      serviceRequests: number;
+    };
+    errors: string[];
+  }> {
+    const { data } = await axiosInstance.post(
+      "/service-requests/import/installation",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
+
+  async importProductsData(formData: FormData): Promise<{
+    success: boolean;
+    summary: {
+      categoriesCreated: number;
+      productsCreated: number;
+      productsUpdated: number;
+    };
+    errors: string[];
+  }> {
+    const { data } = await axiosInstance.post(
+      "/service-requests/import/products",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
+  async importSparePartsData(formData: FormData): Promise<{
+    success: boolean;
+    summary: {
+      sparePartsCreated: number;
+      sparePartsUpdated: number;
+    };
+    errors: string[];
+  }> {
+    const { data } = await axiosInstance.post(
+      "/service-requests/import/spare-parts",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
+
+  async importTechniciansData(formData: FormData): Promise<{
+    success: boolean;
+    summary: {
+      techniciansCreated: number;
+      techniciansUpdated: number;
+    };
+    errors: string[];
+  }> {
+    const { data } = await axiosInstance.post(
+      "/service-requests/import/technicians",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
+
+  async importServiceRequestsData(formData: FormData): Promise<{
+    success: boolean;
+    summary: {
+      serviceRequestsCreated: number;
+      serviceRequestsUpdated: number;
+    };
+    errors: string[];
+  }> {
+    const { data } = await axiosInstance.post(
+      "/service-requests/import/service-requests",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
     return data;
   },
