@@ -183,13 +183,14 @@ const ServiceRequestList: React.FC = () => {
             >
               <MenuItem value="ALL">All Status</MenuItem>
               {/* ✅ Hide irrelevant statuses for technicians */}
-              {!isTechnician && <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>}
-              {!isTechnician && <MenuItem value="APPROVED">Approved</MenuItem>}
+              {/* {!isTechnician && <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>} */}
+              {/* {!isTechnician && <MenuItem value="APPROVED">Approved</MenuItem>} */}
               <MenuItem value="ASSIGNED">Assigned</MenuItem>
+              <MenuItem value="ASSIGNED">Re-signed</MenuItem>
               <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
               <MenuItem value="WORK_COMPLETED">Work Completed</MenuItem>
               <MenuItem value="COMPLETED">Completed</MenuItem>
-              {!isTechnician && <MenuItem value="REJECTED">Rejected</MenuItem>}
+              {/* {!isTechnician && <MenuItem value="REJECTED">Rejected</MenuItem>} */}
             </TextField>
           </Box>
         </CardContent>

@@ -457,7 +457,7 @@ const EditUser: React.FC = () => {
                   />
                 </Grid>
               )}
-
+ 
               {/* ✅ Technician Type (Only show if role is Technician) */}
               <Grid size={12}>
                 <Collapse in={isTechnicianRole}>

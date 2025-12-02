@@ -4,6 +4,7 @@ import userReducer from './slices/userSlice';
 import notificationReducer from './slices/notificationSlice';
 import requestReducer from './slices/requestSlice';
 import dashboardReducer from './slices/dashboardSlice';
+import importReducer from './slices/importSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     notifications: notificationReducer,
     requests: requestReducer,
     dashboard: dashboardReducer,
+    import: importReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
