@@ -568,7 +568,7 @@ const CreateServiceRequest: React.FC = () => {
                         render={({ field }) => (
                           <SearchableSelect
                             label="Region *"
-                            value={field.value}
+                            value={field.value ?? null}
                             onChange={(value, option) => {
                               field.onChange(value);
                               handleRegionChange(value, option);
@@ -666,7 +666,7 @@ const CreateServiceRequest: React.FC = () => {
                         render={({ field }) => (
                           <SearchableSelect
                             label="Select Customer *"
-                            value={field.value}
+                            value={field.value ?? null}
                             onChange={(value, option) => {
                               field.onChange(value);
                               handleCustomerChange(value, option);
