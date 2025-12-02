@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const isSuperAdmin = (user?.role.name === "Super Admin") || (user?.role.name === "Admin"); // ✅ NEW
+  const isSuperAdmin = (user?.role.name === "Super Admin") || (user?.role.name === "Service Admin"); // ✅ NEW
 
   return (
     <Box>
