@@ -55,7 +55,7 @@ export const canApproveRequest = (userRole: string, requestCreatorRole: string):
 };
 
 export const canAssignTechnician = (userRole: string): boolean => {
-  return ['Super Admin', 'Service Admin', 'Service Manager'].includes(userRole);
+  return ['Super Admin', 'Service Admin', 'Service Manager', 'Tele Caller'].includes(userRole);
 };
 
 export const truncateText = (text: string, maxLength: number): string => {
