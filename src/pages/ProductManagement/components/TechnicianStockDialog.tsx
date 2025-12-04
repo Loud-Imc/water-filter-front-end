@@ -13,8 +13,9 @@ import {
   Chip,
   Divider,
   TextField,
-  MenuItem,
+  // MenuItem,
   Alert,
+  Autocomplete, // 🆕 NEW
 } from '@mui/material';
 import { sparePartsService } from '../../../api/services/sparePartsService';
 import type { TechnicianStock, User } from '../../../types';
@@ -166,19 +167,43 @@ const TechnicianStockDialog: React.FC<TechnicianStockDialogProps> = ({
                   Transfer Stock
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                  <TextField
-                    select
+                  {/* 🆕 UPDATED: Searchable Technician Selector */}
+                  <Autocomplete
                     fullWidth
-                    label="Select Technician *"
-                    value={selectedTechnician}
-                    onChange={(e) => setSelectedTechnician(e.target.value)}
-                  >
-                    {technicians.map((tech) => (
-                      <MenuItem key={tech.id} value={tech.id}>
-                        {tech.name} - {tech.email}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    options={technicians}
+                    getOptionLabel={(option) => option.name}
+                    value={
+                      technicians.find((tech) => tech.id === selectedTechnician) || null
+                    }
+                    onChange={(_, newValue) => {
+                      setSelectedTechnician(newValue?.id || '');
+                    }}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props as any;
+                      return (
+                        <li key={option.id} {...otherProps}>
+                          <Box sx={{ width: '100%' }}>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {option.email}
+                              {option.region && ` • ${option.region.name}`}
+                            </Typography>
+                          </Box>
+                        </li>
+                      );
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select Technician *"
+                        placeholder="Type to search..."
+                        helperText="Search by name"
+                      />
+                    )}
+                    noOptionsText="No technicians available"
+                  />
 
                   <TextField
                     fullWidth

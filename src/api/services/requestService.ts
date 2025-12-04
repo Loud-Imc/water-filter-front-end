@@ -10,12 +10,22 @@ interface UsedItem {
 }
 export const requestService = {
   // Get all service requests
-  async getAllRequests(): Promise<ServiceRequest[]> {
-    const { data } = await axiosInstance.get(
-      API_ENDPOINTS.SERVICE_REQUESTS.BASE
-    );
-    return data;
-  },
+// In requestService.ts or wherever your API calls are
+async getAllRequests(page: number = 1, limit: number = 10, status?: string, userId?: string) {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  if (status && status !== 'ALL') {
+    params.append('status', status);
+  }
+  if (userId) {
+    params.append('userId', userId);
+  }
+
+  const response = await axiosInstance.get(`/service-requests?${params.toString()}`);
+  return response.data;
+},
+
 
   //   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
   //   const { data } = await axiosInstance.post(

@@ -106,6 +106,14 @@ const UserList: React.FC = () => {
     setSortOrder("asc");
   };
 
+  // 🆕 Handle row click to navigate to edit page
+  const handleRowClick = (row: User) => {
+    const isSuperAdmin = row.role?.name === "Super Admin";
+    navigate(`/users/edit/${row.id}`, {
+      state: { isSuperAdmin },
+    });
+  };
+
   const roles = Array.from(
     new Set(users.map((u) => u.role?.name).filter(Boolean))
   );
@@ -144,14 +152,12 @@ const UserList: React.FC = () => {
       return true;
     })
     .sort((a, b) => {
-      // 🆕 Always show Super Admin first
       const aIsSuperAdmin = a.role?.name === "Super Admin";
       const bIsSuperAdmin = b.role?.name === "Super Admin";
 
       if (aIsSuperAdmin && !bIsSuperAdmin) return -1;
       if (!aIsSuperAdmin && bIsSuperAdmin) return 1;
 
-      // Then apply regular sorting
       let comparison = 0;
       switch (sortBy) {
         case "name":
@@ -236,22 +242,22 @@ const UserList: React.FC = () => {
             <Button
               size="small"
               variant="outlined"
-              onClick={() =>
+              onClick={(e) => {
+                e.stopPropagation(); // 🆕 Prevent row click when clicking Edit button
                 navigate(`/users/edit/${row.id}`, {
-                  state: { isSuperAdmin }, // 🆕 Pass isSuperAdmin via state
-                })
-              }
+                  state: { isSuperAdmin },
+                });
+              }}
             >
               Edit
             </Button>
-            {/* 🆕 Only show delete button if NOT Super Admin */}
             {!isSuperAdmin && (
               <Button
                 size="small"
                 variant="outlined"
                 color="error"
                 onClick={(e) => {
-                  e.stopPropagation();
+                  e.stopPropagation(); // 🆕 Prevent row click when clicking Delete button
                   setSelectedUserId(row.id);
                   setDeleteDialog(true);
                 }}
@@ -527,6 +533,7 @@ const UserList: React.FC = () => {
           totalRows={filteredUsers.length}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+          onRowClick={handleRowClick} // 🆕 Pass row click handler
         />
       )}
 

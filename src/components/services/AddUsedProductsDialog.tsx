@@ -24,6 +24,7 @@ import {
   Select,
   SelectChangeEvent,
   Chip,
+  Autocomplete, // 🆕 NEW
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -35,7 +36,7 @@ interface UsedItem {
   id: string;
   type: "product" | "sparePart";
   quantityUsed: number;
-  source: "warehouse" | "technician"; // 🆕 NEW
+  source: "warehouse" | "technician";
   notes?: string;
   name?: string;
   price?: number;
@@ -47,7 +48,7 @@ interface AddUsedProductsDialogProps {
   onConfirm: (usedItems: UsedItem[]) => Promise<void>;
   allProducts: Product[];
   allSpareParts: SparePart[];
-  technicianStock: TechnicianStock[]; // 🆕 NEW: Technician's current stock
+  technicianStock: TechnicianStock[];
   loading?: boolean;
 }
 
@@ -61,14 +62,18 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   loading = false,
 }) => {
   const [usedItems, setUsedItems] = useState<UsedItem[]>([]);
-  const [selectType, setSelectType] = useState<"product" | "sparePart">("product");
+  const [selectType, setSelectType] = useState<"product" | "sparePart">(
+    "product"
+  );
   const [selectedId, setSelectedId] = useState("");
-  const [selectedSource, setSelectedSource] = useState<"warehouse" | "technician">("warehouse"); // 🆕 NEW
+  const [selectedSource, setSelectedSource] = useState<
+    "warehouse" | "technician"
+  >("technician");
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [selectedNotes, setSelectedNotes] = useState("");
-  const [maxQuantity, setMaxQuantity] = useState<number>(0); // 🆕 NEW
+  const [maxQuantity, setMaxQuantity] = useState<number>(0);
 
-  // 🆕 NEW: Calculate max available quantity based on source
+  // 🆕 Calculate max available quantity based on source
   useEffect(() => {
     if (!selectedId) {
       setMaxQuantity(0);
@@ -88,7 +93,14 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
       );
       setMaxQuantity(stockItem?.quantity || 0);
     }
-  }, [selectedId, selectedSource, selectType, allProducts, allSpareParts, technicianStock]);
+  }, [
+    selectedId,
+    selectedSource,
+    selectType,
+    allProducts,
+    allSpareParts,
+    technicianStock,
+  ]);
 
   const handleSelectTypeChange = (event: SelectChangeEvent) => {
     setSelectType(event.target.value as "product" | "sparePart");
@@ -121,7 +133,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
       return;
     }
 
-    // 🆕 Validate quantity doesn't exceed available stock
+    // Validate quantity doesn't exceed available stock
     if (selectedQuantity > maxQuantity) {
       alert(
         `Quantity exceeds available stock. Maximum available: ${maxQuantity}`
@@ -136,7 +148,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
     const newItem: UsedItem = {
       id: selectedId,
       type: selectType,
-      source: selectedSource, // 🆕 NEW
+      source: selectedSource,
       quantityUsed: selectedQuantity,
       notes: selectedNotes || undefined,
       name: selectedItem.name,
@@ -156,7 +168,8 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   ) => {
     setUsedItems(
       usedItems.filter(
-        (item) => !(item.id === id && item.type === type && item.source === source)
+        (item) =>
+          !(item.id === id && item.type === type && item.source === source)
       )
     );
   };
@@ -171,7 +184,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
         usedItems.map((item) => ({
           id: item.id,
           type: item.type,
-          source: item.source, // 🆕 Pass source to backend
+          source: item.source,
           quantityUsed: item.quantityUsed,
           notes: item.notes,
         }))
@@ -187,6 +200,30 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
     (sum, item) => sum + (item.price || 0) * item.quantityUsed,
     0
   );
+
+  // 🆕 Prepare options with availability info
+  const getAvailableItems = () => {
+    const list = selectType === "product" ? allProducts : allSpareParts;
+    
+    return list.map((item) => {
+      let availableQty = 0;
+      if (selectedSource === "warehouse") {
+        availableQty = item.stock;
+      } else {
+        const stockItem = technicianStock?.find(
+          (s) =>
+            (selectType === "product" && s.productId === item.id) ||
+            (selectType === "sparePart" && s.sparePartId === item.id)
+        );
+        availableQty = stockItem?.quantity || 0;
+      }
+
+      return {
+        ...item,
+        availableQty,
+      };
+    });
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -208,7 +245,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             </Select>
           </FormControl>
 
-          {/* 🆕 NEW: Source Selection */}
+          {/* Source Selection */}
           <FormControl fullWidth>
             <InputLabel id="select-source-label">Stock Source</InputLabel>
             <Select
@@ -218,12 +255,14 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
               onChange={handleSourceChange}
               disabled={loading}
             >
-              <MenuItem value="warehouse">
+              {/* ⚠️ Warehouse Stock - Disabled for now, may be used later */}
+              {/* <MenuItem value="warehouse">
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarehouseIcon fontSize="small" />
                   Warehouse Stock
                 </Box>
-              </MenuItem>
+              </MenuItem> */}
+
               <MenuItem value="technician">
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <PersonIcon fontSize="small" />
@@ -233,44 +272,49 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             </Select>
           </FormControl>
 
-          {/* Item Selector */}
-          <TextField
-            select
+          {/* 🆕 UPDATED: Searchable Item Selector */}
+          <Autocomplete
             fullWidth
-            label={`Select ${
-              selectType === "product" ? "Product" : "Spare Part"
-            } *`}
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
+            options={getAvailableItems()}
+            getOptionLabel={(option) => option.name}
+            getOptionDisabled={(option) => option.availableQty === 0}
+            value={
+              getAvailableItems().find((item) => item.id === selectedId) || null
+            }
+            onChange={(_, newValue) => {
+              setSelectedId(newValue?.id || "");
+            }}
             disabled={loading}
-          >
-            <MenuItem value="">-- Choose --</MenuItem>
-            {(selectType === "product" ? allProducts : allSpareParts)?.map(
-              (item) => {
-                // 🆕 Show available quantity from selected source
-                let availableQty = 0;
-                if (selectedSource === "warehouse") {
-                  availableQty = item.stock;
-                } else {
-                  const stockItem = technicianStock?.find(
-                    (s) =>
-                      (selectType === "product" && s.productId === item.id) ||
-                      (selectType === "sparePart" && s.sparePartId === item.id)
-                  );
-                  availableQty = stockItem?.quantity || 0;
-                }
-
-                return (
-                  <MenuItem key={item.id} value={item.id} disabled={availableQty === 0}>
-                    {item.name} (Available: {availableQty}, Price: ₹
-                    {Number(item.price).toFixed(2)})
-                  </MenuItem>
-                );
-              }
+            renderOption={(props, option) => {
+              const { key, ...otherProps } = props as any;
+              return (
+                <li key={option.id} {...otherProps}>
+                  <Box sx={{ width: "100%" }}>
+                    <Typography variant="body2" fontWeight={500}>
+                      {option.name} - {option.company}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Available: {option.availableQty} • Price: ₹
+                      {Number(option.price).toFixed(2)}
+                    </Typography>
+                  </Box>
+                </li>
+              );
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={`Select ${
+                  selectType === "product" ? "Product" : "Spare Part"
+                } *`}
+                placeholder="Type to search..."
+                helperText="Search by name"
+              />
             )}
-          </TextField>
+            noOptionsText="No items available"
+          />
 
-          {/* 🆕 Show available quantity alert */}
+          {/* Show available quantity alert */}
           {selectedId && (
             <Alert severity="info">
               Maximum available from{" "}
@@ -292,9 +336,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             }
             inputProps={{ min: 1, max: maxQuantity }}
             disabled={loading || !selectedId}
-            helperText={
-              selectedId ? `Max available: ${maxQuantity}` : ""
-            }
+            helperText={selectedId ? `Max available: ${maxQuantity}` : ""}
           />
 
           {/* Notes */}
@@ -315,7 +357,10 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             variant="contained"
             onClick={handleAddItem}
             disabled={
-              !selectedId || selectedQuantity < 1 || selectedQuantity > maxQuantity || loading
+              !selectedId ||
+              selectedQuantity < 1 ||
+              selectedQuantity > maxQuantity ||
+              loading
             }
           >
             Add Item
@@ -343,13 +388,14 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
                     </TableHead>
                     <TableBody>
                       {usedItems.map((item, index) => (
-                        <TableRow key={`${item.type}-${item.id}-${item.source}-${index}`}>
+                        <TableRow
+                          key={`${item.type}-${item.id}-${item.source}-${index}`}
+                        >
                           <TableCell>
                             {item.type === "product" ? "Product" : "Spare Part"}
                           </TableCell>
                           <TableCell>{item.name}</TableCell>
                           <TableCell>
-                            {/* 🆕 Show source as chip */}
                             <Chip
                               size="small"
                               icon={
@@ -365,21 +411,32 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
                                   : "Tech Stock"
                               }
                               color={
-                                item.source === "warehouse" ? "primary" : "secondary"
+                                item.source === "warehouse"
+                                  ? "primary"
+                                  : "secondary"
                               }
                             />
                           </TableCell>
-                          <TableCell align="right">{item.quantityUsed}</TableCell>
-                          <TableCell align="right">₹{item.price?.toFixed(2)}</TableCell>
                           <TableCell align="right">
-                            ₹{((item.price || 0) * item.quantityUsed).toFixed(2)}
+                            {item.quantityUsed}
+                          </TableCell>
+                          <TableCell align="right">
+                            ₹{item.price?.toFixed(2)}
+                          </TableCell>
+                          <TableCell align="right">
+                            ₹
+                            {((item.price || 0) * item.quantityUsed).toFixed(2)}
                           </TableCell>
                           <TableCell align="center">
                             <IconButton
                               size="small"
                               color="error"
                               onClick={() =>
-                                handleRemoveItem(item.id, item.type, item.source)
+                                handleRemoveItem(
+                                  item.id,
+                                  item.type,
+                                  item.source
+                                )
                               }
                               disabled={loading}
                             >
