@@ -77,6 +77,8 @@ import HistoryIcon from "@mui/icons-material/History";
 import { TransitionProps } from "@mui/material/transitions";
 import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
 import { technicianStockService } from "../../api/services/technicianStockService";
+import imageCompression from 'browser-image-compression';
+
 
 interface UsedItem {
   type: "product" | "sparePart";
@@ -408,32 +410,40 @@ const ServiceRequestDetail: React.FC = () => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleFileUpload = async () => {
-    if (!request.id || selectedFiles.length === 0) return;
+ const handleFileUpload = async () => {
+  if (!request.id || selectedFiles.length === 0) return;
 
-    try {
-      for (const file of selectedFiles) {
-        await dispatch(
-          uploadWorkMedia({ requestId: request.id, file })
-        ).unwrap();
-      }
+  try {
+    for (const file of selectedFiles) {
+      // 🆕 Compress image before upload
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
 
-      setSnackbar({
-        open: true,
-        message: `${selectedFiles.length} image(s) uploaded successfully!`,
-        severity: "success",
-      });
-      setUploadDialog(false);
-      setSelectedFiles([]);
-      await dispatch(fetchRequestById(request.id));
-    } catch (error: any) {
-      setSnackbar({
-        open: true,
-        message: error || "Failed to upload images",
-        severity: "error",
-      });
+      await dispatch(
+        uploadWorkMedia({ requestId: request.id, file: compressedFile })
+      ).unwrap();
     }
-  };
+
+    setSnackbar({
+      open: true,
+      message: `${selectedFiles.length} image(s) uploaded successfully!`,
+      severity: "success",
+    });
+    setUploadDialog(false);
+    setSelectedFiles([]);
+    await dispatch(fetchRequestById(request.id));
+  } catch (error: any) {
+    setSnackbar({
+      open: true,
+      message: error || "Failed to upload images",
+      severity: "error",
+    });
+  }
+};
+
 
   const handleAcknowledge = async () => {
     try {
@@ -1188,7 +1198,103 @@ const ServiceRequestDetail: React.FC = () => {
                   >
                     Description
                   </Typography>
-                  <Typography variant="body1">{request.description}</Typography>
+
+                  <Box sx={{ p: 2, bgcolor: 'grey.300', borderRadius: 1 }}>
+                    {(() => {
+                      const lines = request.description.split("\n");
+                      const sections: {
+                        type: "text" | "products" | "spareParts";
+                        content: string[];
+                      }[] = [];
+                      let currentSection: (typeof sections)[0] = {
+                        type: "text",
+                        content: [],
+                      };
+
+                      lines.forEach((line) => {
+                        if (!line.trim()) return;
+
+                        if (line.includes("📦 Products:")) {
+                          if (currentSection.content.length > 0)
+                            sections.push(currentSection);
+                          currentSection = { type: "products", content: [] };
+                        } else if (line.includes("🔧 Spare Parts:")) {
+                          if (currentSection.content.length > 0)
+                            sections.push(currentSection);
+                          currentSection = { type: "spareParts", content: [] };
+                        } else {
+                          currentSection.content.push(line);
+                        }
+                      });
+
+                      if (currentSection.content.length > 0)
+                        sections.push(currentSection);
+
+                      return sections.map((section, sectionIndex) => {
+                        if (section.type === "text") {
+                          return (
+                            <Box key={sectionIndex} sx={{ mb: 2 }}>
+                              {section.content.map((line, lineIndex) => (
+                                <Typography
+                                  key={lineIndex}
+                                  variant="body1"
+                                  sx={{ mb: 1 }}
+                                >
+                                  {line}
+                                </Typography>
+                              ))}
+                            </Box>
+                          );
+                        }
+
+                        return (
+                          <Card
+                            key={sectionIndex}
+                            variant="outlined"
+                            sx={{
+                              mb: 2,
+                              bgcolor:
+                                section.type === "products"
+                                  ? "primary.50"
+                                  : "secondary.50",
+                            }}
+                          >
+                            <CardContent
+                              sx={{ p: 2, "&:last-child": { pb: 2 } }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={600}
+                                gutterBottom
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                }}
+                              >
+                                {section.type === "products"
+                                  ? "📦 Products"
+                                  : "🔧 Spare Parts"}
+                              </Typography>
+                              <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                {section.content.map((line, lineIndex) => {
+                                  const text = line.replace("•", "").trim();
+                                  if (!text) return null;
+                                  return (
+                                    <li key={lineIndex}>
+                                      <Typography variant="body2">
+                                        {text}
+                                      </Typography>
+                                    </li>
+                                  );
+                                })}
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        );
+                      });
+                    })()}
+                  </Box>
                 </Grid>
 
                 {/* Reassignment Reasons */}
@@ -1236,7 +1342,7 @@ const ServiceRequestDetail: React.FC = () => {
                 </Grid>
 
                 {/* Approval Remarks */}
-                {request.approvalHistory.length > 0 && (
+                {request?.approvalHistory?.length > 0 && (
                   <Grid size={{ xs: 12 }}>
                     <Typography
                       variant="body2"
@@ -1275,14 +1381,15 @@ const ServiceRequestDetail: React.FC = () => {
                       >
                         ✅ Items Used ({usedProducts.length})
                       </Typography>
-                      {usedProducts.map((item) => {
+                      {usedProducts.map((item, index) => {
                         const name =
-                          item.product?.name || item.sparePart?.name || "N/A";
+                          item.product?.name  || item.sparePart?.name || "N/A";
                         const quantity = item.quantityUsed;
+                        const company = item.product?.company || item.sparePart?.company || "N/A";
                         return (
                           <Chip
-                            key={item.id}
-                            label={`${name}: ${quantity} qty`}
+                            key={`${item.id}-${index}`} // 🆕 More unique key
+                            label={`${name} - ( company - ${company} ): ${quantity} qty`}
                             variant="outlined"
                             sx={{ mr: 1, mb: 1 }}
                           />
@@ -2341,7 +2448,7 @@ const ServiceRequestDetail: React.FC = () => {
         title="Change Technician"
         reasonRequired={false}
         allowCurrentTechnician={false}
-        watchRegionId={request.region.id} // from parent state
+        watchRegionId={request?.region?.id} // from parent state
       />
       <ReassignTechnicianDialog
         open={reassignForReworkDialog}
@@ -2353,7 +2460,7 @@ const ServiceRequestDetail: React.FC = () => {
         subtitle="Customer says issue unresolved. Please select a technician."
         reasonRequired={true}
         allowCurrentTechnician={true}
-        watchRegionId={request.region.id} // from parent state
+        watchRegionId={request?.region?.id} // from parent state
       />
     </Box>
   );

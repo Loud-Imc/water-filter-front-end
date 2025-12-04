@@ -2,12 +2,21 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { requestService } from "../../api/services/requestService";
 import { type ServiceRequest } from "../../types";
 
+// 🆕 Add meta interface
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 interface RequestState {
   requests: ServiceRequest[];
   myTasks: ServiceRequest[];
   taskHistory: ServiceRequest[];
   reassignmentHistory: any[];
   selectedRequest: ServiceRequest | null;
+  meta: PaginationMeta; // 🆕 Add meta
   stats: {
     assigned: number;
     inProgress: number;
@@ -24,17 +33,36 @@ const initialState: RequestState = {
   taskHistory: [],
   reassignmentHistory: [],
   selectedRequest: null,
+  meta: { // 🆕 Initialize meta
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  },
   stats: null,
   loading: false,
   error: null,
 };
 
-// Async thunks
+// 🆕 UPDATED: Accept pagination params
 export const fetchAllRequests = createAsyncThunk(
   "requests/fetchAll",
-  async (_, { rejectWithValue }) => {
+  async (
+    params: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      userId?: string;
+    } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      return await requestService.getAllRequests();
+      return await requestService.getAllRequests(
+        params.page,
+        params.limit,
+        params.status,
+        params.userId
+      );
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch requests"
@@ -56,7 +84,6 @@ export const fetchRequestById = createAsyncThunk(
   }
 );
 
-// ✅ UPDATED: Accept new format with priority and assignedToId
 export const createRequest = createAsyncThunk(
   "requests/create",
   async (
@@ -68,6 +95,8 @@ export const createRequest = createAsyncThunk(
       priority?: string;
       assignedToId: string;
       adminNotes?: string;
+      categoryId?: string;
+      installationId?: string;
     },
     { rejectWithValue }
   ) => {
@@ -295,7 +324,7 @@ const requestSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Fetch all requests
+    // 🆕 UPDATED: Fetch all requests with pagination
     builder
       .addCase(fetchAllRequests.pending, (state) => {
         state.loading = true;
@@ -303,7 +332,8 @@ const requestSlice = createSlice({
       })
       .addCase(fetchAllRequests.fulfilled, (state, action) => {
         state.loading = false;
-        state.requests = action.payload;
+        state.requests = action.payload.data; // 🆕 Extract data
+        state.meta = action.payload.meta; // 🆕 Store meta
       })
       .addCase(fetchAllRequests.rejected, (state, action) => {
         state.loading = false;
@@ -321,9 +351,10 @@ const requestSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(createRequest.fulfilled, (state, action) => {
+      .addCase(createRequest.fulfilled, (state) => {
         state.loading = false;
-        state.requests.push(action.payload);
+        // 🆕 Don't push to array - refetch will handle it
+        // state.requests.push(action.payload);
       })
       .addCase(createRequest.rejected, (state, action) => {
         state.loading = false;
@@ -357,6 +388,22 @@ const requestSlice = createSlice({
       }
     });
 
+    // Reassign technician
+    builder.addCase(reassignTechnician.fulfilled, (state, action) => {
+      const index = state.requests.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.requests[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
+    });
+
+    // Reassignment history
+    builder.addCase(fetchReassignmentHistory.fulfilled, (state, action) => {
+      state.reassignmentHistory = action.payload;
+    });
+
     // Fetch my tasks
     builder.addCase(fetchMyTasks.fulfilled, (state, action) => {
       state.myTasks = action.payload;
@@ -370,6 +417,39 @@ const requestSlice = createSlice({
     // Fetch stats
     builder.addCase(fetchMyStats.fulfilled, (state, action) => {
       state.stats = action.payload;
+    });
+
+    // Start work
+    builder.addCase(startWork.fulfilled, (state, action) => {
+      const index = state.myTasks.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.myTasks[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
+    });
+
+    // Stop work
+    builder.addCase(stopWork.fulfilled, (state, action) => {
+      const index = state.myTasks.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.myTasks[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
+    });
+
+    // Acknowledge completion
+    builder.addCase(acknowledgeCompletion.fulfilled, (state, action) => {
+      const index = state.requests.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.requests[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
     });
   },
 });

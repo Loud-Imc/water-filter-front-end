@@ -39,10 +39,11 @@ import { customerService } from "../../api/services/customerService";
 import { regionService } from "../../api/services/regionService";
 import type { Customer, Region, CreateCustomerDto } from "../../types";
 import { SearchableSelect } from "../../components/common/SearchableSelect";
+import { Pagination } from "@mui/material";
 
 const CustomerManagement: React.FC = () => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  // const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,11 @@ const CustomerManagement: React.FC = () => {
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+
   const [formData, setFormData] = useState<CreateCustomerDto>({
     name: "",
     address: "",
@@ -74,62 +80,69 @@ const CustomerManagement: React.FC = () => {
     severity: "success" as any,
   });
 
-  const fetchData = async () => {
-    try {
-      const [customersData, regionsData] = await Promise.all([
-        customerService.getAllCustomers(),
-        regionService.getAllRegions(),
-      ]);
-      setCustomers(customersData);
-      setFilteredCustomers(customersData);
-      setRegions(regionsData);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      setSnackbar({
-        open: true,
-        message: "Failed to load data",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchData = async (currentPage: number = page) => {
+  setLoading(true);
+  try {
+    const [customersResponse, regionsData] = await Promise.all([
+      customerService.getAllCustomers(
+        currentPage,
+        limit,
+        selectedRegion !== "all" ? selectedRegion : undefined
+      ),
+      regionService.getAllRegions(),
+    ]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+    // setCustomers(customersResponse.data);
+    setFilteredCustomers(customersResponse.data);
+    setTotalCustomers(customersResponse.meta.total);
+    setTotalPages(customersResponse.meta.totalPages);
+    setRegions(regionsData);
+  } catch (error) {
+    console.error("Failed to fetch data:", error);
+    setSnackbar({
+      open: true,
+      message: "Failed to load data",
+      severity: "error",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
-  useEffect(() => {
+
+useEffect(() => {
+  if (searchQuery.trim()) {
+    // If searching, use applyFilters
     applyFilters();
-  }, [searchQuery, selectedRegion, customers]);
+  } else {
+    // If not searching, fetch paginated data
+    fetchData(page);
+  }
+}, [page, limit, selectedRegion, searchQuery]);
 
-  const applyFilters = async () => {
-    let results = [...customers];
-
-    if (searchQuery.trim()) {
-      setSearching(true);
-      try {
-        const searchResults = await customerService.searchCustomers(
-          searchQuery,
-          selectedRegion !== "all" ? selectedRegion : undefined
-        );
-        results = searchResults;
-      } catch (error) {
-        console.error("Search failed:", error);
-      } finally {
-        setSearching(false);
-      }
-    } else if (selectedRegion !== "all") {
-      results = results.filter((c) => c.regionId === selectedRegion);
+const applyFilters = async () => {
+  if (searchQuery.trim()) {
+    setSearching(true);
+    try {
+      const searchResults = await customerService.searchCustomers(
+        searchQuery,
+        selectedRegion !== "all" ? selectedRegion : undefined
+      );
+      setFilteredCustomers(searchResults);
+      setTotalPages(0); // Disable pagination during search
+    } catch (error) {
+      console.error("Search failed:", error);
+    } finally {
+      setSearching(false);
     }
+  }
+};
 
-    setFilteredCustomers(results);
-  };
 
   const handleClearFilters = () => {
     setSearchQuery("");
     setSelectedRegion("all");
-    setFilteredCustomers(customers);
+    setPage(1);
   };
 
   const hasActiveFilters = searchQuery.trim() || selectedRegion !== "all";
@@ -190,33 +203,35 @@ const CustomerManagement: React.FC = () => {
     });
   };
 
-  const handleSave = async () => {
-    try {
-      if (selectedCustomer) {
-        await customerService.updateCustomer(selectedCustomer.id, formData);
-        setSnackbar({
-          open: true,
-          message: "Customer updated successfully!",
-          severity: "success",
-        });
-      } else {
-        await customerService.createCustomer(formData);
-        setSnackbar({
-          open: true,
-          message: "Customer created successfully!",
-          severity: "success",
-        });
-      }
-      handleCloseDialog();
-      fetchData();
-    } catch (error: any) {
+ const handleSave = async () => {
+  try {
+    if (selectedCustomer) {
+      await customerService.updateCustomer(selectedCustomer.id, formData);
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || "Operation failed",
-        severity: "error",
+        message: "Customer updated successfully!",
+        severity: "success",
       });
+      fetchData(page); // ✅ Stay on current page
+    } else {
+      await customerService.createCustomer(formData);
+      setSnackbar({
+        open: true,
+        message: "Customer created successfully!",
+        severity: "success",
+      });
+      setPage(1); // ✅ Go to first page (useEffect will fetch)
     }
-  };
+    handleCloseDialog();
+  } catch (error: any) {
+    setSnackbar({
+      open: true,
+      message: error.response?.data?.message || "Operation failed",
+      severity: "error",
+    });
+  }
+};
+
 
   const handleDelete = async () => {
     if (selectedCustomer) {
@@ -363,9 +378,12 @@ const CustomerManagement: React.FC = () => {
           <Typography variant="caption" color="text.secondary">
             {searching ? (
               "Searching..."
+            ) : searchQuery ? (
+              <>Showing {filteredCustomers.length} results</>
             ) : (
               <>
-                Showing {filteredCustomers.length} of {customers.length}{" "}
+                Showing {(page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, totalCustomers)} of {totalCustomers}{" "}
                 customers
               </>
             )}
@@ -473,6 +491,45 @@ const CustomerManagement: React.FC = () => {
               </ListItem>
             ))}
           </List>
+
+          {/* Pagination */}
+          {filteredCustomers.length > 0 && !searchQuery && totalPages > 1 && (
+            <Box
+              sx={{
+                mt: 3,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+
+              <TextField
+                select
+                size="small"
+                label="Per page"
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                sx={{ width: 100 }}
+              >
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+              </TextField>
+            </Box>
+          )}
         </Card>
       )}
 

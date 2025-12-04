@@ -244,7 +244,7 @@ const EditUser: React.FC = () => {
         severity: "success",
       });
 
-      setTimeout(() => navigate("/users"), 2000);
+      // setTimeout(() => navigate("/users"), 2000);
     } catch (error: any) {
       setSnackbar({
         open: true,

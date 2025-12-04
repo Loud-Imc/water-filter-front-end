@@ -11,7 +11,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  LinearProgress,
+  // LinearProgress,
   InputAdornment,
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
@@ -23,7 +23,8 @@ import * as yup from "yup";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+// import DeleteIcon from "@mui/icons-material/Delete";
+// import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { createRequest } from "../../app/slices/requestSlice";
 import PageHeader from "../../components/common/PageHeader";
@@ -33,8 +34,10 @@ import QuickAddCustomerDialog from "../../components/customer/QuickAddCustomerDi
 import QuickAddRegionDialog from "../../components/region/QuickAddRegionDialog";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { installationService } from "../../api/services/installationService";
-import { requestService } from "../../api/services/requestService";
-import type { TechnicianWithWorkload, Installation } from "../../types";
+// import { requestService } from "../../api/services/requestService";
+import type { 
+  // TechnicianWithWorkload, 
+  Installation } from "../../types";
 import axiosInstance from "../../api/axios";
 import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -44,9 +47,14 @@ import CategoryIcon from "@mui/icons-material/Category";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import QuickAddTechnicianDialog from "../../components/services/QuickAddTechnicianDialog";
+import { productService } from "../../api/services/productService";
+import { sparePartsService } from "../../api/services/sparePartsService";
+import type { Product, SparePart } from "../../types";
+import Autocomplete from "@mui/material/Autocomplete";
 
 // Validation schema with proper enum types
 // ✅ UPDATED: Add optional installationId
+
 const serviceRequestSchema = yup.object().shape({
   type: yup
     .string()
@@ -71,6 +79,14 @@ const serviceRequestSchema = yup.object().shape({
   adminNotes: yup.string().optional(),
 });
 
+interface SelectedItem {
+  id: string;
+  type: "product" | "sparePart";
+  name: string;
+  quantity: number;
+  price: number;
+  stock: number;
+}
 interface FormData {
   type:
     | "SERVICE"
@@ -107,17 +123,30 @@ const CreateServiceRequest: React.FC = () => {
   const [customerDialog, setCustomerDialog] = useState(false);
   const [regionDialog, setRegionDialog] = useState(false);
   const [installationDialog, setInstallationDialog] = useState(false);
-  const [technicians, setTechnicians] = useState<TechnicianWithWorkload[]>([]);
-  const [loadingTechnicians, setLoadingTechnicians] = useState(false);
+  // const [technicians, setTechnicians] = useState<TechnicianWithWorkload[]>([]);
+  // const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [installations, setInstallations] = useState<Installation[]>([]); // ✅ NEW
   const [loadingInstallations, setLoadingInstallations] = useState(false); // ✅ NEW
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [showAllTechnicians, setShowAllTechnicians] = useState(false); // Toggle for all regions
   const [technicianDialog, setTechnicianDialog] = useState(false); // Quick add technician dialog
-  const [allTechnicians, setAllTechnicians] = useState<
-    TechnicianWithWorkload[]
-  >([]); // All technicians (any region)
+  // const [allTechnicians, setAllTechnicians] = useState<
+  //   TechnicianWithWorkload[]
+  // >([]); // All technicians (any region)
+
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allSpareParts, setAllSpareParts] = useState<SparePart[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingSpareParts, setLoadingSpareParts] = useState(false);
+
+  // 🆕 NEW: Selected items state
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [selectType, setSelectType] = useState<"product" | "sparePart">(
+    "product"
+  );
+  const [tempSelectedId, setTempSelectedId] = useState<string>("");
+  const [tempQuantity, setTempQuantity] = useState<number>(1);
 
   const [selectedCustomerName, setSelectedCustomerName] = useState(
     prefilledData?.customerName || ""
@@ -135,10 +164,128 @@ const CreateServiceRequest: React.FC = () => {
     severity: "success" as "success" | "error",
   });
 
+  // Fetch products
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const data = await productService.getAllProducts();
+      setAllProducts(data.filter((p) => p.stock > 0));
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  // Fetch spare parts
+  const fetchSpareParts = async () => {
+    setLoadingSpareParts(true);
+    try {
+      const data = await sparePartsService.getAll();
+      setAllSpareParts(data.filter((sp) => sp.stock > 0));
+    } catch (error) {
+      console.error("Failed to fetch spare parts:", error);
+    } finally {
+      setLoadingSpareParts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+    fetchSpareParts();
+  }, []);
+
+  // Add item to list
+  const handleAddItem = () => {
+    if (!tempSelectedId || tempQuantity < 1) return;
+
+    // Check if already added
+    if (
+      selectedItems.some(
+        (item) => item.id === tempSelectedId && item.type === selectType
+      )
+    ) {
+      alert(
+        `This ${
+          selectType === "product" ? "product" : "spare part"
+        } is already added`
+      );
+      return;
+    }
+
+    const list = selectType === "product" ? allProducts : allSpareParts;
+    const item = list.find((i) => i.id === tempSelectedId);
+    if (!item) return;
+
+    // Validate quantity
+    if (tempQuantity > item.stock) {
+      alert(`Quantity exceeds available stock. Maximum: ${item.stock}`);
+      return;
+    }
+
+    const newItem: SelectedItem = {
+      id: item.id,
+      type: selectType,
+      name: item.name,
+      quantity: tempQuantity,
+      price: Number(item.price),
+      stock: item.stock,
+    };
+
+    setSelectedItems([...selectedItems, newItem]);
+    setTempSelectedId("");
+    setTempQuantity(1);
+  };
+
+  // Remove item from list
+  const handleRemoveItem = (id: string, type: "product" | "sparePart") => {
+    setSelectedItems(
+      selectedItems.filter((item) => !(item.id === id && item.type === type))
+    );
+  };
+
+  // Calculate total cost
+  // const totalCost = selectedItems.reduce(
+  //   (sum, item) => sum + item.price * item.quantity,
+  //   0
+  // );
+
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // 🆕 Auto-update description when items are added/removed
+  useEffect(() => {
+    if (selectedItems.length === 0) return;
+
+    const products = selectedItems.filter((i) => i.type === "product");
+    const spareParts = selectedItems.filter((i) => i.type === "sparePart");
+
+    let itemsText = "";
+
+    if (products.length > 0) {
+      itemsText += "\n\n📦 Products:\n";
+      products.forEach((item) => {
+        itemsText += `• ${item.name} (Qty: ${item.quantity})\n`;
+      });
+    }
+
+    if (spareParts.length > 0) {
+      itemsText += "\n🔧 Spare Parts:\n";
+      spareParts.forEach((item) => {
+        itemsText += `• ${item.name} (Qty: ${item.quantity})\n`;
+      });
+    }
+
+    // Get current description without the items section
+    const currentDesc = watch("description") || "";
+    const baseDesc = currentDesc.split("\n\n📦")[0].split("\n\n🔧")[0].trim();
+
+    // Append items to description
+    setValue("description", baseDesc + itemsText);
+  }, [selectedItems]);
 
   const fetchCategories = async () => {
     setLoadingCategories(true);
@@ -178,11 +325,11 @@ const CreateServiceRequest: React.FC = () => {
   const watchCustomerId = watch("customerId"); // ✅ NEW
 
   // Fetch technicians when region changes
-  useEffect(() => {
-    if (watchRegionId) {
-      fetchTechnicians(watchRegionId);
-    }
-  }, [watchRegionId]);
+  // useEffect(() => {
+  //   if (watchRegionId) {
+  //     fetchTechnicians(watchRegionId);
+  //   }
+  // }, [watchRegionId]);
 
   useEffect(() => {
     if (watchCustomerId) {
@@ -194,60 +341,60 @@ const CreateServiceRequest: React.FC = () => {
   }, [watchCustomerId]);
 
   // Fetch technicians with workload
-  const fetchTechnicians = async (regionId: string) => {
-    setLoadingTechnicians(true);
-    try {
-      const data = await requestService.getTechniciansWithWorkload(regionId);
-      setTechnicians(data);
-    } catch (error) {
-      console.error("Failed to fetch technicians:", error);
-      setSnackbar({
-        open: true,
-        message: "Failed to load technicians",
-        severity: "error",
-      });
-    } finally {
-      setLoadingTechnicians(false);
-    }
-  };
+  // const fetchTechnicians = async (regionId: string) => {
+  //   setLoadingTechnicians(true);
+  //   try {
+  //     const data = await requestService.getTechniciansWithWorkload(regionId);
+  //     setTechnicians(data);
+  //   } catch (error) {
+  //     console.error("Failed to fetch technicians:", error);
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Failed to load technicians",
+  //       severity: "error",
+  //     });
+  //   } finally {
+  //     setLoadingTechnicians(false);
+  //   }
+  // };
 
   // 🆕 NEW: Fetch all technicians (from any region)
-  const fetchAllTechnicians = async () => {
-    setLoadingTechnicians(true);
-    try {
-      // Call backend without regionId to get all technicians
-      const data = await requestService.getTechniciansWithWorkload();
-      setAllTechnicians(data);
-    } catch (error) {
-      console.error("Failed to fetch all technicians:", error);
-      setSnackbar({
-        open: true,
-        message: "Failed to load technicians",
-        severity: "error",
-      });
-    } finally {
-      setLoadingTechnicians(false);
-    }
-  };
+  // const fetchAllTechnicians = async () => {
+  //   setLoadingTechnicians(true);
+  //   try {
+  //     // Call backend without regionId to get all technicians
+  //     const data = await requestService.getTechniciansWithWorkload();
+  //     setAllTechnicians(data);
+  //   } catch (error) {
+  //     console.error("Failed to fetch all technicians:", error);
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Failed to load technicians",
+  //       severity: "error",
+  //     });
+  //   } finally {
+  //     setLoadingTechnicians(false);
+  //   }
+  // };
 
   // 🆕 NEW: Fetch all technicians when toggle is enabled
-  useEffect(() => {
-    if (showAllTechnicians) {
-      fetchAllTechnicians();
-    }
-  }, [showAllTechnicians]);
+  // useEffect(() => {
+  //   if (showAllTechnicians) {
+  //     fetchAllTechnicians();
+  //   }
+  // }, [showAllTechnicians]);
 
   // 🆕 NEW: Handle technician created
   const handleTechnicianCreated = async (technicianId: string) => {
     setValue("assignedToId", technicianId);
 
-    // Refresh technician lists
-    if (watchRegionId) {
-      await fetchTechnicians(watchRegionId);
-    }
-    if (showAllTechnicians) {
-      await fetchAllTechnicians();
-    }
+    // // Refresh technician lists
+    // if (watchRegionId) {
+    //   await fetchTechnicians(watchRegionId);
+    // }
+    // if (showAllTechnicians) {
+    //   await fetchAllTechnicians();
+    // }
 
     setSnackbar({
       open: true,
@@ -286,7 +433,6 @@ const CreateServiceRequest: React.FC = () => {
     setSelectedCustomerName(customerName);
 
     // Fetch technicians for the selected region
-    fetchTechnicians(regionId);
     fetchInstallations(customerId); // ✅ NEW: Fetch installations for new customer
   };
 
@@ -296,7 +442,7 @@ const CreateServiceRequest: React.FC = () => {
     try {
       const response = await axiosInstance.get(`/regions/${regionId}`);
       setSelectedRegionName(response.data.name);
-      fetchTechnicians(regionId);
+      // fetchTechnicians(regionId);
     } catch (error) {
       console.error("Failed to fetch region details:", error);
     }
@@ -861,10 +1007,8 @@ const CreateServiceRequest: React.FC = () => {
               )}
 
               {/* Technician Assignment */}
-
-              {/* Technician Assignment */}
               <Box>
-                {/* 🆕 Toggle to show all technicians */}
+                {/* Toggle and Quick Add Button */}
                 <Box
                   sx={{
                     display: "flex",
@@ -890,7 +1034,6 @@ const CreateServiceRequest: React.FC = () => {
                     }
                   />
 
-                  {/* 🆕 Quick Add Technician Button */}
                   <Tooltip title="Create new technician">
                     <IconButton
                       color="primary"
@@ -907,16 +1050,19 @@ const CreateServiceRequest: React.FC = () => {
                   </Tooltip>
                 </Box>
 
+                {/* 🆕 Searchable Technician Dropdown */}
                 <Controller
                   name="assignedToId"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      required
-                      label="Assign to Technician"
+                    <SearchableSelect
+                      label="Assign to Technician *"
+                      value={field.value ?? null}
+                      onChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      endpoint="/service-requests/technicians/workload"
+                      placeholder="Type to search technician..."
                       error={!!formErrors.assignedToId}
                       helperText={
                         formErrors.assignedToId?.message ||
@@ -924,118 +1070,97 @@ const CreateServiceRequest: React.FC = () => {
                           ? "Showing all technicians (any region)"
                           : "Showing technicians from selected region only")
                       }
-                      disabled={!watchRegionId || loadingTechnicians}
-                      InputProps={{
-                        startAdornment: (
-                          <AssignmentIndIcon
-                            sx={{ mr: 1, color: "action.active" }}
-                          />
-                        ),
+                      disabled={!watchRegionId 
+                        // || loadingTechnicians
+                      }
+                      filters={{
+                        regionId: showAllTechnicians
+                          ? undefined
+                          : watchRegionId,
                       }}
-                    >
-                      {loadingTechnicians ? (
-                        <MenuItem disabled>
-                          <LinearProgress sx={{ width: "100%" }} />
-                        </MenuItem>
-                      ) : (showAllTechnicians ? allTechnicians : technicians)
-                          .length === 0 ? (
-                        <MenuItem disabled>
-                          {showAllTechnicians
-                            ? "No technicians available"
-                            : "No technicians in this region"}
-                        </MenuItem>
-                      ) : (
-                        (showAllTechnicians ? allTechnicians : technicians).map(
-                          (tech) => (
-                            <MenuItem key={tech.id} value={tech.id}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  width: "100%",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                {/* Left: Name and Region */}
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography variant="body2" fontWeight={500}>
-                                    {tech.name}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {tech.region?.name || "N/A"}
-                                    {/* 🆕 Show region prominently when showing all technicians */}
-                                    {showAllTechnicians &&
-                                      tech.regionId !== watchRegionId && (
-                                        <Chip
-                                          label="Different Region"
-                                          size="small"
-                                          color="warning"
-                                          sx={{
-                                            ml: 1,
-                                            height: 16,
-                                            fontSize: "0.65rem",
-                                          }}
-                                        />
-                                      )}
-                                  </Typography>
-                                </Box>
-
-                                {/* Right: Badges */}
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    gap: 0.5,
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  {/* Technician Type Badge */}
+                      renderOption={(option: any) => (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          {/* Left: Name and Region */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {option.region?.name || "N/A"}
+                              {showAllTechnicians &&
+                                option.regionId !== watchRegionId && (
                                   <Chip
-                                    icon={
-                                      tech.isExternal ? (
-                                        <BusinessIcon />
-                                      ) : (
-                                        <PersonIcon />
-                                      )
-                                    }
-                                    label={
-                                      tech.isExternal ? "External" : "In-House"
-                                    }
+                                    label="Different Region"
                                     size="small"
-                                    color={
-                                      tech.isExternal ? "warning" : "primary"
-                                    }
-                                    variant="outlined"
+                                    color="warning"
                                     sx={{
-                                      height: 20,
-                                      fontSize: "0.7rem",
-                                      "& .MuiChip-icon": { fontSize: 14 },
+                                      ml: 1,
+                                      height: 16,
+                                      fontSize: "0.65rem",
                                     }}
                                   />
+                                )}
+                            </Typography>
+                          </Box>
 
-                                  {/* Pending Tasks Badge */}
-                                  <Chip
-                                    label={`${tech.pendingTasks} pending`}
-                                    size="small"
-                                    color={
-                                      tech.pendingTasks === 0
-                                        ? "success"
-                                        : tech.pendingTasks <= 2
-                                        ? "warning"
-                                        : "error"
-                                    }
-                                    sx={{ height: 20, fontSize: "0.7rem" }}
-                                  />
-                                </Box>
-                              </Box>
-                            </MenuItem>
-                          )
-                        )
+                          {/* Right: Badges */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 0.5,
+                              alignItems: "center",
+                            }}
+                          >
+                            {/* Technician Type Badge */}
+                            <Chip
+                              icon={
+                                option.isExternal ? (
+                                  <BusinessIcon />
+                                ) : (
+                                  <PersonIcon />
+                                )
+                              }
+                              label={
+                                option.isExternal ? "External" : "In-House"
+                              }
+                              size="small"
+                              color={option.isExternal ? "warning" : "primary"}
+                              variant="outlined"
+                              sx={{
+                                height: 20,
+                                fontSize: "0.7rem",
+                                "& .MuiChip-icon": { fontSize: 14 },
+                              }}
+                            />
+
+                            {/* Pending Tasks Badge */}
+                            <Chip
+                              label={`${option.pendingTasks || 0} pending`}
+                              size="small"
+                              color={
+                                (option.pendingTasks || 0) === 0
+                                  ? "success"
+                                  : (option.pendingTasks || 0) <= 2
+                                  ? "warning"
+                                  : "error"
+                              }
+                              sx={{ height: 20, fontSize: "0.7rem" }}
+                            />
+                          </Box>
+                        </Box>
                       )}
-                    </TextField>
+                    />
                   )}
                 />
               </Box>
@@ -1092,8 +1217,29 @@ const CreateServiceRequest: React.FC = () => {
                 />
               </Box>
 
-              {/* Description */}
+              {/* Description Field - Move this AFTER the items section */}
               <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    multiline
+                    rows={6}
+                    label="Description *"
+                    placeholder="Describe the service request..."
+                    error={!!formErrors.description}
+                    helperText={
+                      formErrors.description?.message ||
+                      "Items will be appended automatically"
+                    }
+                  />
+                )}
+              />
+
+              {/* Description */}
+              {/* <Controller
                 name="description"
                 control={control}
                 render={({ field }) => (
@@ -1109,7 +1255,164 @@ const CreateServiceRequest: React.FC = () => {
                     helperText={formErrors.description?.message}
                   />
                 )}
-              />
+              /> */}
+
+              {/* =============================================== */}
+              {/* 🆕 NEW: Products & Spare Parts Section */}
+              {/* =============================================== */}
+              <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  Add Products & Spare Parts (Optional)
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  sx={{ mb: 2 }}
+                >
+                  Items will be added to the description automatically
+                </Typography>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {/* Select Type */}
+                  <TextField
+                    select
+                    label="Item Type"
+                    value={selectType}
+                    onChange={(e) => {
+                      setSelectType(e.target.value as "product" | "sparePart");
+                      setTempSelectedId("");
+                      setTempQuantity(1);
+                    }}
+                    size="small"
+                  >
+                    <MenuItem value="product">Product</MenuItem>
+                    <MenuItem value="sparePart">Spare Part</MenuItem>
+                  </TextField>
+
+                  <Grid container spacing={2}>
+                    {/* Item Selector */}
+                    <Grid size={{ xs: 12, md: 8 }}>
+                      <Autocomplete
+                        fullWidth
+                        options={
+                          selectType === "product" ? allProducts : allSpareParts
+                        }
+                        getOptionLabel={(option) => option.name}
+                        value={
+                          (selectType === "product"
+                            ? allProducts
+                            : allSpareParts
+                          ).find((item) => item.id === tempSelectedId) || null
+                        }
+                        onChange={(_, newValue) => {
+                          setTempSelectedId(newValue?.id || "");
+                        }}
+                        loading={
+                          selectType === "product"
+                            ? loadingProducts
+                            : loadingSpareParts
+                        }
+                        renderOption={(props, option) => {
+                          const { key, ...otherProps } = props as any;
+                          return (
+                            <li key={option.id} {...otherProps}>
+                              <Box sx={{ width: "100%" }}>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {option.name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Available: {option.stock} • Price: ₹
+                                  {Number(option.price).toFixed(2)}
+                                </Typography>
+                              </Box>
+                            </li>
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={`Select ${
+                              selectType === "product"
+                                ? "Product"
+                                : "Spare Part"
+                            }`}
+                            placeholder="Type to search..."
+                            size="small"
+                          />
+                        )}
+                        noOptionsText="No items available"
+                      />
+                    </Grid>
+
+                    {/* Quantity */}
+                    <Grid size={{ xs: 8, md: 3 }}>
+                      <TextField
+                        type="number"
+                        label="Quantity"
+                        value={tempQuantity}
+                        onChange={(e) =>
+                          setTempQuantity(Math.max(1, Number(e.target.value)))
+                        }
+                        inputProps={{ min: 1 }}
+                        size="small"
+                        fullWidth
+                        disabled={!tempSelectedId}
+                      />
+                    </Grid>
+
+                    {/* Add Button */}
+                    <Grid size={{ xs: 4, md: 1 }}>
+                      <IconButton
+                        color="primary"
+                        onClick={handleAddItem}
+                        disabled={!tempSelectedId || tempQuantity < 1}
+                        sx={{
+                          border: 1,
+                          borderColor: "primary.main",
+                          borderRadius: 1,
+                          width: "100%",
+                          height: "40px",
+                        }}
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Selected Items Preview */}
+                {selectedItems.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      Selected Items ({selectedItems.length}):
+                    </Typography>
+                    <Box
+                      sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}
+                    >
+                      {selectedItems.map((item, index) => (
+                        <Chip
+                          key={`${item.type}-${item.id}-${index}`}
+                          label={`${item.name} (${item.quantity})`}
+                          onDelete={() => handleRemoveItem(item.id, item.type)}
+                          size="small"
+                          color={
+                            item.type === "product" ? "primary" : "secondary"
+                          }
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
 
               {/* Error Display */}
               {error && (
