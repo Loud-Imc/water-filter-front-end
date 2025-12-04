@@ -417,7 +417,7 @@ const ServiceRequestDetail: React.FC = () => {
     for (const file of selectedFiles) {
       // 🆕 Compress image before upload
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 2,
+        maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       });

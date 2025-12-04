@@ -289,6 +289,7 @@ export const uploadWorkMedia = createAsyncThunk(
     try {
       return await requestService.uploadWorkMedia(requestId, file);
     } catch (error: any) {
+      console.error("Upload Media Error:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to upload media"
       );
