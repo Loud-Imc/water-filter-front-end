@@ -131,6 +131,16 @@ const ServiceRequestDetail: React.FC = () => {
   const [technicianStock, setTechnicianStock] = useState<TechnicianStock[]>([]);
   const [reassignDialog, setReassignDialog] = useState(false);
   const [reassignForReworkDialog, setReassignForReworkDialog] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as any,
+  });
+  const [customerLocation, setCustomerLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
@@ -184,16 +194,6 @@ const ServiceRequestDetail: React.FC = () => {
     setHistoryModalOpen(false);
     setCustomerHistory(null);
   };
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as any,
-  });
-  const [customerLocation, setCustomerLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
 
   // ✅ useEffect to set customerLocation when request loads
   useEffect(() => {
@@ -397,8 +397,6 @@ const ServiceRequestDetail: React.FC = () => {
       });
     }
   };
-
-  const [compressing, setCompressing] = useState(false);
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
