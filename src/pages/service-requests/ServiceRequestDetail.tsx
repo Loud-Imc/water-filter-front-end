@@ -77,8 +77,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import { TransitionProps } from "@mui/material/transitions";
 import ServiceHistoryTimeline from "../../components/customer/ServiceHistoryTimeline";
 import { technicianStockService } from "../../api/services/technicianStockService";
-import imageCompression from 'browser-image-compression';
-
+import imageCompression from "browser-image-compression";
 
 interface UsedItem {
   type: "product" | "sparePart";
@@ -399,51 +398,96 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const filesArray = Array.from(event.target.files);
-      setSelectedFiles((prev) => [...prev, ...filesArray]);
+  const [compressing, setCompressing] = useState(false);
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setCompressing(true);
+
+    try {
+      const compressedFiles: File[] = [];
+      let totalOriginalSize = 0;
+      let totalCompressedSize = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        totalOriginalSize += file.size;
+
+        const compressedFile = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1280,
+          useWebWorker: true,
+          fileType: "image/jpeg",
+          initialQuality: 0.8,
+        });
+
+        totalCompressedSize += compressedFile.size;
+        compressedFiles.push(compressedFile);
+      }
+
+      // const savedPercentage = (
+      //   ((totalOriginalSize - totalCompressedSize) / totalOriginalSize) *
+      //   100
+      // ).toFixed(0);
+
+      setSelectedFiles([...selectedFiles, ...compressedFiles]);
+
+      // setSnackbar({
+      //   open: true,
+      //   message: `${compressedFiles.length} image(s) optimized (${savedPercentage}% smaller)`,
+      //   severity: "success",
+      // });
+
+      event.target.value = "";
+    } catch (error) {
+      console.error("Error processing images:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to process images. Please try again.",
+        severity: "error",
+      });
+    } finally {
+      setCompressing(false);
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
   };
 
- const handleFileUpload = async () => {
-  if (!request.id || selectedFiles.length === 0) return;
+  const handleFileUpload = async () => {
+    if (!request.id || selectedFiles.length === 0) return;
 
-  try {
-    for (const file of selectedFiles) {
-      // 🆕 Compress image before upload
-      const compressedFile = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
+    try {
+      // ✅ Files are ALREADY compressed, just upload
+      for (const file of selectedFiles) {
+        console.log("📤 Uploading:", (file.size / 1024).toFixed(0) + " KB");
+
+        await dispatch(
+          uploadWorkMedia({ requestId: request.id, file })
+        ).unwrap();
+      }
+
+      setSnackbar({
+        open: true,
+        message: `${selectedFiles.length} image(s) uploaded successfully!`,
+        severity: "success",
       });
-
-      await dispatch(
-        uploadWorkMedia({ requestId: request.id, file: compressedFile })
-      ).unwrap();
+      setUploadDialog(false);
+      setSelectedFiles([]);
+      await dispatch(fetchRequestById(request.id));
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error || "Failed to upload images",
+        severity: "error",
+      });
     }
-
-    setSnackbar({
-      open: true,
-      message: `${selectedFiles.length} image(s) uploaded successfully!`,
-      severity: "success",
-    });
-    setUploadDialog(false);
-    setSelectedFiles([]);
-    await dispatch(fetchRequestById(request.id));
-  } catch (error: any) {
-    setSnackbar({
-      open: true,
-      message: error || "Failed to upload images",
-      severity: "error",
-    });
-  }
-};
-
+  };
 
   const handleAcknowledge = async () => {
     try {
@@ -1199,7 +1243,7 @@ const ServiceRequestDetail: React.FC = () => {
                     Description
                   </Typography>
 
-                  <Box sx={{ p: 2, bgcolor: 'grey.300', borderRadius: 1 }}>
+                  <Box sx={{ p: 2, bgcolor: "grey.300", borderRadius: 1 }}>
                     {(() => {
                       const lines = request.description.split("\n");
                       const sections: {
@@ -1383,9 +1427,12 @@ const ServiceRequestDetail: React.FC = () => {
                       </Typography>
                       {usedProducts.map((item, index) => {
                         const name =
-                          item.product?.name  || item.sparePart?.name || "N/A";
+                          item.product?.name || item.sparePart?.name || "N/A";
                         const quantity = item.quantityUsed;
-                        const company = item.product?.company || item.sparePart?.company || "N/A";
+                        const company =
+                          item.product?.company ||
+                          item.sparePart?.company ||
+                          "N/A";
                         return (
                           <Chip
                             key={`${item.id}-${index}`} // 🆕 More unique key
@@ -2254,15 +2301,22 @@ const ServiceRequestDetail: React.FC = () => {
               <Button
                 variant="contained"
                 component="label"
-                startIcon={<CameraAltIcon />}
+                startIcon={
+                  compressing ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <CameraAltIcon />
+                  )
+                }
                 fullWidth
+                disabled={compressing}
               >
-                Take Photo
+                {compressing ? "Processing..." : "Take Photo"}
                 <input
                   type="file"
                   hidden
                   accept="image/*"
-                  capture="environment" // ✅ Opens camera on mobile
+                  capture="environment"
                   onChange={handleFileSelect}
                 />
               </Button>
@@ -2270,10 +2324,13 @@ const ServiceRequestDetail: React.FC = () => {
               <Button
                 variant="outlined"
                 component="label"
-                startIcon={<UploadIcon />}
+                startIcon={
+                  compressing ? <CircularProgress size={20} /> : <UploadIcon />
+                }
                 fullWidth
+                disabled={compressing}
               >
-                Choose from Gallery
+                {compressing ? "Processing..." : "Choose from Gallery"}
                 <input
                   type="file"
                   hidden
@@ -2283,6 +2340,12 @@ const ServiceRequestDetail: React.FC = () => {
                 />
               </Button>
             </Stack>
+
+            {compressing && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Optimizing images for faster upload and storage...
+              </Alert>
+            )}
 
             {/* ✅ Image Previews */}
             {selectedFiles.length > 0 && (
