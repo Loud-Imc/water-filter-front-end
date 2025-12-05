@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
       <StockAlertBar userRole={user?.role.name} />
 
       {/* ✅ NEW: Excel Import Section (Only for Super Admin) */}
-      {isSuperAdmin && <ExcelImportSection />}
+      {/* {isSuperAdmin && <ExcelImportSection />} */}
 
       {/* Stats Grid */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
