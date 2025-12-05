@@ -7,7 +7,7 @@ import StatCard from "../../components/dashboard/StatCard";
 import RecentRequests from "../../components/dashboard/RecentRequests";
 import RequestsByType from "../../components/dashboard/RequestsByType";
 import StockAlertBar from "../../components/dashboard/StockAlertBar";
-import ExcelImportSection from "../../components/dashboard/ExcelImportSection"; // ✅ NEW
+// import ExcelImportSection from "../../components/dashboard/ExcelImportSection"; // ✅ NEW
 import ReportsSection from "../../components/dashboard/ReportsSection";
 
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
