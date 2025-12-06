@@ -92,8 +92,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     const newErrors: typeof errors = {};
 
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (formData.price < 1) newErrors.price = 'Price must be at least 1';
-    if (formData.stock < 1) newErrors.stock = 'Stock must be at least 1';
+    if (formData.price < 0) newErrors.price = 'Price cannot be negative';
+    if (formData.stock < 0) newErrors.stock = 'Stock cannot be negative';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
