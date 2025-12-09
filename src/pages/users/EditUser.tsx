@@ -448,7 +448,7 @@ const EditUser: React.FC = () => {
                         label="Select Region (Optional)"
                         value={field.value || ""}
                         onChange={field.onChange}
-                        endpoint="/regions"
+                        endpoint="/regions/search"
                         placeholder="Search region..."
                         error={!!errors.regionId}
                         helperText={errors.regionId?.message}
