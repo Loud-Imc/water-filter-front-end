@@ -20,9 +20,8 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { createUser, fetchAssignableRoles } from "../../app/slices/userSlice";
 import PageHeader from "../../components/common/PageHeader";
 import SnackbarNotification from "../../components/common/SnackbarNotification";
+import { SearchableSelect } from "../../components/common/SearchableSelect"; // 🆕 Add this import
 import { userSchema } from "../../utils/validators";
-import { regionService } from "../../api/services/regionService";
-import { type Region } from "../../types";
 import BusinessIcon from "@mui/icons-material/Business";
 import PersonIcon from "@mui/icons-material/Person";
 
@@ -33,7 +32,7 @@ interface FormData {
   roleId: string;
   regionId?: string;
   phone: string;
-  isExternal?: boolean; // ✅ Add this
+  isExternal?: boolean;
 }
 
 const CreateUser: React.FC = () => {
@@ -41,33 +40,32 @@ const CreateUser: React.FC = () => {
   const dispatch = useAppDispatch();
   const { assignableRoles } = useAppSelector((state) => state.users);
   const { user } = useAppSelector((state) => state.auth);
-  const [selectedRoleName, setSelectedRoleName] = useState('')
+  const [selectedRoleName, setSelectedRoleName] = useState("");
 
-  const [regions, setRegions] = useState<Region[]>([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success" as any,
   });
 
-const {
-  control,
-  handleSubmit,
-  watch,
-  formState: { errors },
-} = useForm<FormData>({
-  resolver: yupResolver(userSchema),
-  context: { selectedRoleName }, // ⬅️ correct place
-  defaultValues: {
-    name: "",
-    email: "",
-    password: "",
-    roleId: "",
-    regionId: "",
-    phone: "",
-    isExternal: false,
-  },
-});
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(userSchema),
+    context: { selectedRoleName },
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      roleId: "",
+      regionId: "",
+      phone: "",
+      isExternal: false,
+    },
+  });
 
   // ✅ Watch the selected role
   const selectedRoleId = watch("roleId");
@@ -79,26 +77,16 @@ const {
   );
   const isTechnicianRole = selectedRole?.name === "Technician";
 
-useEffect(() => {
-  const foundRole = assignableRoles.find(role => role.id === selectedRoleId);
-  setSelectedRoleName(foundRole?.name || ""); // ⬅️ always update
-}, [selectedRoleId, assignableRoles]);
-
+  useEffect(() => {
+    const foundRole = assignableRoles.find(
+      (role) => role.id === selectedRoleId
+    );
+    setSelectedRoleName(foundRole?.name || "");
+  }, [selectedRoleId, assignableRoles]);
 
   useEffect(() => {
     dispatch(fetchAssignableRoles());
-
-    const fetchRegions = async () => {
-      try {
-        const data = await regionService.getAllRegions();
-        setRegions(data);
-      } catch (error) {
-        console.error("Failed to fetch regions:", error);
-      }
-    };
-    fetchRegions();
   }, [dispatch]);
-  
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -233,28 +221,38 @@ useEffect(() => {
                 />
               </Grid>
 
-              {/* Region */}
+              {/* 🆕 Region - Searchable (Only show if Technician) */}
               {isTechnicianRole && (
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name="regionId"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        select
-                        fullWidth
-                        label="Region"
+                      <SearchableSelect
+                        label="Select Region (Optional)"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        endpoint="/regions/search"
+                        placeholder="Search region..."
                         error={!!errors.regionId}
                         helperText={errors.regionId?.message}
-                      >
-                        <MenuItem value="">None</MenuItem>
-                        {regions.map((region) => (
-                          <MenuItem key={region.id} value={region.id}>
-                            {region.name}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                        renderOption={(option: any) => (
+                          <Box>
+                            <Typography variant="body1" fontWeight={500}>
+                              {option.name}
+                            </Typography>
+                            {option.district && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {option.district} • {option.city || "N/A"} •{" "}
+                                {option.pincode || "N/A"}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      />
                     )}
                   />
                 </Grid>
@@ -318,7 +316,6 @@ useEffect(() => {
                         : "🏠 This is an in-house technician (permanent staff member)"}
                     </Typography>
 
-                    {/* Visual Badge */}
                     <Box sx={{ mt: 2, ml: 4 }}>
                       <Chip
                         icon={
