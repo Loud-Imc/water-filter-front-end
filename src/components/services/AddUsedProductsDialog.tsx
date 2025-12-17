@@ -69,7 +69,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   const [selectedSource, setSelectedSource] = useState<
     "warehouse" | "technician"
   >("technician");
-  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
+  const [selectedQuantity, setSelectedQuantity] = useState<any>(1);
   const [selectedNotes, setSelectedNotes] = useState("");
   const [maxQuantity, setMaxQuantity] = useState<number>(0);
 
@@ -126,8 +126,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
       )
     ) {
       alert(
-        `This ${
-          selectType === "product" ? "product" : "spare part"
+        `This ${selectType === "product" ? "product" : "spare part"
         } from ${selectedSource} is already added`
       );
       return;
@@ -204,7 +203,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   // 🆕 Prepare options with availability info
   const getAvailableItems = () => {
     const list = selectType === "product" ? allProducts : allSpareParts;
-    
+
     return list.map((item) => {
       let availableQty = 0;
       if (selectedSource === "warehouse") {
@@ -304,9 +303,8 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label={`Select ${
-                  selectType === "product" ? "Product" : "Spare Part"
-                } *`}
+                label={`Select ${selectType === "product" ? "Product" : "Spare Part"
+                  } *`}
                 placeholder="Type to search..."
                 helperText="Search by name"
               />
@@ -325,19 +323,37 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
 
           {/* Quantity Input */}
           <TextField
-            type="number"
+            type="text"
             fullWidth
             label="Quantity Used *"
             value={selectedQuantity}
-            onChange={(e) =>
-              setSelectedQuantity(
-                Math.min(maxQuantity, Math.max(1, Number(e.target.value)))
-              )
-            }
-            inputProps={{ min: 1, max: maxQuantity }}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              // Allow empty string for editing
+              if (value === '') {
+                setSelectedQuantity('');
+                return;
+              }
+
+              // Only allow numeric input
+              const numericValue = value.replace(/[^0-9]/g, '');
+              if (numericValue) {
+                const num = Number(numericValue);
+                setSelectedQuantity(Math.min(maxQuantity, Math.max(1, num)));
+              }
+            }}
+            onBlur={(e) => {
+              // Ensure minimum value of 1 when user leaves the field
+              if (e.target.value === '' || Number(e.target.value) < 1) {
+                setSelectedQuantity(1);
+              }
+            }}
+            inputProps={{ inputMode: 'numeric' }}
             disabled={loading || !selectedId}
             helperText={selectedId ? `Max available: ${maxQuantity}` : ""}
           />
+
 
           {/* Notes */}
           <TextField
