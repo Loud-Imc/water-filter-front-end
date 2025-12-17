@@ -99,6 +99,13 @@ const Sidebar: React.FC = () => {
       icon: <HistoryIcon />,
       permissions: [PERMISSIONS.SERVICES_VIEW],
       roles: ["Technician"],
+    },
+    {
+      label: "My Stocks",
+      path: "/technician/my-stocks",
+      icon: <InventoryIcon />,
+      permissions: [PERMISSIONS.SERVICES_VIEW],
+      roles: ["Technician"],
       divider: true, // ✅ Separator after technician section
     },
 
@@ -132,29 +139,29 @@ const Sidebar: React.FC = () => {
     },
   ];
 
-const filteredMenuItems = menuItems.filter((item) => {
-  if (!user) return false;
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (!user) return false;
 
- if (
-  (item.label === "Service Requests" ||
-   item.label === "Products" ||
-   item.label === "Customer Management") &&
-  user.role.name === "Technician"
-) {
-  return false; // Hide these items for Technician role
-}
+    if (
+      (item.label === "Service Requests" ||
+        item.label === "Products" ||
+        item.label === "Customer Management") &&
+      user.role.name === "Technician"
+    ) {
+      return false; // Hide these items for Technician role
+    }
 
 
-  if (item.roles && !item.roles.includes(user.role.name)) {
-    return false;
-  }
+    if (item.roles && !item.roles.includes(user.role.name)) {
+      return false;
+    }
 
-  if (item.permissions) {
-    return hasAnyPermission(item.permissions);
-  }
+    if (item.permissions) {
+      return hasAnyPermission(item.permissions);
+    }
 
-  return true;
-});
+    return true;
+  });
 
 
   const handleNavigation = (path: string) => {
@@ -180,13 +187,13 @@ const filteredMenuItems = menuItems.filter((item) => {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
-                <img
-                  src={logoBigScreen}
-                  alt="Water Filter Logo"
-                  style={{ width: 160, height: 40 }}
-                />
-              </Box>
+            <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+              <img
+                src={logoBigScreen}
+                alt="Water Filter Logo"
+                style={{ width: 160, height: 40 }}
+              />
+            </Box>
           </Box>
           {isMobile && (
             <IconButton onClick={handleDrawerToggle} edge="end">

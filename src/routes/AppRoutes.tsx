@@ -16,6 +16,7 @@ import CreateServiceRequest from "../pages/service-requests/CreateServiceRequest
 import ServiceRequestDetail from "../pages/service-requests/ServiceRequestDetail";
 import MyTasks from "../pages/technician/MyTasks";
 import TaskHistory from "../pages/technician/TaskHistory";
+import MyStocks from "../pages/technician/MyStocks";
 import NotificationList from "../pages/notifications/NotificationList";
 import Unauthorized from "../pages/Unauthorized";
 import NotFound from "../pages/NotFound";
@@ -25,7 +26,7 @@ import ProductManagement from "../pages/ProductManagement/ProductManagement";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  
+
 
   return (
     <Routes>
@@ -185,6 +186,19 @@ const AppRoutes: React.FC = () => {
           >
             <Layout>
               <TaskHistory />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/technician/my-stocks"
+        element={
+          <ProtectedRoute
+            requiredPermissions={[PERMISSIONS.SERVICES_VIEW]}
+            allowedRoles={["Technician"]}
+          >
+            <Layout>
+              <MyStocks />
             </Layout>
           </ProtectedRoute>
         }
