@@ -88,4 +88,13 @@ export const sparePartsService = {
     });
     return data;
   },
+
+  // ✅ NEW: Return stock from technician
+  async returnFromTechnician(id: string, technicianId: string, quantity: number): Promise<any> {
+    const { data } = await axiosInstance.post(`/spare-parts/${id}/return-from-technician`, {
+      technicianId,
+      quantity,
+    });
+    return data;
+  },
 };
