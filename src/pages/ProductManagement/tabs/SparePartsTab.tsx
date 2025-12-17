@@ -98,7 +98,9 @@ const SparePartsTab: React.FC = () => {
   }, [filterParam]);
 
   const fetchData = async () => {
-    setLoading(true);
+    if (spareParts.length === 0) {
+      setLoading(true);
+    }
     try {
       const [sparePartsData, groupsData] = await Promise.all([
         sparePartsService.getAll(),
@@ -668,8 +670,9 @@ const SparePartsTab: React.FC = () => {
               setTechnicianStockDialog(false);
               setSelectedSparePart(null);
             }}
-            sparePartId={selectedSparePart.id}
-            sparePartName={selectedSparePart.name}
+            itemType="sparePart"
+            itemId={selectedSparePart.id}
+            itemName={selectedSparePart.name}
             warehouseStock={selectedSparePart.stock}
             technicians={technicians}
             onTransferComplete={fetchData}

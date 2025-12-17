@@ -28,6 +28,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import UpdateIcon from "@mui/icons-material/Update";
 import CategoryIcon from "@mui/icons-material/Category";
+import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -43,15 +44,21 @@ import { PermissionGate } from "../../../components/PermissionGate";
 import CategoryManagement from "../components/CategoryManagement";
 import ProductDialog from "../components/ProductDialog";
 import StockUpdateDialog from "../components/StockUpdateDialog";
+import TechnicianStockDialog from "../components/TechnicianStockDialog";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
+import { fetchTechnicians } from "../../../app/slices/userSlice";
 import { useLocation } from "react-router-dom";
 
 const ProductsTab: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { technicians } = useAppSelector((state) => state.users);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [productDialog, setProductDialog] = useState(false);
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [stockDialog, setStockDialog] = useState(false);
+  const [technicianStockDialog, setTechnicianStockDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -90,7 +97,9 @@ const ProductsTab: React.FC = () => {
   }, [filterParam]);
 
   const fetchData = async () => {
-    setLoading(true);
+    if (products.length === 0) {
+      setLoading(true);
+    }
     try {
       const [productsData, categoriesData] = await Promise.all([
         productService.getAllProducts(),
@@ -98,6 +107,7 @@ const ProductsTab: React.FC = () => {
       ]);
       setProducts(productsData);
       setCategories(categoriesData);
+      dispatch(fetchTechnicians({ query: "", limit: 100 }));
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setSnackbar({
@@ -553,6 +563,18 @@ const ProductsTab: React.FC = () => {
                     </TableCell>
                     <TableCell>{formatWarranty(product)}</TableCell>
                     <TableCell align="right">
+                      <PermissionGate permission={PERMISSIONS.STOCK_VIEW}>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setTechnicianStockDialog(true);
+                          }}
+                          title="View Technician Stock"
+                        >
+                          <PeopleIcon />
+                        </IconButton>
+                      </PermissionGate>
                       <PermissionGate permission={PERMISSIONS.STOCK_UPDATE}>
                         <IconButton
                           size="small"
@@ -561,6 +583,7 @@ const ProductsTab: React.FC = () => {
                             setStockDialog(true);
                           }}
                           title="Update Stock"
+                          sx={{ ml: 1 }}
                         >
                           <UpdateIcon />
                         </IconButton>
@@ -628,17 +651,33 @@ const ProductsTab: React.FC = () => {
       />
 
       {selectedProduct && (
-        <StockUpdateDialog
-          open={stockDialog}
-          onClose={() => {
-            setStockDialog(false);
-            setSelectedProduct(null);
-          }}
-          onUpdate={handleUpdateStock}
-          itemName={selectedProduct.name}
-          currentStock={selectedProduct.stock}
-          itemType="product"
-        />
+        <>
+          <StockUpdateDialog
+            open={stockDialog}
+            onClose={() => {
+              setStockDialog(false);
+              setSelectedProduct(null);
+            }}
+            onUpdate={handleUpdateStock}
+            itemName={selectedProduct.name}
+            currentStock={selectedProduct.stock}
+            itemType="product"
+          />
+
+          <TechnicianStockDialog
+            open={technicianStockDialog}
+            onClose={() => {
+              setTechnicianStockDialog(false);
+              setSelectedProduct(null);
+            }}
+            itemType="product"
+            itemId={selectedProduct.id}
+            itemName={selectedProduct.name}
+            warehouseStock={selectedProduct.stock}
+            technicians={technicians}
+            onTransferComplete={fetchData}
+          />
+        </>
       )}
 
       <ConfirmDialog
