@@ -24,7 +24,6 @@ import {
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import PageHeader from "../../components/common/PageHeader";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import EmptyState from "../../components/common/EmptyState";
 import { technicianStockService } from "../../api/services/technicianStockService";
@@ -235,14 +234,14 @@ const MyStocks: React.FC = () => {
 
     return (
         <Box>
-            <PageHeader
-                title="My Stocks"
-                action={
-                    <IconButton onClick={fetchStockData} color="primary">
-                        <RefreshIcon />
-                    </IconButton>
-                }
-            />
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                <Typography variant="h4" component="h1" fontWeight={600}>
+                    My Stocks
+                </Typography>
+                <IconButton onClick={fetchStockData} color="primary">
+                    <RefreshIcon />
+                </IconButton>
+            </Box>
 
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }}>
@@ -372,7 +371,7 @@ const MyStocks: React.FC = () => {
                                     }}
                                 >
                                     <Grid container spacing={2}>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="body2" color="text.secondary">
                                                 Total Products
                                             </Typography>
@@ -380,7 +379,7 @@ const MyStocks: React.FC = () => {
                                                 {productStock.length}
                                             </Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="body2" color="text.secondary">
                                                 Total Value
                                             </Typography>
@@ -491,7 +490,7 @@ const MyStocks: React.FC = () => {
                                     }}
                                 >
                                     <Grid container spacing={2}>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="body2" color="text.secondary">
                                                 Total Spare Parts
                                             </Typography>
@@ -499,7 +498,7 @@ const MyStocks: React.FC = () => {
                                                 {sparePartStock.length}
                                             </Typography>
                                         </Grid>
-                                        <Grid item xs={6}>
+                                        <Grid size={{ xs: 6 }}>
                                             <Typography variant="body2" color="text.secondary">
                                                 Total Value
                                             </Typography>
