@@ -10,21 +10,21 @@ interface UsedItem {
 }
 export const requestService = {
   // Get all service requests
-// In requestService.ts or wherever your API calls are
-async getAllRequests(page: number = 1, limit: number = 10, status?: string, userId?: string) {
-  const params = new URLSearchParams();
-  params.append('page', page.toString());
-  params.append('limit', limit.toString());
-  if (status && status !== 'ALL') {
-    params.append('status', status);
-  }
-  if (userId) {
-    params.append('userId', userId);
-  }
+  // In requestService.ts or wherever your API calls are
+  async getAllRequests(page: number = 1, limit: number = 10, status?: string, userId?: string) {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    if (status && status !== 'ALL') {
+      params.append('status', status);
+    }
+    if (userId) {
+      params.append('userId', userId);
+    }
 
-  const response = await axiosInstance.get(`/service-requests?${params.toString()}`);
-  return response.data;
-},
+    const response = await axiosInstance.get(`/service-requests?${params.toString()}`);
+    return response.data;
+  },
 
 
   //   async addUsedItems(requestId: string, usedItems: UsedItem[]): Promise<any> {
@@ -236,6 +236,18 @@ async getAllRequests(page: number = 1, limit: number = 10, status?: string, user
     return data;
   },
 
+  // Update description
+  async updateDescription(
+    id: string,
+    description: string
+  ): Promise<ServiceRequest> {
+    const { data } = await axiosInstance.patch(
+      API_ENDPOINTS.SERVICE_REQUESTS.UPDATE_DESCRIPTION(id),
+      { description }
+    );
+    return data;
+  },
+
   // Add used products
   // async addUsedProducts(
   //   requestId: string,
@@ -272,6 +284,25 @@ async getAllRequests(page: number = 1, limit: number = 10, status?: string, user
   async getUsedSpareParts(requestId: string): Promise<any[]> {
     const { data } = await axiosInstance.get(
       API_ENDPOINTS.SERVICE_REQUESTS.GET_USED_SPARE_PARTS(requestId)
+    );
+    return data;
+  },
+
+  async updateUsedItem(
+    requestId: string,
+    usedItemId: string,
+    quantityUsed: number
+  ): Promise<any> {
+    const { data } = await axiosInstance.patch(
+      `${API_ENDPOINTS.SERVICE_REQUESTS.BASE}/${requestId}/used-items/${usedItemId}`,
+      { quantityUsed }
+    );
+    return data;
+  },
+
+  async deleteUsedItem(requestId: string, usedItemId: string): Promise<any> {
+    const { data } = await axiosInstance.delete(
+      `${API_ENDPOINTS.SERVICE_REQUESTS.BASE}/${requestId}/used-items/${usedItemId}`
     );
     return data;
   },
