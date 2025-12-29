@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
     GET_USED_PRODUCTS: (id: string) => `/service-requests/${id}/used-products`,
     GET_USED_SPARE_PARTS: (id: string) => `/service-requests/${id}/used-spare-parts`,
     CUSTOMER_SERVICE_HISTORY: (id: string) => `/service-requests/${id}/customer-service-history`,
+    UPDATE_DESCRIPTION: (id: string) => `/service-requests/${id}/description`,
   },
   TECHNICIAN: {
     MY_TASKS: "/technicians/my-tasks",
@@ -63,7 +64,7 @@ export const API_ENDPOINTS = {
   UPLOADS: {
     WORK_MEDIA: (requestId: string) => `/uploads/work-media/${requestId}`,
   },
- 
+
   PRODUCTS: {
     BASE: "/products",
     BY_ID: (id: string) => `/products/${id}`,
@@ -126,15 +127,15 @@ export const API_ENDPOINTS = {
     COST_BREAKDOWN: (id: string) => `/assemblies/${id}/cost-breakdown`,
   },
 
-  SYSTEM_SETTINGS: {  
+  SYSTEM_SETTINGS: {
     BASE: '/system-settings',
-   GET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
+    GET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
     SET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
   },
 
-//   SYSTEM_SETTINGS: {  
-//   BASE: '/system-settings',
-//   GET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
-//   SET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
-// },
+  //   SYSTEM_SETTINGS: {  
+  //   BASE: '/system-settings',
+  //   GET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
+  //   SET_LOW_STOCK_THRESHOLD: '/system-settings/low-stock-threshold',
+  // },
 };

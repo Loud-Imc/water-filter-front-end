@@ -254,13 +254,12 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
               onChange={handleSourceChange}
               disabled={loading}
             >
-              {/* ⚠️ Warehouse Stock - Disabled for now, may be used later */}
-              {/* <MenuItem value="warehouse">
+              <MenuItem value="warehouse">
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarehouseIcon fontSize="small" />
                   Warehouse Stock
                 </Box>
-              </MenuItem> */}
+              </MenuItem>
 
               <MenuItem value="technician">
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

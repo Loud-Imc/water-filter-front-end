@@ -38,6 +38,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import UploadIcon from "@mui/icons-material/Upload";
 import TimerIcon from "@mui/icons-material/Timer";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchRequestById,
@@ -54,6 +55,8 @@ import PageHeader from "../../components/common/PageHeader";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import StatusChip from "../../components/common/StatusChip";
 import SnackbarNotification from "../../components/common/SnackbarNotification";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import PromptDialog from "../../components/common/PromptDialog";
 import { formatDate } from "../../utils/helpers";
 import { canApproveRequest, canAssignTechnician } from "../../utils/helpers";
 import { customerService } from "../../api/services/customerService";
@@ -141,6 +144,18 @@ const ServiceRequestDetail: React.FC = () => {
     latitude: number;
     longitude: number;
   } | null>(null);
+
+  // Dialog states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [editQtyOpen, setEditQtyOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<{ id: string; qty: number } | null>(
+    null
+  );
+
+  // Description edit state
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState("");
 
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
@@ -366,6 +381,83 @@ const ServiceRequestDetail: React.FC = () => {
       setSnackbar({
         open: true,
         message: error.response?.data?.message || "Failed to add used items",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleDeleteUsedItem = (usedItemId: string) => {
+    setItemToDelete(usedItemId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteUsedItem = async () => {
+    if (!itemToDelete || !request.id) return;
+    try {
+      await requestService.deleteUsedItem(request.id, itemToDelete);
+      setSnackbar({
+        open: true,
+        message: "Item deleted successfully! Stock restored.",
+        severity: "success",
+      });
+      // Refresh used items
+      const updatedProducts = await requestService.getUsedProducts(request.id);
+      const updatedSpareParts = await requestService.getUsedSpareParts(
+        request.id
+      );
+      setUsedProducts([...updatedProducts, ...updatedSpareParts]);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to delete item",
+        severity: "error",
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleEditUsedItemQuantity = (
+    usedItemId: string,
+    currentQty: number
+  ) => {
+    setItemToEdit({ id: usedItemId, qty: currentQty });
+    setEditQtyOpen(true);
+  };
+
+  const confirmEditUsedItemQuantity = async (newQtyStr: string) => {
+    if (!itemToEdit || !request.id) return;
+
+    const newQty = parseInt(newQtyStr);
+    if (isNaN(newQty) || newQty < 1) {
+      setSnackbar({
+        open: true,
+        message: "Please enter a valid quantity (min 1)",
+        severity: "error",
+      });
+      return;
+    }
+
+    try {
+      await requestService.updateUsedItem(request.id, itemToEdit.id, newQty);
+      setSnackbar({
+        open: true,
+        message: "Quantity updated successfully!",
+        severity: "success",
+      });
+      // Refresh used items
+      const updatedProducts = await requestService.getUsedProducts(request.id);
+      const updatedSpareParts = await requestService.getUsedSpareParts(
+        request.id
+      );
+      setUsedProducts([...updatedProducts, ...updatedSpareParts]);
+      setEditQtyOpen(false);
+      setItemToEdit(null);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to update quantity",
         severity: "error",
       });
     }
@@ -818,23 +910,23 @@ const ServiceRequestDetail: React.FC = () => {
 
                     {(request.status === "ASSIGNED" ||
                       request.status === "RE_ASSIGNED") && (
-                      <>
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                          Click "Start Work" to begin this task. Timer will
-                          start automatically.
-                        </Alert>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          size="large"
-                          startIcon={<PlayArrowIcon />}
-                          onClick={handleStartWork}
-                          fullWidth
-                        >
-                          Start Work
-                        </Button>
-                      </>
-                    )}
+                        <>
+                          <Alert severity="info" sx={{ mb: 2 }}>
+                            Click "Start Work" to begin this task. Timer will
+                            start automatically.
+                          </Alert>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="large"
+                            startIcon={<PlayArrowIcon />}
+                            onClick={handleStartWork}
+                            fullWidth
+                          >
+                            Start Work
+                          </Button>
+                        </>
+                      )}
 
                     {request.status === "IN_PROGRESS" && (
                       <>
@@ -922,17 +1014,17 @@ const ServiceRequestDetail: React.FC = () => {
                         >
                           Upload Additional Images
                         </Button>
-                        {usedProducts.length === 0 && (
-                          <Button
-                            variant="contained"
-                            color="info"
-                            sx={{ mt: 2, backgroundColor: "primary.main" }}
-                            startIcon={<BuildCircleOutlined />}
-                            onClick={() => setUsedProductsDialog(true)}
-                          >
-                            Add Used Products
-                          </Button>
-                        )}
+                        <Button
+                          variant="contained"
+                          color="info"
+                          sx={{ mt: 2, backgroundColor: "primary.main" }}
+                          startIcon={<BuildCircleOutlined />}
+                          onClick={() => setUsedProductsDialog(true)}
+                        >
+                          {usedProducts.length === 0
+                            ? "Add Used Products"
+                            : "Add More Products"}
+                        </Button>
                       </>
                     )}
 
@@ -1019,10 +1111,10 @@ const ServiceRequestDetail: React.FC = () => {
                       request.priority === "HIGH"
                         ? "error"
                         : request.priority === "MEDIUM"
-                        ? "warning"
-                        : request.priority === "NORMAL"
-                        ? "info"
-                        : "default"
+                          ? "warning"
+                          : request.priority === "NORMAL"
+                            ? "info"
+                            : "default"
                     }
                     icon={
                       request.priority === "HIGH" ? (
@@ -1205,7 +1297,7 @@ const ServiceRequestDetail: React.FC = () => {
                   {/* Show installation contact if different */}
                   {request.installation?.contactPhone &&
                     request.installation.contactPhone !==
-                      request.customer?.primaryPhone && (
+                    request.customer?.primaryPhone && (
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -1233,110 +1325,173 @@ const ServiceRequestDetail: React.FC = () => {
 
                 {/* Description */}
                 <Grid size={{ xs: 12 }}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    Description
-                  </Typography>
-
-                  <Box sx={{ p: 2, bgcolor: "grey.300", borderRadius: 1 }}>
-                    {(() => {
-                      const lines = request.description.split("\n");
-                      const sections: {
-                        type: "text" | "products" | "spareParts";
-                        content: string[];
-                      }[] = [];
-                      let currentSection: (typeof sections)[0] = {
-                        type: "text",
-                        content: [],
-                      };
-
-                      lines.forEach((line) => {
-                        if (!line.trim()) return;
-
-                        if (line.includes("📦 Products:")) {
-                          if (currentSection.content.length > 0)
-                            sections.push(currentSection);
-                          currentSection = { type: "products", content: [] };
-                        } else if (line.includes("🔧 Spare Parts:")) {
-                          if (currentSection.content.length > 0)
-                            sections.push(currentSection);
-                          currentSection = { type: "spareParts", content: [] };
-                        } else {
-                          currentSection.content.push(line);
-                        }
-                      });
-
-                      if (currentSection.content.length > 0)
-                        sections.push(currentSection);
-
-                      return sections.map((section, sectionIndex) => {
-                        if (section.type === "text") {
-                          return (
-                            <Box key={sectionIndex} sx={{ mb: 2 }}>
-                              {section.content.map((line, lineIndex) => (
-                                <Typography
-                                  key={lineIndex}
-                                  variant="body1"
-                                  sx={{ mb: 1 }}
-                                >
-                                  {line}
-                                </Typography>
-                              ))}
-                            </Box>
-                          );
-                        }
-
-                        return (
-                          <Card
-                            key={sectionIndex}
-                            variant="outlined"
-                            sx={{
-                              mb: 2,
-                              bgcolor:
-                                section.type === "products"
-                                  ? "primary.50"
-                                  : "secondary.50",
-                            }}
-                          >
-                            <CardContent
-                              sx={{ p: 2, "&:last-child": { pb: 2 } }}
-                            >
-                              <Typography
-                                variant="subtitle2"
-                                fontWeight={600}
-                                gutterBottom
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 0.5,
-                                }}
-                              >
-                                {section.type === "products"
-                                  ? "📦 Products"
-                                  : "🔧 Spare Parts"}
-                              </Typography>
-                              <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                                {section.content.map((line, lineIndex) => {
-                                  const text = line.replace("•", "").trim();
-                                  if (!text) return null;
-                                  return (
-                                    <li key={lineIndex}>
-                                      <Typography variant="body2">
-                                        {text}
-                                      </Typography>
-                                    </li>
-                                  );
-                                })}
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        );
-                      });
-                    })()}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Description
+                    </Typography>
+                    {/* ✅ Edit button - visible only for allowed roles */}
+                    {user?.role?.name && ['Super Admin', 'Service Admin', 'Tele Caller'].includes(user.role.name) && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setEditingDescription(true);
+                          setEditedDescription(request.description);
+                        }}
+                        disabled={editingDescription}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Box>
+
+                  {editingDescription ? (
+                    <>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={6}
+                        value={editedDescription}
+                        onChange={(e) => setEditedDescription(e.target.value)}
+                        variant="outlined"
+                        sx={{ mb: 1 }}
+                      />
+                      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setEditingDescription(false);
+                            setEditedDescription("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={async () => {
+                            try {
+                              await requestService.updateDescription(request.id, editedDescription);
+                              setSnackbar({
+                                open: true,
+                                message: "Description updated successfully",
+                                severity: "success",
+                              });
+                              setEditingDescription(false);
+                              dispatch(fetchRequestById(request.id));
+                            } catch (error: any) {
+                              setSnackbar({
+                                open: true,
+                                message: error.response?.data?.message || "Failed to update description",
+                                severity: "error",
+                              });
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                      </Box>
+                    </>
+                  ) : (
+                    <Box sx={{ p: 2, bgcolor: "grey.300", borderRadius: 1 }}>
+                      {(() => {
+                        const lines = request.description.split("\n");
+                        const sections: {
+                          type: "text" | "products" | "spareParts";
+                          content: string[];
+                        }[] = [];
+                        let currentSection: (typeof sections)[0] = {
+                          type: "text",
+                          content: [],
+                        };
+
+                        lines.forEach((line) => {
+                          if (!line.trim()) return;
+
+                          if (line.includes("📦 Products:")) {
+                            if (currentSection.content.length > 0)
+                              sections.push(currentSection);
+                            currentSection = { type: "products", content: [] };
+                          } else if (line.includes("🔧 Spare Parts:")) {
+                            if (currentSection.content.length > 0)
+                              sections.push(currentSection);
+                            currentSection = { type: "spareParts", content: [] };
+                          } else {
+                            currentSection.content.push(line);
+                          }
+                        });
+
+                        if (currentSection.content.length > 0)
+                          sections.push(currentSection);
+
+                        return sections.map((section, sectionIndex) => {
+                          if (section.type === "text") {
+                            return (
+                              <Box key={sectionIndex} sx={{ mb: 2 }}>
+                                {section.content.map((line, lineIndex) => (
+                                  <Typography
+                                    key={lineIndex}
+                                    variant="body1"
+                                    sx={{ mb: 1 }}
+                                  >
+                                    {line}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            );
+                          }
+
+                          return (
+                            <Card
+                              key={sectionIndex}
+                              variant="outlined"
+                              sx={{
+                                mb: 2,
+                                bgcolor:
+                                  section.type === "products"
+                                    ? "primary.50"
+                                    : "secondary.50",
+                              }}
+                            >
+                              <CardContent
+                                sx={{ p: 2, "&:last-child": { pb: 2 } }}
+                              >
+                                <Typography
+                                  variant="subtitle2"
+                                  fontWeight={600}
+                                  gutterBottom
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  {section.type === "products"
+                                    ? "📦 Products"
+                                    : "🔧 Spare Parts"}
+                                </Typography>
+                                <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                  {section.content.map((line, lineIndex) => {
+                                    const text = line.replace("•", "").trim();
+                                    if (!text) return null;
+                                    return (
+                                      <li key={lineIndex}>
+                                        <Typography variant="body2">
+                                          {text}
+                                        </Typography>
+                                      </li>
+                                    );
+                                  })}
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          );
+                        });
+                      })()}
+                    </Box>
+                  )}
                 </Grid>
 
                 {/* Reassignment Reasons */}
@@ -1432,12 +1587,41 @@ const ServiceRequestDetail: React.FC = () => {
                           item.sparePart?.company ||
                           "N/A";
                         return (
-                          <Chip
-                            key={`${item.id}-${index}`} // 🆕 More unique key
-                            label={`${name} - ( company - ${company} ): ${quantity} qty`}
-                            variant="outlined"
-                            sx={{ mr: 1, mb: 1 }}
-                          />
+                          <Box
+                            key={`${item.id}-${index}`}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1,
+                              flexWrap: "wrap",
+                              gap: 1,
+                            }}
+                          >
+                            <Chip
+                              label={`${name} - ( company - ${company} ): ${quantity} qty`}
+                              variant="outlined"
+                            />
+                            {request.status === "WORK_COMPLETED" && (
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() =>
+                                    handleEditUsedItemQuantity(item.id, quantity)
+                                  }
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteUsedItem(item.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            )}
+                          </Box>
                         );
                       })}
                       {/* Show notes if any item has notes */}
@@ -1706,45 +1890,45 @@ const ServiceRequestDetail: React.FC = () => {
               {request.approvalHistory?.some(
                 (approval) => approval.comments
               ) && (
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="warning.main"
-                    gutterBottom
-                  >
-                    💬 Approval Remarks
-                  </Typography>
-                  {request.approvalHistory
-                    .filter((approval) => approval.comments)
-                    .map((approval) => (
-                      <Box
-                        key={approval.id}
-                        sx={{
-                          p: 1.5,
-                          bgcolor: "warning.lighter",
-                          borderRadius: 1,
-                          border: 1,
-                          borderColor: "warning.light",
-                          mb: 1,
-                        }}
-                      >
-                        <Typography variant="body2">
-                          {approval.comments}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          display="block"
-                          sx={{ mt: 0.5 }}
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={600}
+                      color="warning.main"
+                      gutterBottom
+                    >
+                      💬 Approval Remarks
+                    </Typography>
+                    {request.approvalHistory
+                      .filter((approval) => approval.comments)
+                      .map((approval) => (
+                        <Box
+                          key={approval.id}
+                          sx={{
+                            p: 1.5,
+                            bgcolor: "warning.lighter",
+                            borderRadius: 1,
+                            border: 1,
+                            borderColor: "warning.light",
+                            mb: 1,
+                          }}
                         >
-                          By: {approval.approver?.name} •{" "}
-                          {approval.approverRole}
-                        </Typography>
-                      </Box>
-                    ))}
-                </Box>
-              )}
+                          <Typography variant="body2">
+                            {approval.comments}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            sx={{ mt: 0.5 }}
+                          >
+                            By: {approval.approver?.name} •{" "}
+                            {approval.approverRole}
+                          </Typography>
+                        </Box>
+                      ))}
+                  </Box>
+                )}
 
               {/* No comments state */}
               {!request.acknowledgmentComments &&
@@ -2519,9 +2703,38 @@ const ServiceRequestDetail: React.FC = () => {
         onReassign={handleReassignForRework}
         title="Reassign for Rework"
         subtitle="Customer says issue unresolved. Please select a technician."
-        reasonRequired={true}
         allowCurrentTechnician={true}
         watchRegionId={request?.region?.id} // from parent state
+      />
+
+      {/* Custom Dialogs */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete Used Item"
+        message="Are you sure you want to delete this item? This will restore the stock."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        severity="error"
+        onConfirm={confirmDeleteUsedItem}
+        onCancel={() => {
+          setDeleteConfirmOpen(false);
+          setItemToDelete(null);
+        }}
+      />
+
+      <PromptDialog
+        open={editQtyOpen}
+        title="Edit Item Quantity"
+        message="Enter new quantity:"
+        initialValue={itemToEdit?.qty.toString() || ""}
+        confirmLabel="Update"
+        cancelLabel="Cancel"
+        inputType="number"
+        onConfirm={confirmEditUsedItemQuantity}
+        onCancel={() => {
+          setEditQtyOpen(false);
+          setItemToEdit(null);
+        }}
       />
     </Box>
   );
