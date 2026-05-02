@@ -11,7 +11,10 @@ import {
   useMediaQuery,
   useTheme,
   Divider,
-  Pagination, // 🆕 Add this
+  Pagination,
+  ToggleButton,
+  ToggleButtonGroup,
+  LinearProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
@@ -22,7 +25,6 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchAllRequests } from "../../app/slices/requestSlice";
 import PageHeader from "../../components/common/PageHeader";
 import DataTable from "../../components/common/DataTable";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
 import EmptyState from "../../components/common/EmptyState";
 import StatusChip from "../../components/common/StatusChip";
 import { formatDate } from "../../utils/helpers";
@@ -40,6 +42,8 @@ const ServiceRequestList: React.FC = () => {
   const [page, setPage] = useState(1); // 🆕 Changed from 0 to 1 for backend
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchBy, setSearchBy] = useState<"general" | "technician">("general");
 
   const initialStatus = (searchParams.get("status") as RequestStatus) || "ALL";
   const [statusFilter, setStatusFilter] = useState<RequestStatus | "ALL">(
@@ -48,7 +52,16 @@ const ServiceRequestList: React.FC = () => {
 
   const isTechnician = user?.role.name === "Technician";
 
-  // 🆕 Fetch data with pagination
+  // 🆕 Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 🆕 Fetch data with pagination and search
   useEffect(() => {
     dispatch(
       fetchAllRequests({
@@ -56,9 +69,11 @@ const ServiceRequestList: React.FC = () => {
         limit: rowsPerPage,
         status: statusFilter !== "ALL" ? statusFilter : undefined,
         userId: isTechnician ? user?.id : undefined,
+        search: debouncedSearch || undefined,
+        searchBy: searchBy,
       })
     );
-  }, [dispatch, page, rowsPerPage, statusFilter]);
+  }, [dispatch, page, rowsPerPage, statusFilter, debouncedSearch, searchBy, isTechnician]);
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -95,19 +110,8 @@ const ServiceRequestList: React.FC = () => {
     setSearchParams(searchParams);
   };
 
-  // 🆕 Client-side search filter (for search only, not pagination)
-  const filteredRequests = searchQuery
-    ? requests.filter((request) => {
-        return (
-          request?.customer?.name
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          request?.description
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
-        );
-      })
-    : requests;
+  // 🆕 Search is now handled by the backend for better pagination support
+  const filteredRequests = requests;
 
   const columns = [
     {
@@ -142,6 +146,15 @@ const ServiceRequestList: React.FC = () => {
           },
         ]
       : []),
+    {
+      id: "workCompletedAt",
+      label: "Work Completed",
+      minWidth: 150,
+      format: (_: any, row: ServiceRequest) => {
+        const lastWorkLog = row.workLogs?.[0];
+        return lastWorkLog?.endTime ? formatDate(lastWorkLog.endTime) : "-";
+      },
+    },
     {
       id: "createdAt",
       label: "Created",
@@ -244,10 +257,6 @@ const ServiceRequestList: React.FC = () => {
     </Card>
   );
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   return (
     <Box>
       <PageHeader
@@ -274,14 +283,37 @@ const ServiceRequestList: React.FC = () => {
         <CardContent>
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             <TextField
-              label="Search"
+              label={searchBy === "general" ? "Search" : "Search Technician"}
               variant="outlined"
               size="small"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: isMobile ? "100%" : 250 }}
-              placeholder="Search by customer or description..."
+              placeholder={
+                searchBy === "general"
+                  ? "Search by customer, description or ID..."
+                  : "Type technician name..."
+              }
             />
+
+            {!isTechnician && (
+              <ToggleButtonGroup
+                value={searchBy}
+                exclusive
+                onChange={(_, value) => {
+                  if (value) {
+                    setSearchBy(value);
+                    setPage(1);
+                  }
+                }}
+                size="small"
+                color="primary"
+              >
+                <ToggleButton value="general">General</ToggleButton>
+                <ToggleButton value="technician">Technician</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+
             <TextField
               select
               label="Status"
@@ -299,6 +331,17 @@ const ServiceRequestList: React.FC = () => {
               <MenuItem value="WORK_COMPLETED">Work Completed</MenuItem>
               <MenuItem value="COMPLETED">Completed</MenuItem>
             </TextField>
+
+            {/* Search mode information */}
+            {!isTechnician && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ alignSelf: "center", ml: 1 }}
+              >
+                Mode: {searchBy === "general" ? "Customer/ID Only" : "Technician Only"}
+              </Typography>
+            )}
           </Box>
 
           {/* 🆕 Show count */}
@@ -312,7 +355,9 @@ const ServiceRequestList: React.FC = () => {
         </CardContent>
       </Card>
 
-      {filteredRequests.length === 0 ? (
+      {loading && <LinearProgress sx={{ mb: 3, borderRadius: 2 }} />}
+
+      {filteredRequests.length === 0 && !loading ? (
         <EmptyState
           title={
             isTechnician
@@ -334,7 +379,7 @@ const ServiceRequestList: React.FC = () => {
           }
         />
       ) : (
-        <>
+        <Box sx={{ opacity: loading ? 0.6 : 1 }}>
           {isTechnician && isMobile ? (
             <>
               <Box>
@@ -403,7 +448,7 @@ const ServiceRequestList: React.FC = () => {
               )}
             </>
           )}
-        </>
+        </Box>
       )}
     </Box>
   );

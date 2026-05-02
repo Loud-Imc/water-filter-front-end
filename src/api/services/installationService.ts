@@ -79,4 +79,22 @@ export const installationService = {
     const { data } = await axiosInstance.put(`/installations/${id}/set-primary`);
     return data;
   },
+
+  // Update spun change schedule
+  updateSpunChange: async (id: string, daysNextChange?: number, minutesNextChange?: number): Promise<Installation> => {
+    const { data } = await axiosInstance.put(`/installations/${id}/maintenance`, { daysNextChange, minutesNextChange });
+    return data;
+  },
+
+  // Get upcoming maintenance alerts
+  getUpcomingMaintenance: async (days: number = 7): Promise<Installation[]> => {
+    const { data } = await axiosInstance.get('/installations/maintenance-alerts', { params: { days } });
+    return data;
+  },
+
+  // Get full maintenance schedule
+  getMaintenanceSchedule: async (): Promise<Installation[]> => {
+    const { data } = await axiosInstance.get('/installations/maintenance-schedule');
+    return data;
+  },
 };

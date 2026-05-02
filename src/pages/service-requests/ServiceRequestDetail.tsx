@@ -65,16 +65,18 @@ import ReassignTechnicianDialog from "../../components/services/ReassignTechnici
 import {
   reassignTechnician,
   // fetchReassignmentHistory,
+  updateRequest,
 } from "../../app/slices/requestSlice";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import AddUsedProductsDialog from "../../components/services/AddUsedProductsDialog";
 import { requestService } from "../../api/services/requestService";
 import { productService } from "../../api/services/productService";
 import { sparePartsService } from "../../api/services/sparePartsService";
+import { installationService } from "../../api/services/installationService";
 
 import { BuildCircleOutlined } from "@mui/icons-material";
 import WorkMediaGallery from "./WorkMediaGallery";
-import { Product, SparePart, TechnicianStock } from "@/types";
+import { Product, SparePart, TechnicianStock } from "../../types";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import { TransitionProps } from "@mui/material/transitions";
@@ -156,6 +158,15 @@ const ServiceRequestDetail: React.FC = () => {
   // Description edit state
   const [editingDescription, setEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");
+
+  // ✅ NEW: Priority and Type edit state
+  const [editPriorityOpen, setEditPriorityOpen] = useState(false);
+  const [editTypeOpen, setEditTypeOpen] = useState(false);
+
+  // ✅ Maintenance Alert States
+  const [spunChangeDialogOpen, setSpunChangeDialogOpen] = useState(false);
+  const [daysNextChange, setDaysNextChange] = useState("90");
+  const [maintenanceUnit, setMaintenanceUnit] = useState<"days" | "minutes">("days");
 
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
@@ -302,6 +313,7 @@ const ServiceRequestDetail: React.FC = () => {
   }
 
   const request = selectedRequest;
+  const isCreator = user?.id === request?.requestedById;
 
   // ✅ Handler functions
   const handleLocationCapture = async (location: {
@@ -481,6 +493,11 @@ const ServiceRequestDetail: React.FC = () => {
       });
 
       await dispatch(fetchRequestById(request.id));
+
+      // ✅ NEW: Show Spun Change Dialog after stopping work if it's a maintenance-related request
+      if (["SERVICE", "INSTALLATION", "RE_INSTALLATION", "COMPLAINT"].includes(request.type)) {
+        setSpunChangeDialogOpen(true);
+      }
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -729,6 +746,48 @@ const ServiceRequestDetail: React.FC = () => {
   //     });
   //   }
   // };
+
+  const handleUpdatePriority = async (newPriority: string) => {
+    if (!request.id) return;
+    try {
+      await dispatch(
+        updateRequest({ id: request.id, data: { priority: newPriority as any } })
+      ).unwrap();
+      setSnackbar({
+        open: true,
+        message: "Priority updated successfully!",
+        severity: "success",
+      });
+      setEditPriorityOpen(false);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error || "Failed to update priority",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleUpdateType = async (newType: string) => {
+    if (!request.id) return;
+    try {
+      await dispatch(
+        updateRequest({ id: request.id, data: { type: newType as any } })
+      ).unwrap();
+      setSnackbar({
+        open: true,
+        message: "Request type updated successfully!",
+        severity: "success",
+      });
+      setEditTypeOpen(false);
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error || "Failed to update request type",
+        severity: "error",
+      });
+    }
+  };
 
   const availableTechnicians = users.filter(
     (u) =>
@@ -1025,13 +1084,35 @@ const ServiceRequestDetail: React.FC = () => {
                             ? "Add Used Products"
                             : "Add More Products"}
                         </Button>
+
+                        {/* ✅ NEW: Re-open Maintenance Dialog Button */}
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          sx={{ mt: 2, ml: { sm: 1 } }}
+                          startIcon={<HistoryIcon />}
+                          onClick={() => setSpunChangeDialogOpen(true)}
+                        >
+                          Update Maintenance Schedule
+                        </Button>
                       </>
                     )}
 
                     {request.status === "COMPLETED" && (
-                      <Alert severity="success">
-                        ✅ Task completed and acknowledged by manager.
-                      </Alert>
+                      <>
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                          ✅ Task completed and acknowledged by manager.
+                        </Alert>
+                        {/* ✅ NEW: Re-open Maintenance Dialog Button even after completion */}
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          startIcon={<HistoryIcon />}
+                          onClick={() => setSpunChangeDialogOpen(true)}
+                        >
+                          Update Maintenance Schedule
+                        </Button>
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -1094,35 +1175,57 @@ const ServiceRequestDetail: React.FC = () => {
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Type
-                  </Typography>
-                  <Chip label={request.type} color="primary" size="small" />
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      Type
+                    </Typography>
+                    <Chip label={request.type} color="primary" size="small" />
+                    {isCreator && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setEditTypeOpen(true)}
+                        sx={{ ml: 0.5, p: 0.5 }}
+                      >
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                  </Box>
                 </Grid>
 
                 {/* 🆕 NEW: Priority Status */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Priority
-                  </Typography>
-                  <Chip
-                    label={request.priority}
-                    color={
-                      request.priority === "HIGH"
-                        ? "error"
-                        : request.priority === "MEDIUM"
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      Priority
+                    </Typography>
+                    <Chip
+                      label={request.priority}
+                      color={
+                        request.priority === "HIGH"
+                          ? "error"
+                          : request.priority === "MEDIUM"
                           ? "warning"
                           : request.priority === "NORMAL"
-                            ? "info"
-                            : "default"
-                    }
-                    icon={
-                      request.priority === "HIGH" ? (
-                        <PriorityHighIcon />
-                      ) : undefined
-                    }
-                    size="small"
-                  />
+                          ? "info"
+                          : "default"
+                      }
+                      size="small"
+                      icon={
+                        request.priority === "HIGH" ? (
+                          <PriorityHighIcon />
+                        ) : undefined
+                      }
+                    />
+                    {isCreator && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setEditPriorityOpen(true)}
+                        sx={{ ml: 0.5, p: 0.5 }}
+                      >
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                  </Box>
                 </Grid>
 
                 <Grid size={12}>
@@ -2668,6 +2771,44 @@ const ServiceRequestDetail: React.FC = () => {
         onReassign={handleReassignTechnician}
         loading={loading}
       /> */}
+
+      {/* ✅ Priority Edit Dialog */}
+      <PromptDialog
+        open={editPriorityOpen}
+        title="Update Priority"
+        message="Select the new priority for this request:"
+        confirmLabel="Update"
+        onConfirm={handleUpdatePriority}
+        onCancel={() => setEditPriorityOpen(false)}
+        type="select"
+        options={[
+          { label: "High", value: "HIGH" },
+          { label: "Medium", value: "MEDIUM" },
+          { label: "Normal", value: "NORMAL" },
+          { label: "Low", value: "LOW" },
+        ]}
+        initialValue={request.priority}
+      />
+
+      {/* ✅ Type Edit Dialog */}
+      <PromptDialog
+        open={editTypeOpen}
+        title="Update Request Type"
+        message="Select the new type for this request:"
+        confirmLabel="Update"
+        onConfirm={handleUpdateType}
+        onCancel={() => setEditTypeOpen(false)}
+        type="select"
+        options={[
+          { label: "Service", value: "SERVICE" },
+          { label: "Installation", value: "INSTALLATION" },
+          { label: "Complaint", value: "COMPLAINT" },
+          { label: "Enquiry", value: "ENQUIRY" },
+          { label: "Re-Installation", value: "RE_INSTALLATION" },
+        ]}
+        initialValue={request.type}
+      />
+
       <SnackbarNotification
         open={snackbar.open}
         message={snackbar.message}
@@ -2736,6 +2877,105 @@ const ServiceRequestDetail: React.FC = () => {
           setItemToEdit(null);
         }}
       />
+
+      {/* ✅ NEW: Spun Change Schedule Dialog */}
+      <Dialog 
+        open={spunChangeDialogOpen} 
+        onClose={() => setSpunChangeDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        disableEscapeKeyDown
+      >
+        <DialogTitle>Schedule Next Spun Change</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Did you change the water filter spun today? If so, set when the admin should be notified for the next change:
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+            <TextField
+              label="Value"
+              type="number"
+              fullWidth
+              value={daysNextChange}
+              onChange={(e) => setDaysNextChange(e.target.value)}
+              variant="outlined"
+              size="small"
+            />
+            <TextField
+              select
+              label="Unit"
+              value={maintenanceUnit}
+              onChange={(e) => setMaintenanceUnit(e.target.value as any)}
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 100 }}
+            >
+              <MenuItem value="days">Days</MenuItem>
+              <MenuItem value="minutes">Minutes (Test)</MenuItem>
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSpunChangeDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={async () => {
+              let targetInstallationId = request.installationId;
+              
+              // 🔍 If request isn't linked to an installation, try to find one for the customer
+              if (!targetInstallationId && request.customer?.id) {
+                try {
+                  const customerInstallations = await installationService.getByCustomer(request.customer.id);
+                  if (customerInstallations && customerInstallations.length > 0) {
+                    targetInstallationId = customerInstallations[0].id;
+                  }
+                } catch (err) {
+                  console.error("Failed to auto-find installation:", err);
+                }
+              }
+
+              if (!targetInstallationId) {
+                setSnackbar({
+                  open: true,
+                  message: "Error: No installation found for this customer. Please create an installation first.",
+                  severity: "error",
+                });
+                setSpunChangeDialogOpen(false);
+                return;
+              }
+
+              try {
+                const val = parseInt(daysNextChange) || (maintenanceUnit === 'days' ? 90 : 5);
+                await installationService.updateSpunChange(
+                  targetInstallationId, 
+                  maintenanceUnit === 'days' ? val : undefined,
+                  maintenanceUnit === 'minutes' ? val : undefined
+                );
+                setSnackbar({
+                  open: true,
+                  message: `Next maintenance scheduled for ${val} ${maintenanceUnit} from now!`,
+                  severity: "success",
+                });
+              } catch (err) {
+                console.error("Failed to schedule maintenance:", err);
+                setSnackbar({
+                  open: true,
+                  message: "Failed to save maintenance schedule. Please try again.",
+                  severity: "error",
+                });
+              } finally {
+                setSpunChangeDialogOpen(false);
+              }
+            }}
+          >
+            Save & Schedule
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

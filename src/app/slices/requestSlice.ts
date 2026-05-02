@@ -53,6 +53,8 @@ export const fetchAllRequests = createAsyncThunk(
       limit?: number;
       status?: string;
       userId?: string;
+      search?: string;
+      searchBy?: "general" | "technician";
     } = {},
     { rejectWithValue }
   ) => {
@@ -61,7 +63,9 @@ export const fetchAllRequests = createAsyncThunk(
         params.page,
         params.limit,
         params.status,
-        params.userId
+        params.userId,
+        params.search,
+        params.searchBy
       );
     } catch (error: any) {
       return rejectWithValue(
@@ -170,6 +174,22 @@ export const assignTechnician = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to assign technician"
+      );
+    }
+  }
+);
+
+export const updateRequest = createAsyncThunk(
+  "requests/update",
+  async (
+    { id, data }: { id: string; data: Partial<ServiceRequest> },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await requestService.updateRequest(id, data);
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update request"
       );
     }
   }
@@ -444,6 +464,17 @@ const requestSlice = createSlice({
 
     // Acknowledge completion
     builder.addCase(acknowledgeCompletion.fulfilled, (state, action) => {
+      const index = state.requests.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.requests[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
+    });
+
+    // Update request
+    builder.addCase(updateRequest.fulfilled, (state, action) => {
       const index = state.requests.findIndex((r) => r.id === action.payload.id);
       if (index !== -1) {
         state.requests[index] = action.payload;
