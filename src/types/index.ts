@@ -423,6 +423,8 @@ export interface Installation {
   notes?: string;
   isPrimary: boolean;
   isActive: boolean;
+  lastSpunChangeAt?: string | null;
+  nextSpunChangeAt?: string | null;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;

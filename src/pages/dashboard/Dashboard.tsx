@@ -9,6 +9,7 @@ import RequestsByType from "../../components/dashboard/RequestsByType";
 import StockAlertBar from "../../components/dashboard/StockAlertBar";
 // import ExcelImportSection from "../../components/dashboard/ExcelImportSection"; // ✅ NEW
 import ReportsSection from "../../components/dashboard/ReportsSection";
+import MaintenanceAlertCard from "../../components/dashboard/MaintenanceAlertCard";
 
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
@@ -114,6 +115,11 @@ const Dashboard: React.FC = () => {
 
       {/* Charts and Recent Activity */}
       <Grid container spacing={3}>
+        {isSuperAdmin && (
+          <Grid size={{ xs: 12 }}>
+            <MaintenanceAlertCard />
+          </Grid>
+        )}
         <Grid size={{ xs: 12, md: 8 }}>
           <RecentRequests requests={stats.recentRequests} />
         </Grid>

@@ -11,7 +11,7 @@ interface UsedItem {
 export const requestService = {
   // Get all service requests
   // In requestService.ts or wherever your API calls are
-  async getAllRequests(page: number = 1, limit: number = 10, status?: string, userId?: string) {
+  async getAllRequests(page: number = 1, limit: number = 10, status?: string, userId?: string, search?: string, searchBy?: string) {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
@@ -20,6 +20,12 @@ export const requestService = {
     }
     if (userId) {
       params.append('userId', userId);
+    }
+    if (search) {
+      params.append('search', search);
+    }
+    if (searchBy) {
+      params.append('searchBy', searchBy);
     }
 
     const response = await axiosInstance.get(`/service-requests?${params.toString()}`);

@@ -23,6 +23,7 @@ import NotFound from "../pages/NotFound";
 import { useAppSelector } from "../app/hooks";
 import CustomerProfile from "../pages/customers/CustomerProfile";
 import ProductManagement from "../pages/ProductManagement/ProductManagement";
+import MaintenanceSchedule from "../pages/customers/MaintenanceSchedule";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -126,6 +127,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
             <Layout>
               <CustomerProfile />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/maintenance-schedule"
+        element={
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
+            <Layout>
+              <MaintenanceSchedule />
             </Layout>
           </ProtectedRoute>
         }

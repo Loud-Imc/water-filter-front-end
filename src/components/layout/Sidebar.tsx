@@ -82,6 +82,12 @@ const Sidebar: React.FC = () => {
       path: "/customers",
       icon: <PersonIcon />,
       permissions: [PERMISSIONS.CUSTOMERS_VIEW],
+    },
+    {
+      label: "Maintenance Schedule",
+      path: "/maintenance-schedule",
+      icon: <HistoryIcon />,
+      permissions: [PERMISSIONS.CUSTOMERS_VIEW],
       divider: true, // ✅ Separator after customers
     },
 
