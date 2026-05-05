@@ -151,7 +151,8 @@ const Sidebar: React.FC = () => {
     if (
       (item.label === "Service Requests" ||
         item.label === "Products" ||
-        item.label === "Customer Management") &&
+        item.label === "Customer Management" ||
+        item.label === "Maintenance Schedule") &&
       user.role.name === "Technician"
     ) {
       return false; // Hide these items for Technician role

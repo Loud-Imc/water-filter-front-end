@@ -15,11 +15,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   LinearProgress,
+  Button,
+  Collapse,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import DescriptionIcon from "@mui/icons-material/Description";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchAllRequests } from "../../app/slices/requestSlice";
@@ -44,6 +47,9 @@ const ServiceRequestList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchBy, setSearchBy] = useState<"general" | "technician">("general");
+  const [sortBy, setSortBy] = useState<string>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [showFilters, setShowFilters] = useState(false);
 
   const initialStatus = (searchParams.get("status") as RequestStatus) || "ALL";
   const [statusFilter, setStatusFilter] = useState<RequestStatus | "ALL">(
@@ -71,9 +77,11 @@ const ServiceRequestList: React.FC = () => {
         userId: isTechnician ? user?.id : undefined,
         search: debouncedSearch || undefined,
         searchBy: searchBy,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
       })
     );
-  }, [dispatch, page, rowsPerPage, statusFilter, debouncedSearch, searchBy, isTechnician]);
+  }, [dispatch, page, rowsPerPage, statusFilter, debouncedSearch, searchBy, isTechnician, sortBy, sortOrder]);
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -115,6 +123,21 @@ const ServiceRequestList: React.FC = () => {
 
   const columns = [
     {
+      id: "createdAt",
+      label: "Created",
+      minWidth: 150,
+      format: (value: string) => formatDate(value),
+    },
+    {
+      id: "workCompletedAt",
+      label: "Work Completed",
+      minWidth: 150,
+      format: (_: any, row: ServiceRequest) => {
+        const lastWorkLog = row.workLogs?.[0];
+        return lastWorkLog?.endTime ? formatDate(lastWorkLog.endTime) : "-";
+      },
+    },
+    {
       id: "id",
       label: "ID",
       minWidth: 100,
@@ -146,21 +169,6 @@ const ServiceRequestList: React.FC = () => {
           },
         ]
       : []),
-    {
-      id: "workCompletedAt",
-      label: "Work Completed",
-      minWidth: 150,
-      format: (_: any, row: ServiceRequest) => {
-        const lastWorkLog = row.workLogs?.[0];
-        return lastWorkLog?.endTime ? formatDate(lastWorkLog.endTime) : "-";
-      },
-    },
-    {
-      id: "createdAt",
-      label: "Created",
-      minWidth: 150,
-      format: (value: string) => formatDate(value),
-    },
   ];
 
   const MobileTaskCard: React.FC<{ request: ServiceRequest }> = ({
@@ -281,68 +289,113 @@ const ServiceRequestList: React.FC = () => {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <TextField
-              label={searchBy === "general" ? "Search" : "Search Technician"}
+          {isMobile && (
+            <Button
               variant="outlined"
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: isMobile ? "100%" : 250 }}
-              placeholder={
-                searchBy === "general"
-                  ? "Search by customer, description or ID..."
-                  : "Type technician name..."
-              }
-            />
-
-            {!isTechnician && (
-              <ToggleButtonGroup
-                value={searchBy}
-                exclusive
-                onChange={(_, value) => {
-                  if (value) {
-                    setSearchBy(value);
-                    setPage(1);
-                  }
-                }}
-                size="small"
-                color="primary"
-              >
-                <ToggleButton value="general">General</ToggleButton>
-                <ToggleButton value="technician">Technician</ToggleButton>
-              </ToggleButtonGroup>
-            )}
-
-            <TextField
-              select
-              label="Status"
-              size="small"
-              value={statusFilter}
-              onChange={(e) =>
-                handleStatusChange(e.target.value as RequestStatus | "ALL")
-              }
-              sx={{ minWidth: isMobile ? "100%" : 200 }}
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              fullWidth
+              sx={{ mb: showFilters ? 2 : 0 }}
             >
-              <MenuItem value="ALL">All Status</MenuItem>
-              <MenuItem value="ASSIGNED">Assigned</MenuItem>
-              <MenuItem value="RE_ASSIGNED">Re-assigned</MenuItem>
-              <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-              <MenuItem value="WORK_COMPLETED">Work Completed</MenuItem>
-              <MenuItem value="COMPLETED">Completed</MenuItem>
-            </TextField>
+              {showFilters ? "Hide Filters" : "Show Filters & Sorting"}
+            </Button>
+          )}
 
-            {/* Search mode information */}
-            {!isTechnician && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ alignSelf: "center", ml: 1 }}
+          <Collapse in={!isMobile || showFilters}>
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              <TextField
+                label={searchBy === "general" ? "Search" : "Search Technician"}
+                variant="outlined"
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ minWidth: isMobile ? "100%" : 250 }}
+                placeholder={
+                  searchBy === "general"
+                    ? "Search by customer, description or ID..."
+                    : "Type technician name..."
+                }
+              />
+
+              {!isTechnician && (
+                <ToggleButtonGroup
+                  value={searchBy}
+                  exclusive
+                  onChange={(_, value) => {
+                    if (value) {
+                      setSearchBy(value);
+                      setPage(1);
+                    }
+                  }}
+                  size="small"
+                  color="primary"
+                >
+                  <ToggleButton value="general">General</ToggleButton>
+                  <ToggleButton value="technician">Technician</ToggleButton>
+                </ToggleButtonGroup>
+              )}
+
+              <TextField
+                select
+                label="Status"
+                size="small"
+                value={statusFilter}
+                onChange={(e) =>
+                  handleStatusChange(e.target.value as RequestStatus | "ALL")
+                }
+                sx={{ minWidth: isMobile ? "100%" : 200 }}
               >
-                Mode: {searchBy === "general" ? "Customer/ID Only" : "Technician Only"}
-              </Typography>
-            )}
-          </Box>
+                <MenuItem value="ALL">All Status</MenuItem>
+                <MenuItem value="ASSIGNED">Assigned</MenuItem>
+                <MenuItem value="RE_ASSIGNED">Re-assigned</MenuItem>
+                <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                <MenuItem value="WORK_COMPLETED">Work Completed</MenuItem>
+                <MenuItem value="COMPLETED">Completed</MenuItem>
+              </TextField>
+
+              <TextField
+                select
+                label="Sort By"
+                size="small"
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setPage(1);
+                }}
+                sx={{ minWidth: isMobile ? "100%" : 160 }}
+              >
+                <MenuItem value="createdAt">Created Date</MenuItem>
+                <MenuItem value="workCompletedAt">Work Completed</MenuItem>
+              </TextField>
+
+              <TextField
+                select
+                label="Order"
+                size="small"
+                value={sortOrder}
+                onChange={(e) => {
+                  setSortOrder(e.target.value as "asc" | "desc");
+                  setPage(1);
+                }}
+                sx={{ minWidth: isMobile ? "100%" : 120 }}
+              >
+                <MenuItem value="desc">Newest First</MenuItem>
+                <MenuItem value="asc">Oldest First</MenuItem>
+              </TextField>
+
+              {/* Search mode information */}
+              {!isTechnician && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ alignSelf: "center", ml: 1 }}
+                >
+                  Mode:{" "}
+                  {searchBy === "general" ? "Customer/ID Only" : "Technician Only"}
+                </Typography>
+              )}
+            </Box>
+          </Collapse>
 
           {/* 🆕 Show count */}
           <Box sx={{ mt: 1 }}>

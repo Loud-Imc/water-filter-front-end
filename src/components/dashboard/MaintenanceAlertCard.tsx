@@ -83,6 +83,8 @@ const MaintenanceAlertCard: React.FC = () => {
                 }
               >
                 <ListItemText
+                  primaryTypographyProps={{ component: 'div' }}
+                  secondaryTypographyProps={{ component: 'div' }}
                   primary={
                     <Typography variant="subtitle2" fontWeight="bold">
                       {alert.customer?.name}
