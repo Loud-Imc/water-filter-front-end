@@ -137,6 +137,8 @@ const ServiceRequestDetail: React.FC = () => {
   const [reassignDialog, setReassignDialog] = useState(false);
   const [reassignForReworkDialog, setReassignForReworkDialog] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -354,6 +356,7 @@ const ServiceRequestDetail: React.FC = () => {
   const handleStartWork = async () => {
     if (!request.id) return;
 
+    setIsSubmitting(true);
     try {
       await dispatch(startWork({ requestId: request.id })).unwrap();
 
@@ -372,11 +375,14 @@ const ServiceRequestDetail: React.FC = () => {
         message: error || "Failed to start work",
         severity: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddUsedProducts = async (usedItems: UsedItem[]) => {
     if (!request.id) return;
+    setIsSubmitting(true);
     try {
       await requestService.addUsedItems(request.id, usedItems);
       setSnackbar({
@@ -395,6 +401,9 @@ const ServiceRequestDetail: React.FC = () => {
         message: error.response?.data?.message || "Failed to add used items",
         severity: "error",
       });
+      throw error; // Propagate to dialog
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -478,6 +487,7 @@ const ServiceRequestDetail: React.FC = () => {
   const handleStopWork = async () => {
     if (!request.id) return;
 
+    setIsSubmitting(true);
     try {
       await dispatch(
         stopWork({ requestId: request.id, notes: workNotes })
@@ -504,6 +514,8 @@ const ServiceRequestDetail: React.FC = () => {
         message: error || "Failed to stop work",
         severity: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -569,6 +581,7 @@ const ServiceRequestDetail: React.FC = () => {
   const handleFileUpload = async () => {
     if (!request.id || selectedFiles.length === 0) return;
 
+    setIsUploading(true);
     try {
       // ✅ Files are ALREADY compressed, just upload
       for (const file of selectedFiles) {
@@ -593,6 +606,8 @@ const ServiceRequestDetail: React.FC = () => {
         message: error || "Failed to upload images",
         severity: "error",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -974,16 +989,17 @@ const ServiceRequestDetail: React.FC = () => {
                             Click "Start Work" to begin this task. Timer will
                             start automatically.
                           </Alert>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="large"
-                            startIcon={<PlayArrowIcon />}
-                            onClick={handleStartWork}
-                            fullWidth
-                          >
-                            Start Work
-                          </Button>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="large"
+                              startIcon={isSubmitting ? <CircularProgress size={20} /> : <PlayArrowIcon />}
+                              onClick={handleStartWork}
+                              fullWidth
+                              disabled={isSubmitting}
+                            >
+                              {isSubmitting ? "Starting..." : "Start Work"}
+                            </Button>
                         </>
                       )}
 
@@ -1013,22 +1029,24 @@ const ServiceRequestDetail: React.FC = () => {
                                 variant="contained"
                                 color="error"
                                 size="large"
-                                startIcon={<StopIcon />}
+                                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <StopIcon />}
                                 onClick={handleStopWork}
+                                disabled={isSubmitting}
                               >
-                                Complete Work
+                                {isSubmitting ? "Completing..." : "Complete Work"}
                               </Button>
 
                               <Button
                                 variant="outlined"
-                                startIcon={<UploadIcon />}
+                                startIcon={isUploading ? <CircularProgress size={20} /> : <UploadIcon />}
                                 onClick={() => setUploadDialog(true)}
+                                disabled={isUploading}
                                 sx={{
                                   color: "primary.light",
                                   borderColor: "primary.light",
                                 }}
                               >
-                                Upload Images
+                                {isUploading ? "Uploading..." : "Upload Images"}
                               </Button>
                             </Box>
                           </Grid>
@@ -2135,6 +2153,8 @@ const ServiceRequestDetail: React.FC = () => {
                           </Avatar>
                         </ListItemAvatar>
                         <ListItemText
+                          primaryTypographyProps={{ component: "div" }}
+                          secondaryTypographyProps={{ component: "div" }}
                           primary={
                             <Box
                               sx={{
@@ -2149,7 +2169,6 @@ const ServiceRequestDetail: React.FC = () => {
                                 Session #{index + 1}
                               </Typography>
                               <Chip
-                                label={`${log.duration} seconds`}
                                 size="small"
                                 color="primary"
                               />
@@ -2721,10 +2740,10 @@ const ServiceRequestDetail: React.FC = () => {
           <Button
             onClick={handleFileUpload}
             variant="contained"
-            disabled={selectedFiles.length === 0}
-            startIcon={<UploadIcon />}
+            disabled={selectedFiles.length === 0 || isUploading}
+            startIcon={isUploading ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
           >
-            Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}
+            {isUploading ? "Uploading..." : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ""}`}
           </Button>
         </DialogActions>
       </Dialog>
@@ -2822,7 +2841,7 @@ const ServiceRequestDetail: React.FC = () => {
         allProducts={allProducts}
         allSpareParts={allSpareParts}
         technicianStock={technicianStock}
-        loading={loading}
+        loading={isSubmitting}
       />
       {/* // Reassign dialog */}
       <ReassignTechnicianDialog

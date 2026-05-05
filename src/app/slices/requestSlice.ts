@@ -55,6 +55,8 @@ export const fetchAllRequests = createAsyncThunk(
       userId?: string;
       search?: string;
       searchBy?: "general" | "technician";
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
     } = {},
     { rejectWithValue }
   ) => {
@@ -65,7 +67,9 @@ export const fetchAllRequests = createAsyncThunk(
         params.status,
         params.userId,
         params.search,
-        params.searchBy
+        params.searchBy,
+        params.sortBy,
+        params.sortOrder
       );
     } catch (error: any) {
       return rejectWithValue(

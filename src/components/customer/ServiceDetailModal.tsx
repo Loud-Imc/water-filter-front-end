@@ -474,6 +474,8 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                             <TimerIcon />
                           </Avatar>
                           <ListItemText
+                            primaryTypographyProps={{ component: "div" }}
+                            secondaryTypographyProps={{ component: "div" }}
                             primary={
                               <Box
                                 sx={{
@@ -518,7 +520,7 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                                   <Typography
                                     variant="caption"
                                     color="text.secondary"
-                                    sx={{ mt: 0.5 }}
+                                    sx={{ mt: 0.5, display: "block" }}
                                   >
                                     {log.notes}
                                   </Typography>
@@ -565,52 +567,6 @@ const ServiceDetailModal: React.FC<ServiceDetailModalProps> = ({
                       <React.Fragment key={a.id || i}>
                         {i > 0 && <Divider />}
                         <ListItem>
-                          <ListItemText
-                            primary={
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  gap: 1,
-                                  alignItems: "center",
-                                }}
-                              >
-                                <Typography variant="body2" fontWeight={600}>
-                                  {a.approver?.name ||
-                                    a.approverId ||
-                                    "Unknown"}
-                                </Typography>
-                                <Chip
-                                  label={a.status}
-                                  size="small"
-                                  color={
-                                    a.status === "APPROVED"
-                                      ? "success"
-                                      : "error"
-                                  }
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {a.approverRole} •{" "}
-                                  {a.approvedAt ? formatDate(a.approvedAt) : ""}
-                                </Typography>
-                                {a.comments && (
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{ mt: 0.5 }}
-                                  >
-                                    {a.comments}
-                                  </Typography>
-                                )}
-                              </Box>
-                            }
-                          />
                         </ListItem>
                       </React.Fragment>
                     ))}

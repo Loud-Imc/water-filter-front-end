@@ -62,6 +62,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
   loading = false,
 }) => {
   const [usedItems, setUsedItems] = useState<UsedItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectType, setSelectType] = useState<"product" | "sparePart">(
     "product"
   );
@@ -178,6 +179,7 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
       alert("Please add at least one item");
       return;
     }
+    setIsSubmitting(true);
     try {
       await onConfirm(
         usedItems.map((item) => ({
@@ -192,6 +194,8 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
       onClose();
     } catch (error) {
       console.error("Error confirming items:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -487,9 +491,9 @@ const AddUsedProductsDialog: React.FC<AddUsedProductsDialogProps> = ({
         <Button
           onClick={handleConfirm}
           variant="contained"
-          disabled={usedItems.length === 0 || loading}
+          disabled={usedItems.length === 0 || loading || isSubmitting}
         >
-          {loading ? "Saving..." : "Confirm & Save"}
+          {loading || isSubmitting ? "Saving..." : "Confirm & Save"}
         </Button>
       </DialogActions>
     </Dialog>

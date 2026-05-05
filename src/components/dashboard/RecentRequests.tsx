@@ -54,6 +54,8 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({ requests }) => {
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
+                  primaryTypographyProps={{ component: 'div' }}
+                  secondaryTypographyProps={{ component: 'div' }}
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="body1" fontWeight={500}>
@@ -73,7 +75,7 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({ requests }) => {
                     </Box>
                   }
                 />
-               {request.type !== 'ENQUIRY' && <StatusChip  status={request.status} />}
+                {request.type !== 'ENQUIRY' && <StatusChip status={request.status} />}
               </ListItem>
             ))}
           </List>
