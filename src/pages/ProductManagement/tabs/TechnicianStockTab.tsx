@@ -51,13 +51,15 @@ const TechnicianStockTab: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const filteredTechnicians = technicians.filter(tech => 
-    tech.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tech.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tech.technicianStock.some((s: any) => 
-      (s.product?.name || s.sparePart?.name).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const filteredTechnicians = technicians
+    .filter(tech => tech.technicianStock.length > 0) // Only show technicians with stock
+    .filter(tech => 
+      tech.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tech.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tech.technicianStock.some((s: any) => 
+        (s.product?.name || s.sparePart?.name).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
 
   return (
     <Box>
@@ -79,9 +81,12 @@ const TechnicianStockTab: React.FC = () => {
 
       {tabValue === 0 && (
         <Box>
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Showing {filteredTechnicians.length} technicians with active inventory
+            </Typography>
             <TextField
-              fullWidth
+              sx={{ width: 300 }}
               variant="outlined"
               placeholder="Search by technician name, email or item..."
               value={searchTerm}
