@@ -24,6 +24,7 @@ import { useAppSelector } from "../app/hooks";
 import CustomerProfile from "../pages/customers/CustomerProfile";
 import ProductManagement from "../pages/ProductManagement/ProductManagement";
 import MaintenanceSchedule from "../pages/customers/MaintenanceSchedule";
+import MergeRequests from "../pages/customers/MergeRequests";
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -137,6 +138,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
             <Layout>
               <MaintenanceSchedule />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customers/merge-requests"
+        element={
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_DELETE]}>
+            <Layout>
+              <MergeRequests />
             </Layout>
           </ProtectedRoute>
         }

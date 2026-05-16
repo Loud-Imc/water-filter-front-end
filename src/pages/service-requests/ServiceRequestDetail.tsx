@@ -170,6 +170,10 @@ const ServiceRequestDetail: React.FC = () => {
   const [daysNextChange, setDaysNextChange] = useState("90");
   const [maintenanceUnit, setMaintenanceUnit] = useState<"days" | "minutes">("days");
 
+  // Accidental click protection states
+  const [startWorkConfirmOpen, setStartWorkConfirmOpen] = useState(false);
+  const [stopWorkConfirmOpen, setStopWorkConfirmOpen] = useState(false);
+
   const handleViewCustomerHistory = async () => {
     if (!request?.customer?.id) return;
 
@@ -994,7 +998,7 @@ const ServiceRequestDetail: React.FC = () => {
                               color="success"
                               size="large"
                               startIcon={isSubmitting ? <CircularProgress size={20} /> : <PlayArrowIcon />}
-                              onClick={handleStartWork}
+                              onClick={() => setStartWorkConfirmOpen(true)}
                               fullWidth
                               disabled={isSubmitting}
                             >
@@ -1030,7 +1034,8 @@ const ServiceRequestDetail: React.FC = () => {
                                 color="error"
                                 size="large"
                                 startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <StopIcon />}
-                                onClick={handleStopWork}
+                                                                 onClick={() => setStopWorkConfirmOpen(true)}
+
                                 disabled={isSubmitting}
                               >
                                 {isSubmitting ? "Completing..." : "Complete Work"}
@@ -2995,6 +3000,30 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog
+        open={startWorkConfirmOpen}
+        title="Start Work"
+        message="Are you sure you want to start work on this service request? The timer will start automatically."
+        onConfirm={() => {
+          setStartWorkConfirmOpen(false);
+          handleStartWork();
+        }}
+        onCancel={() => setStartWorkConfirmOpen(false)}
+        confirmLabel="Start Work"
+      />
+
+      <ConfirmDialog
+        open={stopWorkConfirmOpen}
+        title="Complete Work"
+        message="Are you sure you want to complete work on this service request? This will stop the timer and mark the work as finished."
+        onConfirm={() => {
+          setStopWorkConfirmOpen(false);
+          handleStopWork();
+        }}
+        onCancel={() => setStopWorkConfirmOpen(false)}
+        confirmLabel="Complete Work"
+        severity="warning"
+      />
     </Box>
   );
 };

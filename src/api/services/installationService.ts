@@ -93,8 +93,9 @@ export const installationService = {
   },
 
   // Get full maintenance schedule
-  getMaintenanceSchedule: async (): Promise<Installation[]> => {
-    const { data } = await axiosInstance.get('/installations/maintenance-schedule');
+  getMaintenanceSchedule: async (days?: number | string): Promise<Installation[]> => {
+    const params = days ? { days } : {};
+    const { data } = await axiosInstance.get('/installations/maintenance-schedule', { params });
     return data;
   },
 };

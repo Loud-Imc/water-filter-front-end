@@ -42,6 +42,8 @@ const TechnicianPerformanceTable: React.FC<Props> = ({ data }) => {
             <TableCell align="right"><strong>Assigned</strong></TableCell>
             <TableCell align="right"><strong>Completed</strong></TableCell>
             <TableCell align="right"><strong>In Progress</strong></TableCell>
+            <TableCell align="right"><strong>Reassignments</strong></TableCell>
+            <TableCell align="right"><strong>Items Value</strong></TableCell>
             <TableCell align="right"><strong>Completion Rate</strong></TableCell>
             <TableCell align="right"><strong>Avg Work Time</strong></TableCell>
           </TableRow>
@@ -61,6 +63,8 @@ const TechnicianPerformanceTable: React.FC<Props> = ({ data }) => {
               <TableCell align="right">{tech.assigned}</TableCell>
               <TableCell align="right">{tech.completed}</TableCell>
               <TableCell align="right">{tech.inProgress}</TableCell>
+              <TableCell align="right">{tech.reassignments || 0}</TableCell>
+              <TableCell align="right">₹{tech.totalUsedValue || '0.00'}</TableCell>
               <TableCell align="right">
                 <Chip
                   label={`${tech.completionRate}%`}

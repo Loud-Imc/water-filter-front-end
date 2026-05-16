@@ -286,6 +286,8 @@ export interface TechnicianPerformance {
   assigned: number;
   completed: number;
   inProgress: number;
+  reassignments?: number;
+  totalUsedValue?: string;
   completionRate: string;
   avgWorkDurationHours: string;
 }

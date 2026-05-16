@@ -27,6 +27,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import PersonIcon from "@mui/icons-material/Person";
 import HistoryIcon from "@mui/icons-material/History";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import MergeTypeIcon from "@mui/icons-material/MergeType";
 import { useAppSelector } from "../../app/hooks";
 import { usePermission } from "../../hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
@@ -88,6 +89,12 @@ const Sidebar: React.FC = () => {
       path: "/maintenance-schedule",
       icon: <HistoryIcon />,
       permissions: [PERMISSIONS.CUSTOMERS_VIEW],
+    },
+    {
+      label: "Merge Requests",
+      path: "/customers/merge-requests",
+      icon: <MergeTypeIcon />,
+      permissions: [PERMISSIONS.CUSTOMERS_DELETE],
       divider: true, // ✅ Separator after customers
     },
 

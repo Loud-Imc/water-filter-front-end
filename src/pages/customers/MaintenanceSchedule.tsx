@@ -17,6 +17,10 @@ import {
   InputAdornment,
   CircularProgress,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -34,12 +38,13 @@ const MaintenanceSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [daysFilter, setDaysFilter] = useState<number | string>(5);
   const navigate = useNavigate();
 
   const fetchSchedule = async () => {
     setLoading(true);
     try {
-      const data = await installationService.getMaintenanceSchedule();
+      const data = await installationService.getMaintenanceSchedule(daysFilter);
       setSchedule(data);
     } catch (err) {
       console.error("Failed to fetch maintenance schedule:", err);
@@ -51,7 +56,7 @@ const MaintenanceSchedule: React.FC = () => {
 
   useEffect(() => {
     fetchSchedule();
-  }, []);
+  }, [daysFilter]);
 
   const filteredSchedule = schedule.filter((item) =>
     item.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,7 +70,7 @@ const MaintenanceSchedule: React.FC = () => {
     const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return "error"; // Overdue
-    if (diffDays <= 7) return "warning"; // Due within a week
+    if (diffDays <= 5) return "warning"; // Due within 5 days
     return "success"; // Far away
   };
 
@@ -85,7 +90,7 @@ const MaintenanceSchedule: React.FC = () => {
             Maintenance Schedule
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Proactive tracking of filter (spun) changes for all customers.
+            Proactive tracking of upcoming filter (spun) changes within {daysFilter === 'all' ? 'all time' : `${daysFilter} days`}.
           </Typography>
         </Box>
         <Button 
@@ -100,9 +105,9 @@ const MaintenanceSchedule: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       <Card sx={{ mb: 4, boxShadow: 2 }}>
-        <CardContent>
+        <CardContent sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
-            fullWidth
+            sx={{ flexGrow: 1 }}
             placeholder="Search by customer name, phone, or region..."
             variant="outlined"
             value={searchTerm}
@@ -115,6 +120,24 @@ const MaintenanceSchedule: React.FC = () => {
               ),
             }}
           />
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="days-filter-label">Due Within</InputLabel>
+            <Select
+              labelId="days-filter-label"
+              value={daysFilter}
+              label="Due Within"
+              onChange={(e) => setDaysFilter(e.target.value)}
+            >
+              <MenuItem value={3}>Next 3 Days</MenuItem>
+              <MenuItem value={5}>Next 5 Days</MenuItem>
+              <MenuItem value={10}>Next 10 Days</MenuItem>
+              <MenuItem value={15}>Next 15 Days</MenuItem>
+              <MenuItem value={30}>Next 30 Days</MenuItem>
+              <MenuItem value={60}>Next 60 Days</MenuItem>
+              <MenuItem value={90}>Next 90 Days</MenuItem>
+              <MenuItem value="all">All Records</MenuItem>
+            </Select>
+          </FormControl>
         </CardContent>
       </Card>
 

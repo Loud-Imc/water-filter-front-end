@@ -41,12 +41,25 @@ async getAllCustomers(page: number = 1, limit: number = 10, regionId?: string) {
     await axiosInstance.delete(API_ENDPOINTS.CUSTOMERS.BY_ID(id));
   },
 
-    searchCustomers: async (query: string, regionId?: string) => {
+  searchCustomers: async (query: string, regionId?: string) => {
     const params: any = { query, limit: 50 };
     if (regionId) params.regionId = regionId;
     const response = await axiosInstance.get('/customers/search', { params });
     return response.data;
   },
 
-  
+  createMergeRequest: async (sourceId: string, targetId: string, reason?: string) => {
+    const response = await axiosInstance.post('/customers/merge-request', { sourceId, targetId, reason });
+    return response.data;
+  },
+
+  getMergeRequests: async (status?: string) => {
+    const response = await axiosInstance.get('/customers/merge-requests/list', { params: { status } });
+    return response.data;
+  },
+
+  processMergeRequest: async (id: string, status: 'APPROVED' | 'REJECTED', adminNotes?: string) => {
+    const response = await axiosInstance.post(`/customers/merge-requests/${id}/process`, { status, adminNotes });
+    return response.data;
+  },
 };

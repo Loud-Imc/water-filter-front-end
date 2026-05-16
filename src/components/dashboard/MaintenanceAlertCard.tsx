@@ -25,7 +25,7 @@ const MaintenanceAlertCard: React.FC = () => {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const data = await installationService.getUpcomingMaintenance(30); // Show alerts for next 30 days
+        const data = await installationService.getUpcomingMaintenance(5); // Show alerts for next 5 days
         setAlerts(data);
       } catch (err) {
         console.error("Failed to fetch maintenance alerts:", err);
@@ -58,7 +58,7 @@ const MaintenanceAlertCard: React.FC = () => {
               ✨ All systems are up to date!
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              No filter changes are due in the next 15 days.
+              No filter changes are due in the next 5 days.
             </Typography>
           </Box>
         ) : (

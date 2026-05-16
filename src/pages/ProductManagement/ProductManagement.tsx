@@ -6,6 +6,7 @@ import ProductsTab from './tabs/ProductsTab';
 import SparePartsTab from './tabs/SparePartsTab';
 import AssemblyTab from './tabs/AssemblyTab';
 import SettingsTab from './tabs/SettingsTab';
+import TechnicianStockTab from './tabs/TechnicianStockTab';
 import { useLocation } from 'react-router-dom';
 
 interface TabPanelProps {
@@ -34,51 +35,24 @@ const ProductManagement: React.FC = () => {
   const canViewProducts = hasPermission(PERMISSIONS.PRODUCTS_VIEW);
   const canViewSpareParts = hasPermission(PERMISSIONS.SPARE_PARTS_VIEW);
   const canViewAssembly = hasPermission(PERMISSIONS.ASSEMBLY_VIEW);
-  const canManageSettings = hasPermission(PERMISSIONS.PRODUCTS_UPDATE); // 🆕 Check if user can update settings
+  const canViewStockHistory = hasPermission(PERMISSIONS.STOCK_VIEW); // ✅ NEW
+  const canManageSettings = hasPermission(PERMISSIONS.PRODUCTS_UPDATE);
 
-  // Build tabs based on permissions
-  const tabs: any = [];
-  if (canViewProducts) tabs.push({ label: 'Products', index: 0 });
-  if (canViewSpareParts)
-    tabs.push({ label: 'Spare Parts', index: canViewProducts ? 1 : 0 });
-  if (canViewAssembly) {
-    let assemblyIndex = 0;
-    if (canViewProducts && canViewSpareParts) assemblyIndex = 2;
-    else if (canViewProducts || canViewSpareParts) assemblyIndex = 1;
-    tabs.push({ label: 'Assembly', index: assemblyIndex });
-  }
-
-  // 🆕 Add Settings tab for admins
-  if (canManageSettings) {
-    let settingsIndex = 0;
-    if (canViewProducts && canViewSpareParts && canViewAssembly) settingsIndex = 3;
-    else if (
-      (canViewProducts && canViewSpareParts) ||
-      (canViewProducts && canViewAssembly) ||
-      (canViewSpareParts && canViewAssembly)
-    )
-      settingsIndex = 2;
-    else if (canViewProducts || canViewSpareParts || canViewAssembly)
-      settingsIndex = 1;
-    tabs.push({ label: 'Settings', index: settingsIndex });
-  }
-
-  const tabLabelToIndex = (
-    label: string,
-    tabsArray: { label: string; index: number }[]
-  ) => {
-    const found = tabsArray.find(
-      (t) => t.label.toLowerCase() === label.toLowerCase()
-    );
-    return found ? found.index : 0;
-  };
+  // Build tabs dynamically to ensure correct indexing
+  const tabs: { label: string; component: React.ReactNode }[] = [];
+  if (canViewProducts) tabs.push({ label: 'Products', component: <ProductsTab /> });
+  if (canViewSpareParts) tabs.push({ label: 'Spare Parts', component: <SparePartsTab /> });
+  if (canViewAssembly) tabs.push({ label: 'Assembly', component: <AssemblyTab /> });
+  if (canViewStockHistory) tabs.push({ label: 'Technician Stock', component: <TechnicianStockTab /> }); // ✅ NEW
+  if (canManageSettings) tabs.push({ label: 'Settings', component: <SettingsTab /> });
 
   const searchParams = new URLSearchParams(location.search);
   const tabParam = searchParams.get('tab');
 
   const [activeTab, setActiveTab] = useState(() => {
     if (tabParam && tabs.length > 0) {
-      return tabLabelToIndex(tabParam, tabs);
+      const index = tabs.findIndex(t => t.label.toLowerCase() === tabParam.toLowerCase());
+      return index >= 0 ? index : 0;
     }
     return 0;
   });
@@ -105,7 +79,7 @@ const ProductManagement: React.FC = () => {
           Product Management
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Manage products, spare parts, and assembly templates
+          Manage products, spare parts, assembly templates, and technician inventory
         </Typography>
       </Box>
 
@@ -118,60 +92,18 @@ const ProductManagement: React.FC = () => {
           variant="scrollable"
           scrollButtons="auto"
         >
-          {canViewProducts && <Tab label="Products" />}
-          {canViewSpareParts && <Tab label="Spare Parts" />}
-          {canViewAssembly && <Tab label="Assembly" />}
-          {canManageSettings && <Tab label="Settings" />} {/* 🆕 NEW */}
+          {tabs.map((tab, i) => (
+            <Tab key={i} label={tab.label} />
+          ))}
         </Tabs>
       </Box>
 
       {/* Tab Panels */}
-      {canViewProducts && (
-        <TabPanel value={activeTab} index={0}>
-          <ProductsTab />
+      {tabs.map((tab, i) => (
+        <TabPanel key={i} value={activeTab} index={i}>
+          {tab.component}
         </TabPanel>
-      )}
-
-      {canViewSpareParts && (
-        <TabPanel value={activeTab} index={canViewProducts ? 1 : 0}>
-          <SparePartsTab />
-        </TabPanel>
-      )}
-
-      {canViewAssembly && (
-        <TabPanel
-          value={activeTab}
-          index={
-            canViewProducts && canViewSpareParts
-              ? 2
-              : canViewProducts || canViewSpareParts
-              ? 1
-              : 0
-          }
-        >
-          <AssemblyTab />
-        </TabPanel>
-      )}
-
-      {/* 🆕 NEW: Settings Tab */}
-      {canManageSettings && (
-        <TabPanel
-          value={activeTab}
-          index={
-            canViewProducts && canViewSpareParts && canViewAssembly
-              ? 3
-              : (canViewProducts && canViewSpareParts) ||
-                (canViewProducts && canViewAssembly) ||
-                (canViewSpareParts && canViewAssembly)
-              ? 2
-              : canViewProducts || canViewSpareParts || canViewAssembly
-              ? 1
-              : 0
-          }
-        >
-          <SettingsTab />
-        </TabPanel>
-      )}
+      ))}
     </Box>
   );
 };

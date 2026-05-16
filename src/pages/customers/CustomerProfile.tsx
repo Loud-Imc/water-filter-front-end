@@ -28,7 +28,8 @@ import {
   // CheckCircle as CheckCircleIcon,
   // Error as ErrorIcon,
   Star as StarIcon,
-  Business as BusinessIcon, // ✅ NEW
+  Business as BusinessIcon,
+  MergeType as MergeIcon, // ✅ NEW
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -40,6 +41,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { installationService } from "../../api/services/installationService";
 import QuickAddInstallationDialog from "../../components/installation/QuickAddInstallationDialog";
 import type { Installation } from "../../types";
+import MergeCustomerDialog from "../../components/customer/MergeCustomerDialog"; // ✅ NEW
 
 interface CustomerHistory {
   customer: any;
@@ -65,6 +67,7 @@ const CustomerProfile: React.FC = () => {
   const [installations, setInstallations] = useState<Installation[]>([]); // ✅ NEW
   const [loadingInstallations, setLoadingInstallations] = useState(false);
   const [installationDialog, setInstallationDialog] = useState(false);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false); // ✅ NEW
   useEffect(() => {
     fetchCustomerHistory();
     fetchInstallations();
@@ -168,14 +171,24 @@ const CustomerProfile: React.FC = () => {
           </Typography>
         </Box>
         {/* ✅ Create Service Button in Header */}
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateService}
-          size="large"
-        >
-          Create New Service
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<MergeIcon />}
+            onClick={() => setMergeDialogOpen(true)}
+            color="warning"
+          >
+            Merge Duplicate
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateService}
+            size="large"
+          >
+            Create New Service
+          </Button>
+        </Stack>
       </Box>
 
       <Grid container spacing={3}>
@@ -319,10 +332,10 @@ const CustomerProfile: React.FC = () => {
                     color="primary"
                   />
                 </Box>
-               
+
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                 <Button
+                <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
                   onClick={() => setInstallationDialog(true)}
@@ -488,6 +501,13 @@ const CustomerProfile: React.FC = () => {
           onInstallationCreated={handleInstallationCreated}
           customerId={data.customer.id}
           preSelectedRegionId={data.customer.regionId}
+        />
+      )}
+      {data?.customer && (
+        <MergeCustomerDialog
+          open={mergeDialogOpen}
+          onClose={() => setMergeDialogOpen(false)}
+          sourceCustomer={data.customer}
         />
       )}
     </Box>

@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import HistoryIcon from "@mui/icons-material/History";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import EmptyState from "../../components/common/EmptyState";
 import { technicianStockService } from "../../api/services/technicianStockService";
@@ -187,6 +188,7 @@ const MyStocks: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [stockData, setStockData] = useState<TechnicianStock[]>([]);
+    const [historyData, setHistoryData] = useState<any[]>([]); // ✅ NEW
     const [tabValue, setTabValue] = useState(0);
 
     const theme = useTheme();
@@ -208,7 +210,17 @@ const MyStocks: React.FC = () => {
 
     useEffect(() => {
         fetchStockData();
+        fetchHistoryData(); // ✅ NEW
     }, []);
+
+    const fetchHistoryData = async () => {
+        try {
+            const data = await technicianStockService.getMyStockHistory();
+            setHistoryData(data);
+        } catch (err) {
+            console.error("Error fetching history:", err);
+        }
+    };
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -278,6 +290,14 @@ const MyStocks: React.FC = () => {
                                             size="small"
                                             color="secondary"
                                         />
+                                    </Box>
+                                }
+                            />
+                            <Tab
+                                label={
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        Transaction History
+                                        <HistoryIcon fontSize="small" />
                                     </Box>
                                 }
                             />
@@ -509,6 +529,67 @@ const MyStocks: React.FC = () => {
                                     </Grid>
                                 </Box>
                             </>
+                        )}
+                    </TabPanel>
+
+                    {/* History Tab */}
+                    <TabPanel value={tabValue} index={2}>
+                        {historyData.length === 0 ? (
+                            <EmptyState
+                                icon={<HistoryIcon sx={{ fontSize: 80, color: "text.disabled" }} />}
+                                title="No History Found"
+                                description="You don't have any stock transactions yet"
+                            />
+                        ) : (
+                            <TableContainer component={Paper} variant="outlined">
+                                <Table>
+                                    <TableHead>
+                                        <TableRow sx={{ bgcolor: "grey.100" }}>
+                                            <TableCell>Date</TableCell>
+                                            <TableCell>Item</TableCell>
+                                            <TableCell>Type</TableCell>
+                                            <TableCell align="right">Quantity</TableCell>
+                                            <TableCell>Notes</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {historyData.map((tx) => (
+                                            <TableRow key={tx.id} hover>
+                                                <TableCell>{formatDate(tx.createdAt)}</TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {tx.product?.name || tx.sparePart?.name}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {tx.product ? 'Product' : 'Spare Part'}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip 
+                                                        label={tx.type} 
+                                                        size="small"
+                                                        color={
+                                                            tx.type === 'ISSUE' ? 'success' :
+                                                            tx.type === 'RETURN' ? 'warning' : 'error'
+                                                        }
+                                                        variant="outlined"
+                                                    />
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <Typography 
+                                                        variant="body2" 
+                                                        fontWeight={700}
+                                                        color={tx.quantity > 0 ? 'success.main' : 'error.main'}
+                                                    >
+                                                        {tx.quantity > 0 ? `+${tx.quantity}` : tx.quantity}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>{tx.notes}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
                         )}
                     </TabPanel>
                 </CardContent>
