@@ -32,6 +32,8 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
+import * as XLSX from "xlsx";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { productService } from "../../../api/services/productService";
 import { productCategoriesService } from "../../../api/services/productCategoriesService";
@@ -197,6 +199,23 @@ const ProductsTab: React.FC = () => {
     setPage(0);
   };
 
+  const handleExportExcel = () => {
+    const exportData = filteredProducts.map((product) => ({
+      "Product Name": product.name,
+      "SKU": product.sku || "-",
+      "Category": product.category?.name || "-",
+      "Company": product.company || "-",
+      "Price (₹)": Number(product.price).toFixed(2),
+      "Stock": product.stock,
+      "Warranty": formatWarranty(product),
+      "Description": product.description || "-",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+    XLSX.writeFile(workbook, `products_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -285,6 +304,14 @@ const ProductsTab: React.FC = () => {
           Products ({filteredProducts.length})
         </Typography>
         <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportExcel}
+            color="success"
+          >
+            Export Excel
+          </Button>
           <PermissionGate permission={PERMISSIONS.CATEGORIES_MANAGE}>
             <Button
               variant="outlined"

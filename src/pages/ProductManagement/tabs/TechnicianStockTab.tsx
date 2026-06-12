@@ -18,9 +18,12 @@ import {
   CircularProgress,
   Alert,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Button
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
+import DownloadIcon from '@mui/icons-material/Download';
+import * as XLSX from 'xlsx';
 import TechnicianStockTransactionsTable from '../../../components/dashboard/TechnicianStockTransactionsTable';
 import { technicianStockService } from '../../../api/services/technicianStockService';
 
@@ -49,6 +52,29 @@ const TechnicianStockTab: React.FC = () => {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handleExportExcel = () => {
+    const rows: any[] = [];
+    filteredTechnicians.forEach((tech) => {
+      tech.technicianStock.forEach((stock: any) => {
+        rows.push({
+          'Technician Name': tech.name,
+          'Email': tech.email,
+          'Item Name': stock.product?.name || stock.sparePart?.name || '-',
+          'Type': stock.product ? 'Product' : 'Spare Part',
+          'SKU': stock.product?.sku || stock.sparePart?.sku || 'N/A',
+          'Current Balance': stock.quantity,
+        });
+      });
+    });
+    if (rows.length === 0) {
+      rows.push({ 'Technician Name': 'No data', 'Email': '', 'Item Name': '', 'Type': '', 'SKU': '', 'Current Balance': '' });
+    }
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Technician Stock');
+    XLSX.writeFile(workbook, `technician_stock_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filteredTechnicians = technicians
@@ -85,21 +111,32 @@ const TechnicianStockTab: React.FC = () => {
             <Typography variant="body2" color="text.secondary">
               Showing {filteredTechnicians.length} technicians with active inventory
             </Typography>
-            <TextField
-              sx={{ width: 300 }}
-              variant="outlined"
-              placeholder="Search by technician name, email or item..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              size="small"
-            />
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportExcel}
+                size="small"
+              >
+                Export Excel
+              </Button>
+              <TextField
+                sx={{ width: 300 }}
+                variant="outlined"
+                placeholder="Search by technician name, email or item..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                size="small"
+              />
+            </Box>
           </Box>
 
           {loading ? (

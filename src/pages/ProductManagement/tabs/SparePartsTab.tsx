@@ -32,6 +32,8 @@ import PeopleIcon from "@mui/icons-material/People";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
+import * as XLSX from "xlsx";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { sparePartsService } from "../../../api/services/sparePartsService";
 import { sparePartGroupsService } from "../../../api/services/sparePartGroupsService";
@@ -198,6 +200,23 @@ const SparePartsTab: React.FC = () => {
     setPage(0);
   };
 
+  const handleExportExcel = () => {
+    const exportData = filteredSpareParts.map((sp) => ({
+      "Spare Part Name": sp.name,
+      "SKU": sp.sku || "-",
+      "Group": sp.group?.name || "-",
+      "Company": sp.company || "-",
+      "Price (₹)": Number(sp.price).toFixed(2),
+      "Stock": sp.stock,
+      "Warranty": formatWarranty(sp),
+      "Description": sp.description || "-",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Spare Parts");
+    XLSX.writeFile(workbook, `spare_parts_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -285,6 +304,14 @@ const SparePartsTab: React.FC = () => {
           Spare Parts ({filteredSpareParts.length})
         </Typography>
         <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportExcel}
+            color="success"
+          >
+            Export Excel
+          </Button>
           <PermissionGate permission={PERMISSIONS.GROUPS_MANAGE}>
             <Button
               variant="outlined"
