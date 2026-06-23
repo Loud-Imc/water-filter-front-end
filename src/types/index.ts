@@ -67,6 +67,9 @@ export interface Customer {
   googleMapsUrl?: string; // ✅ New: Google Maps link
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    items: number;
+  };
 }
 
 export interface CreateCustomerDto {
@@ -94,6 +97,7 @@ export type RequestStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
   | "APPROVED"
+  | "UNASSIGNED"
   | "ASSIGNED"
   | "IN_PROGRESS"
   | "WORK_COMPLETED"
@@ -145,6 +149,7 @@ export interface ServiceRequest {
   workLogs?: WorkLog[];
   workMedia?: WorkMedia[];
   acknowledgedBy?:User;
+  invoices?: Invoice[];
   installation?: Installation;
   postWorkReassignCount?: number;
 }
@@ -247,6 +252,10 @@ export interface CreateProductDto {
   warrantyYears?: number;
   company?: string;
   categoryId?: string | null;
+  costPrice?: number;
+  reorderLevel?: number;
+  taxRate?: number;
+  supplierId?: string | null;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {}
@@ -518,6 +527,11 @@ export interface SparePart {
   createdAt: string;
   updatedAt: string;
   group?: SparePartGroup;
+  costPrice: number;
+  reorderLevel: number;
+  taxRate: number;
+  supplierId?: string;
+  supplier?: Supplier;
   _count?: {
     stockHistory: number;
     technicianStock: number;
@@ -535,6 +549,10 @@ export interface CreateSparePartDto {
   warrantyMonths?: number;
   warrantyYears?: number;
   company?: string;
+  costPrice?: number;
+  reorderLevel?: number;
+  taxRate?: number;
+  supplierId?: string | null;
 }
 
 export interface UpdateSparePartDto extends Partial<CreateSparePartDto> {}
@@ -651,5 +669,131 @@ export interface Product {
   updatedAt: string;
   category?: ProductCategory; // ✅ NEW
   bomTemplate?: BOMTemplate;
+  costPrice: number;
+  reorderLevel: number;
+  taxRate: number;
+  supplierId?: string;
+  supplier?: Supplier;
 }
+
+// ==========================================
+// SUPPLIER TYPES
+// ==========================================
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string | null;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  gstin?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    products: number;
+    spareParts: number;
+    invoices: number;
+  };
+}
+
+export interface CreateSupplierDto {
+  name: string;
+  contactName?: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  gstin?: string | null;
+}
+
+export interface UpdateSupplierDto extends Partial<CreateSupplierDto> {}
+
+// ==========================================
+// INVOICE TYPES
+// ==========================================
+export type InvoiceType = 'PURCHASE' | 'SALES' | 'SALES_RETURN' | 'SUPPLIER_RETURN';
+export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+export type PaymentMode = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER' | 'CREDIT';
+
+export interface InvoiceItem {
+  id: string;
+  invoiceId: string;
+  productId?: string | null;
+  sparePartId?: string | null;
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  taxAmount: number;
+  totalPrice: number;
+  product?: Product | null;
+  sparePart?: SparePart | null;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  type: InvoiceType;
+  date: string;
+  customerId?: string | null;
+  supplierId?: string | null;
+  serviceRequestId?: string | null;
+  subTotal: number;
+  discount: number;
+  taxAmount: number;
+  totalAmount: number;
+  amountPaid: number;
+  paymentStatus: PaymentStatus;
+  paymentMode: PaymentMode;
+  notes?: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer | null;
+  supplier?: Supplier | null;
+  createdBy: User;
+  items: InvoiceItem[];
+  _count?: {
+    items: number;
+  };
+}
+
+export interface CreateInvoiceItemDto {
+  productId?: string | null;
+  sparePartId?: string | null;
+  quantity: number;
+  unitPrice: number;
+  taxRate?: number;
+}
+
+export interface CreateInvoiceDto {
+  invoiceNumber?: string;
+  type: InvoiceType;
+  date?: string;
+  customerId?: string | null;
+  supplierId?: string | null;
+  serviceRequestId?: string | null;
+  subTotal: number;
+  discount?: number;
+  taxAmount?: number;
+  totalAmount: number;
+  amountPaid?: number;
+  paymentStatus?: PaymentStatus;
+  paymentMode?: PaymentMode;
+  notes?: string | null;
+  items: CreateInvoiceItemDto[];
+}
+
+// ==========================================
+// STOCK HISTORY TYPES (LEDGER)
+// ==========================================
+export interface StockLedgerEntry {
+  id: string;
+  itemId: string;
+  itemName: string;
+  itemType: 'PRODUCT' | 'SPARE_PART';
+  sku?: string | null;
+  quantityChange: number;
+  reason: string;
+  createdAt: string;
+}
+
 

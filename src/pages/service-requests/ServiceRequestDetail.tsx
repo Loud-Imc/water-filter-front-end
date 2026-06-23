@@ -28,6 +28,10 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
+// import ReceiptIcon from "@mui/icons-material/Receipt";
+import { usePermission } from "../../hooks/usePermission";
+import { PERMISSIONS } from "../../constants/permissions";
+// import { invoiceService } from "../../api/services/invoiceService";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -62,10 +66,13 @@ import { canApproveRequest, canAssignTechnician } from "../../utils/helpers";
 import { customerService } from "../../api/services/customerService";
 import LocationCapture from "../../components/location/LocationCapture";
 import ReassignTechnicianDialog from "../../components/services/ReassignTechnicianDialog";
+import AssignTechnicianDialog from "../../components/services/AssignTechnicianDialog";
+import RecordFreelancerWorkDialog from "../../components/services/RecordFreelancerWorkDialog";
 import {
   reassignTechnician,
   // fetchReassignmentHistory,
   updateRequest,
+  recordFreelancerWork,
 } from "../../app/slices/requestSlice";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import AddUsedProductsDialog from "../../components/services/AddUsedProductsDialog";
@@ -104,6 +111,7 @@ const ServiceRequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   // const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { hasPermission } = usePermission();
   const { selectedRequest, loading } = useAppSelector(
     (state) => state.requests
   );
@@ -123,8 +131,9 @@ const ServiceRequestDetail: React.FC = () => {
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
   const [assignDialog, setAssignDialog] = useState(false);
+  const [recordFreelancerDialog, setRecordFreelancerDialog] = useState(false);
   const [comments, setComments] = useState("");
-  const [selectedTechnicianId, setSelectedTechnicianId] = useState("");
+  // const [selectedTechnicianId, setSelectedTechnicianId] = useState("");
   const [usedProductsDialog, setUsedProductsDialog] = useState(false);
   const [usedProducts, setUsedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -139,6 +148,7 @@ const ServiceRequestDetail: React.FC = () => {
   const [compressing, setCompressing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -641,6 +651,30 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
+  // const handleGenerateInvoice = async () => {
+  //   if (!request) return;
+  //   setGeneratingInvoice(true);
+  //   try {
+  //     const generated = await invoiceService.generateFromServiceRequest(request.id);
+  //     setSnackbar({
+  //       open: true,
+  //       message: `Invoice ${generated.invoiceNumber} generated successfully!`,
+  //       severity: "success",
+  //     });
+  //     dispatch(fetchRequestById(request.id));
+  //   } catch (error: any) {
+  //     console.error(error);
+  //     const msg = error.response?.data?.message || "Failed to generate invoice";
+  //     setSnackbar({
+  //       open: true,
+  //       message: msg,
+  //       severity: "error",
+  //     });
+  //   } finally {
+  //     setGeneratingInvoice(false);
+  //   }
+  // };
+
   const userCanApprove =
     user &&
     canApproveRequest(user?.role?.name, request?.requestedBy?.role?.name);
@@ -706,13 +740,40 @@ const ServiceRequestDetail: React.FC = () => {
     }
   };
 
-  const handleAssign = async (auto: boolean) => {
+  // const handleAssign = async (auto: boolean) => {
+  //   try {
+  //     await dispatch(
+  //       assignTechnician({
+  //         id: request.id,
+  //         technicianId: selectedTechnicianId,
+  //         auto,
+  //       })
+  //     ).unwrap();
+
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Technician assigned successfully!",
+  //       severity: "success",
+  //     });
+  //     setAssignDialog(false);
+  //     setSelectedTechnicianId("");
+  //     dispatch(fetchRequestById(request.id));
+  //   } catch (error: any) {
+  //     setSnackbar({
+  //       open: true,
+  //       message: error || "Failed to assign technician",
+  //       severity: "error",
+  //     });
+  //   }
+  // };
+
+  const handleInitialAssign = async (technicianId: string) => {
     try {
       await dispatch(
         assignTechnician({
           id: request.id,
-          technicianId: selectedTechnicianId,
-          auto,
+          technicianId,
+          auto: false,
         })
       ).unwrap();
 
@@ -722,7 +783,6 @@ const ServiceRequestDetail: React.FC = () => {
         severity: "success",
       });
       setAssignDialog(false);
-      setSelectedTechnicianId("");
       dispatch(fetchRequestById(request.id));
     } catch (error: any) {
       setSnackbar({
@@ -1312,106 +1372,6 @@ const ServiceRequestDetail: React.FC = () => {
                   </Box>
                 </Grid>
 
-                {/* ✅ NEW: Installation Information */}
-                {/* {request.installation && (
-                  <>
-                    <Grid size={12}>
-                      <Divider sx={{ my: 1 }} />
-                    </Grid>
-
-                    <Grid size={12}>
-                      <Box
-                        sx={{ p: 2, bgcolor: "info.light", borderRadius: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            mb: 1,
-                          }}
-                        >
-                          <LocationOnIcon color="info" fontSize="small" />
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight={600}
-                            color="info.dark"
-                          >
-                            Installation Location
-                          </Typography>
-                          {request.installation.isPrimary && (
-                            <Chip
-                              label="Primary"
-                              size="small"
-                              color="primary"
-                            />
-                          )}
-                          {request.installation.installationType && (
-                            <Chip
-                              label={request.installation.installationType}
-                              size="small"
-                              variant="outlined"
-                            />
-                          )}
-                        </Box>
-
-                        <Typography
-                          variant="body2"
-                          fontWeight={600}
-                          color="info.dark"
-                          gutterBottom
-                        >
-                          {request?.installation?.name}
-                        </Typography>
-
-                        <Typography
-                          variant="body2"
-                          color="info.dark"
-                          sx={{ mb: 0.5 }}
-                        >
-                          📍 {request.installation.address}
-                        </Typography>
-
-                        {request.installation.landmark && (
-                          <Typography
-                            variant="body2"
-                            color="info.dark"
-                            sx={{ mb: 0.5 }}
-                          >
-                            🏛️ Landmark: {request.installation.landmark}
-                          </Typography>
-                        )}
-
-                        {request.installation.contactPerson && (
-                          <Typography
-                            variant="body2"
-                            color="info.dark"
-                            sx={{ mb: 0.5 }}
-                          >
-                            👤 Contact: {request.installation.contactPerson}
-                            {request.installation.contactPhone &&
-                              ` • 📞 ${request.installation.contactPhone}`}
-                          </Typography>
-                        )}
-
-                        {request.installation.notes && (
-                          <Typography
-                            variant="caption"
-                            color="info.dark"
-                            sx={{
-                              fontStyle: "italic",
-                              display: "block",
-                              mt: 1,
-                            }}
-                          >
-                            Note: {request.installation.notes}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Grid>
-                  </>
-                )} */}
-
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Contact
@@ -1705,13 +1665,14 @@ const ServiceRequestDetail: React.FC = () => {
                         ✅ Items Used ({usedProducts.length})
                       </Typography>
                       {usedProducts.map((item, index) => {
-                        const name =
-                          item.product?.name || item.sparePart?.name || "N/A";
+                        const isExternal = item.isExternal;
+                        const name = isExternal 
+                          ? item.externalName || "External Item" 
+                          : (item.product?.name || item.sparePart?.name || "N/A");
                         const quantity = item.quantityUsed;
-                        const company =
-                          item.product?.company ||
-                          item.sparePart?.company ||
-                          "N/A";
+                        const company = isExternal 
+                          ? "External" 
+                          : (item.product?.company || item.sparePart?.company || "N/A");
                         return (
                           <Box
                             key={`${item.id}-${index}`}
@@ -1727,6 +1688,22 @@ const ServiceRequestDetail: React.FC = () => {
                               label={`${name} - ( company - ${company} ): ${quantity} qty`}
                               variant="outlined"
                             />
+                            {isExternal && item.externalWarrantyMonths ? (
+                              <Chip
+                                label={`Warranty: ${item.externalWarrantyMonths} Months`}
+                                size="small"
+                                color="info"
+                                variant="outlined"
+                              />
+                            ) : null}
+                            {isExternal && item.externalPrice ? (
+                              <Chip
+                                label={`Price: ${item.externalPrice}`}
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                              />
+                            ) : null}
                             {request.status === "WORK_COMPLETED" && (
                               <Box sx={{ display: "flex", gap: 0.5 }}>
                                 <IconButton
@@ -1868,30 +1845,63 @@ const ServiceRequestDetail: React.FC = () => {
                     </Button>
                   )}
 
-                  {/* {(request.status === "WORK_COMPLETED" ||
-                      request.status === "COMPLETED") && (
+                  {/* Generate Invoice button - temporarily disabled */}
+                  {/*
+                  {hasPermission(PERMISSIONS.STOCK_UPDATE) &&
+                    (request.status === "WORK_COMPLETED" || request.status === "COMPLETED") &&
+                    usedProducts.length > 0 &&
+                    (!request.invoices || request.invoices.length === 0) && (
                       <Button
                         variant="contained"
-                        startIcon={<SwapHorizIcon />}
-                        onClick={() => setReassignForReworkDialog(true)}
+                        color="secondary"
+                        startIcon={<ReceiptIcon />}
+                        onClick={handleGenerateInvoice}
+                        disabled={generatingInvoice}
                       >
-                        Reassign for Rework
+                        {generatingInvoice ? "Generating..." : "Generate Invoice"}
                       </Button>
-                    )} */}
+                    )}
+                  */}
 
-                  {/* Change Technician Button - Only if ASSIGNED and already has technician */}
-                  {/* {userCanAssign &&
+                  {/* View Invoice button if already generated - temporarily disabled */}
+                  {/*
+                  {request.invoices && request.invoices.length > 0 && (
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      startIcon={<ReceiptIcon />}
+                      onClick={() => navigate(`/product-management?tab=sales invoices`)}
+                    >
+                      View Invoice ({request.invoices[0].invoiceNumber})
+                    </Button>
+                  )}
+                  */}
+
+                  {/* Assign Technician - When UNASSIGNED */}
+                  {userCanAssign && request.status === "UNASSIGNED" && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<AssignmentIndIcon />}
+                      onClick={() => setAssignDialog(true)}
+                    >
+                      Assign Technician
+                    </Button>
+                  )}
+
+                  {/* Record Freelancer Work - When ASSIGNED and External Technician */}
+                  {hasPermission(PERMISSIONS.SERVICES_EDIT) &&
                     request.status === "ASSIGNED" &&
-                    request.assignedTo && (
+                    request.assignedTo?.isExternal === true && (
                       <Button
                         variant="contained"
-                        color="warning"
-                        startIcon={<SwapHorizIcon />}
-                        onClick={() => setReassignDialog(true)}
+                        color="secondary"
+                        startIcon={<AssignmentIndIcon />}
+                        onClick={() => setRecordFreelancerDialog(true)}
                       >
-                        Change Technician
+                        Record Freelancer Work
                       </Button>
-                    )} */}
+                    )}
 
                   {/* Change Technician - Only when ASSIGNED (before work starts) */}
                   {userCanAssign &&
@@ -2068,60 +2078,6 @@ const ServiceRequestDetail: React.FC = () => {
                 )}
             </CardContent>
           </Card>
-
-          {/* <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Approval History
-              </Typography>
-              {request.approvalHistory && request.approvalHistory.length > 0 ? (
-                <List>
-                  {request.approvalHistory.map((approval) => (
-                    <ListItem key={approval.id} alignItems="flex-start">
-                      <ListItemAvatar>
-                        <Avatar
-                          sx={{
-                            bgcolor:
-                              approval.status === "APPROVED"
-                                ? "success.main"
-                                : "error.main",
-                          }}
-                        >
-                          {approval.status === "APPROVED" ? (
-                            <CheckCircleIcon />
-                          ) : (
-                            <CancelIcon />
-                          )}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={approval.approver?.name || "N/A"}
-                        secondary={
-                          <>
-                            <Typography variant="caption" display="block">
-                              {approval.approverRole} • {approval.status}
-                            </Typography>
-                            {approval.comments && (
-                              <Typography variant="caption" display="block">
-                                {approval.comments}
-                              </Typography>
-                            )}
-                            <Typography variant="caption" color="text.disabled">
-                              {formatDate(approval.approvedAt)}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No approval history yet
-                </Typography>
-              )}
-            </CardContent>
-          </Card> */}
         </Grid>
         {/* 🆕 NEW: Work Logs - Show technician work details */}
         {request.workLogs && request.workLogs.length > 0 && (
@@ -2525,70 +2481,63 @@ const ServiceRequestDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Record Freelancer Work Dialog */}
+      {request && (
+        <RecordFreelancerWorkDialog
+          open={recordFreelancerDialog}
+          onClose={() => setRecordFreelancerDialog(false)}
+          allProducts={allProducts}
+          allSpareParts={allSpareParts}
+          loading={isSubmitting}
+          onConfirm={async (data) => {
+            setIsSubmitting(true);
+            try {
+              // Extract non-file data for the main API call
+              const workData = {
+                startTime: data.startTime,
+                endTime: data.endTime,
+                notes: data.notes,
+                usedItems: data.usedItems,
+              };
+              
+              await dispatch(recordFreelancerWork({ requestId: request.id, data: workData })).unwrap();
+              
+              // Upload media files one by one if there are any
+              if (data.mediaFiles && data.mediaFiles.length > 0) {
+                for (const file of data.mediaFiles) {
+                   await requestService.uploadWorkMedia(request.id, file);
+                }
+              }
+
+              setSnackbar({
+                open: true,
+                message: "Freelancer work recorded successfully",
+                severity: "success",
+              });
+              setRecordFreelancerDialog(false);
+              dispatch(fetchRequestById(request.id));
+            } catch (error: any) {
+              setSnackbar({
+                open: true,
+                message: error || "Failed to record freelancer work",
+                severity: "error",
+              });
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
+      )}
+
       {/* Assign Technician Dialog */}
-      <Dialog
+      <AssignTechnicianDialog
         open={assignDialog}
         onClose={() => setAssignDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Assign Technician</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Request Region: <strong>{request.region?.name}</strong>
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Available Technicians in this region:{" "}
-              <strong>{availableTechnicians.length}</strong>
-            </Typography>
-          </Box>
-
-          <TextField
-            select
-            fullWidth
-            label="Select Technician"
-            value={selectedTechnicianId}
-            onChange={(e) => setSelectedTechnicianId(e.target.value)}
-            sx={{ mt: 2 }}
-            helperText={
-              availableTechnicians.length === 0
-                ? "No technicians available in this region"
-                : ""
-            }
-          >
-            {availableTechnicians.length === 0 && (
-              <MenuItem disabled>No technicians available</MenuItem>
-            )}
-            {availableTechnicians.map((tech) => (
-              <MenuItem key={tech.id} value={tech.id}>
-                {tech?.name} {tech.region?.name ? `(${tech.region.name})` : ""}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          {/* <Box sx={{ mt: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => handleAssign(true)}
-              disabled={availableTechnicians.length === 0}
-            >
-              Auto Assign (System will select)
-            </Button>
-          </Box> */}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAssignDialog(false)}>Cancel</Button>
-          <Button
-            onClick={() => handleAssign(false)}
-            variant="contained"
-            disabled={!selectedTechnicianId}
-          >
-            Assign Selected
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onAssign={handleInitialAssign}
+        loading={loading}
+        watchRegionId={request?.region?.id}
+      />
       {/* Upload Images Dialog */}
       {/* ✅ ENHANCED: Image Upload Dialog with Camera & Preview */}
       <Dialog
@@ -2856,7 +2805,7 @@ const ServiceRequestDetail: React.FC = () => {
         onClose={() => setReassignDialog(false)}
         onReassign={handleReassign}
         title="Change Technician"
-        reasonRequired={false}
+        reasonRequired={true}
         allowCurrentTechnician={false}
         watchRegionId={request?.region?.id} // from parent state
       />

@@ -33,11 +33,13 @@ import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 import DownloadIcon from "@mui/icons-material/Download";
+// import HistoryIcon from "@mui/icons-material/History";
 import * as XLSX from "xlsx";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { sparePartsService } from "../../../api/services/sparePartsService";
 import { sparePartGroupsService } from "../../../api/services/sparePartGroupsService";
-import type { SparePart, SparePartGroup } from "../../../types";
+import { supplierService } from "../../../api/services/supplierService";
+import type { SparePart, SparePartGroup, Supplier } from "../../../types";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import EmptyState from "../../../components/common/EmptyState";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
@@ -50,14 +52,17 @@ import TechnicianStockDialog from "../components/TechnicianStockDialog";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { fetchTechnicians } from "../../../app/slices/userSlice";
 import { useLocation } from "react-router-dom";
+import { ProductHistoryDialog } from "../components/ProductHistoryDialog";
 
 const SparePartsTab: React.FC = () => {
   const dispatch = useAppDispatch();
   const { technicians } = useAppSelector((state) => state.users);
   const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [groups, setGroups] = useState<SparePartGroup[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [sparePartDialog, setSparePartDialog] = useState(false);
+  const [historyDialogProps, setHistoryDialogProps] = useState({ open: false, itemId: null as string | null, itemName: "" });
   const [groupDialog, setGroupDialog] = useState(false);
   const [stockDialog, setStockDialog] = useState(false);
   const [technicianStockDialog, setTechnicianStockDialog] = useState(false);
@@ -104,12 +109,14 @@ const SparePartsTab: React.FC = () => {
       setLoading(true);
     }
     try {
-      const [sparePartsData, groupsData] = await Promise.all([
+      const [sparePartsData, groupsData, suppliersData] = await Promise.all([
         sparePartsService.getAll(),
         sparePartGroupsService.getAll(),
+        supplierService.getAll(),
       ]);
       setSpareParts(sparePartsData);
       setGroups(groupsData);
+      setSuppliers(suppliersData);
       dispatch(fetchTechnicians({ query: "", limit: 100 }));
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -542,15 +549,15 @@ const SparePartsTab: React.FC = () => {
         />
       ) : (
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 250px)' }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>Spare Part Name</TableCell>
                   <TableCell>SKU</TableCell>
                   <TableCell>Group</TableCell>
-                  <TableCell>Company</TableCell>
-                  <TableCell align="right">Price</TableCell>
+                  <TableCell align="right">Cost Price</TableCell>
+                  <TableCell align="right">Selling Price</TableCell>
                   <TableCell align="center">Stock</TableCell>
                   <TableCell>Warranty</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -558,7 +565,12 @@ const SparePartsTab: React.FC = () => {
               </TableHead>
               <TableBody>
                 {paginatedSpareParts.map((sparePart) => (
-                  <TableRow key={sparePart.id}>
+                  <TableRow 
+                    key={sparePart.id}
+                    hover
+                    onClick={() => setHistoryDialogProps({ open: true, itemId: sparePart.id, itemName: sparePart.name })}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell>
                       <Typography variant="body1" fontWeight={500}>
                         {sparePart.name}
@@ -577,7 +589,9 @@ const SparePartsTab: React.FC = () => {
                         "-"
                       )}
                     </TableCell>
-                    <TableCell>{sparePart.company || "-"}</TableCell>
+                    <TableCell align="right">
+                      ₹{Number(sparePart.costPrice || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell align="right">
                       ₹{Number(sparePart.price).toFixed(2)}
                     </TableCell>
@@ -593,7 +607,8 @@ const SparePartsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.STOCK_VIEW}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedSparePart(sparePart);
                             setTechnicianStockDialog(true);
                           }}
@@ -605,7 +620,8 @@ const SparePartsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.STOCK_UPDATE}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedSparePart(sparePart);
                             setStockDialog(true);
                           }}
@@ -618,10 +634,12 @@ const SparePartsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.SPARE_PARTS_UPDATE}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedSparePart(sparePart);
                             setSparePartDialog(true);
                           }}
+                          title="Edit Spare Part"
                           sx={{ ml: 1 }}
                         >
                           <EditIcon />
@@ -631,10 +649,12 @@ const SparePartsTab: React.FC = () => {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedSparePart(sparePart);
                             setDeleteDialog(true);
                           }}
+                          title="Delete Spare Part"
                           sx={{ ml: 1 }}
                         >
                           <DeleteIcon />
@@ -675,6 +695,7 @@ const SparePartsTab: React.FC = () => {
         onSave={handleSaveSparePart}
         sparePart={selectedSparePart}
         groups={groups}
+        suppliers={suppliers}
       />
 
       {selectedSparePart && (
@@ -718,6 +739,14 @@ const SparePartsTab: React.FC = () => {
           setDeleteDialog(false);
           setSelectedSparePart(null);
         }}
+      />
+
+      <ProductHistoryDialog
+        open={historyDialogProps.open}
+        onClose={() => setHistoryDialogProps({ ...historyDialogProps, open: false })}
+        itemId={historyDialogProps.itemId}
+        itemName={historyDialogProps.itemName}
+        itemType="SPARE_PART"
       />
 
       <SnackbarNotification

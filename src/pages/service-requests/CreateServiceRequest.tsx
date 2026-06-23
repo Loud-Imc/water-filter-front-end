@@ -75,7 +75,7 @@ const serviceRequestSchema = yup.object().shape({
     .string()
     .oneOf(["HIGH", "MEDIUM", "NORMAL", "LOW"] as const)
     .required("Priority is required"),
-  assignedToId: yup.string().required("Technician assignment is required"),
+  assignedToId: yup.string().optional(),
   adminNotes: yup.string().optional(),
 });
 
@@ -99,7 +99,7 @@ interface FormData {
   regionId: string;
   installationId?: string; // ✅ NEW
   priority: "HIGH" | "MEDIUM" | "NORMAL" | "LOW";
-  assignedToId: string;
+  assignedToId?: string;
   categoryId?: string; // ✅ NEW
   adminNotes?: string;
 }
@@ -506,7 +506,7 @@ const CreateServiceRequest: React.FC = () => {
   // Submit handler
   const onSubmit = async (data: FormData) => {
     try {
-      await dispatch(createRequest(data)).unwrap();
+      await dispatch(createRequest(data as any)).unwrap();
 
       setSnackbar({
         open: true,
@@ -1056,7 +1056,7 @@ const CreateServiceRequest: React.FC = () => {
                   control={control}
                   render={({ field }) => (
                     <SearchableSelect
-                      label="Assign to Technician *"
+                      label="Assign to Technician (Optional)"
                       value={field.value ?? null}
                       onChange={(value) => {
                         field.onChange(value);

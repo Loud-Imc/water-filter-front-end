@@ -46,6 +46,12 @@ const StatusChip: React.FC<StatusChipProps> = ({
         };
       case "APPROVED":
         return { bg: "info.light", color: "white", border: "info.main" };
+      case "UNASSIGNED":
+        return {
+          bg: "grey.500",
+          color: "white",
+          border: "grey.700",
+        };
       case "ASSIGNED":
         return {
           bg: "primary.light",

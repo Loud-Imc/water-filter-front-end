@@ -20,6 +20,7 @@ import type {
   SparePart,
   SparePartGroup,
   CreateSparePartDto,
+  Supplier,
 } from "../../../types";
 
 interface SparePartDialogProps {
@@ -28,6 +29,7 @@ interface SparePartDialogProps {
   onSave: (data: CreateSparePartDto) => Promise<void>;
   sparePart?: SparePart | null;
   groups: SparePartGroup[];
+  suppliers: Supplier[];
 }
 
 const SparePartDialog: React.FC<SparePartDialogProps> = ({
@@ -36,6 +38,7 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
   onSave,
   sparePart,
   groups,
+  suppliers,
 }) => {
   const [formData, setFormData] = useState<CreateSparePartDto>({
     name: "",
@@ -48,6 +51,10 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
     hasWarranty: false,
     warrantyMonths: undefined,
     warrantyYears: undefined,
+    costPrice: 0,
+    reorderLevel: 10,
+    taxRate: 18,
+    supplierId: null,
   });
   const [warrantyType, setWarrantyType] = useState<"months" | "years">(
     "months"
@@ -58,6 +65,7 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
     groupId?: string;
     price?: string;
     stock?: string;
+    costPrice?: string;
   }>({});
 
   useEffect(() => {
@@ -73,6 +81,10 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
         hasWarranty: sparePart.hasWarranty,
         warrantyMonths: sparePart.warrantyMonths,
         warrantyYears: sparePart.warrantyYears,
+        costPrice: sparePart.costPrice || 0,
+        reorderLevel: sparePart.reorderLevel || 10,
+        taxRate: sparePart.taxRate || 18,
+        supplierId: sparePart.supplierId || null,
       });
       if (sparePart.warrantyYears) {
         setWarrantyType("years");
@@ -89,6 +101,10 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
         hasWarranty: false,
         warrantyMonths: undefined,
         warrantyYears: undefined,
+        costPrice: 0,
+        reorderLevel: 10,
+        taxRate: 18,
+        supplierId: null,
       });
       setWarrantyType("months");
     }
@@ -117,6 +133,9 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
       formData.stock < 1
     ) {
       newErrors.stock = "Stock must be at least 1";
+    }
+    if (formData.costPrice !== undefined && formData.costPrice < 0) {
+      newErrors.costPrice = "Cost cannot be negative";
     }
 
     setErrors(newErrors);
@@ -257,6 +276,57 @@ const SparePartDialog: React.FC<SparePartDialogProps> = ({
             helperText={errors.stock}
             inputProps={{ min: 1 }}
           />
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Buying Cost Price"
+              type="number"
+              value={formData.costPrice}
+              onChange={(e) => {
+                setFormData({ ...formData, costPrice: Number(e.target.value) });
+                setErrors((prev) => ({ ...prev, costPrice: undefined }));
+              }}
+              error={!!errors.costPrice}
+              helperText={errors.costPrice}
+              InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              fullWidth
+              label="Tax Rate (GST)"
+              type="number"
+              value={formData.taxRate}
+              onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
+              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+              inputProps={{ min: 0 }}
+            />
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Reorder Safety Level"
+              type="number"
+              value={formData.reorderLevel}
+              onChange={(e) => setFormData({ ...formData, reorderLevel: Number(e.target.value) })}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              select
+              fullWidth
+              label="Default Supplier"
+              value={formData.supplierId || ''}
+              onChange={(e) => setFormData({ ...formData, supplierId: e.target.value || null })}
+            >
+              <MenuItem value="">None / Internal</MenuItem>
+              {suppliers.map((supplier) => (
+                <MenuItem key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
           <FormControlLabel
             control={

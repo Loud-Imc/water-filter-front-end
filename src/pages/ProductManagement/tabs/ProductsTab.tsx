@@ -33,11 +33,13 @@ import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 import DownloadIcon from "@mui/icons-material/Download";
+// import HistoryIcon from "@mui/icons-material/History";
 import * as XLSX from "xlsx";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { productService } from "../../../api/services/productService";
 import { productCategoriesService } from "../../../api/services/productCategoriesService";
-import type { Product, ProductCategory } from "../../../types";
+import { supplierService } from "../../../api/services/supplierService";
+import type { Product, ProductCategory, Supplier } from "../../../types";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import EmptyState from "../../../components/common/EmptyState";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
@@ -50,14 +52,17 @@ import TechnicianStockDialog from "../components/TechnicianStockDialog";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { fetchTechnicians } from "../../../app/slices/userSlice";
 import { useLocation } from "react-router-dom";
+import { ProductHistoryDialog } from "../components/ProductHistoryDialog";
 
 const ProductsTab: React.FC = () => {
   const dispatch = useAppDispatch();
   const { technicians } = useAppSelector((state) => state.users);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [productDialog, setProductDialog] = useState(false);
+  const [historyDialogProps, setHistoryDialogProps] = useState({ open: false, itemId: null as string | null, itemName: "" });
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [stockDialog, setStockDialog] = useState(false);
   const [technicianStockDialog, setTechnicianStockDialog] = useState(false);
@@ -103,12 +108,14 @@ const ProductsTab: React.FC = () => {
       setLoading(true);
     }
     try {
-      const [productsData, categoriesData] = await Promise.all([
+      const [productsData, categoriesData, suppliersData] = await Promise.all([
         productService.getAllProducts(),
         productCategoriesService.getAll(),
+        supplierService.getAll(),
       ]);
       setProducts(productsData);
       setCategories(categoriesData);
+      setSuppliers(suppliersData);
       dispatch(fetchTechnicians({ query: "", limit: 100 }));
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -165,7 +172,7 @@ const ProductsTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteProduct = async () => {
     if (!selectedProduct) return;
     try {
       await productService.deleteProduct(selectedProduct.id);
@@ -542,15 +549,15 @@ const ProductsTab: React.FC = () => {
         />
       ) : (
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 250px)' }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>Product Name</TableCell>
                   <TableCell>SKU</TableCell>
                   <TableCell>Category</TableCell>
-                  <TableCell>Company</TableCell>
-                  <TableCell align="right">Price</TableCell>
+                  <TableCell align="right">Cost Price</TableCell>
+                  <TableCell align="right">Selling Price</TableCell>
                   <TableCell align="center">Stock</TableCell>
                   <TableCell>Warranty</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -558,7 +565,12 @@ const ProductsTab: React.FC = () => {
               </TableHead>
               <TableBody>
                 {paginatedProducts.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow 
+                    key={product.id}
+                    hover
+                    onClick={() => setHistoryDialogProps({ open: true, itemId: product.id, itemName: product.name })}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell>
                       <Typography variant="body1" fontWeight={500}>
                         {product.name}
@@ -577,7 +589,9 @@ const ProductsTab: React.FC = () => {
                         "-"
                       )}
                     </TableCell>
-                    <TableCell>{product.company || "-"}</TableCell>
+                    <TableCell align="right">
+                      ₹{Number(product.costPrice || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell align="right">
                       ₹{Number(product.price).toFixed(2)}
                     </TableCell>
@@ -593,7 +607,8 @@ const ProductsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.STOCK_VIEW}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedProduct(product);
                             setTechnicianStockDialog(true);
                           }}
@@ -605,12 +620,12 @@ const ProductsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.STOCK_UPDATE}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedProduct(product);
                             setStockDialog(true);
                           }}
                           title="Update Stock"
-                          sx={{ ml: 1 }}
                         >
                           <UpdateIcon />
                         </IconButton>
@@ -618,11 +633,12 @@ const ProductsTab: React.FC = () => {
                       <PermissionGate permission={PERMISSIONS.PRODUCTS_UPDATE}>
                         <IconButton
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedProduct(product);
                             setProductDialog(true);
                           }}
-                          sx={{ ml: 1 }}
+                          title="Edit Product"
                         >
                           <EditIcon />
                         </IconButton>
@@ -631,11 +647,12 @@ const ProductsTab: React.FC = () => {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedProduct(product);
                             setDeleteDialog(true);
                           }}
-                          sx={{ ml: 1 }}
+                          title="Delete Product"
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -675,6 +692,7 @@ const ProductsTab: React.FC = () => {
         onSave={handleSaveProduct}
         product={selectedProduct}
         categories={categories}
+        suppliers={suppliers}
       />
 
       {selectedProduct && (
@@ -713,11 +731,19 @@ const ProductsTab: React.FC = () => {
         message={`Are you sure you want to delete "${selectedProduct?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         severity="error"
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteProduct}
         onCancel={() => {
           setDeleteDialog(false);
           setSelectedProduct(null);
         }}
+      />
+
+      <ProductHistoryDialog
+        open={historyDialogProps.open}
+        onClose={() => setHistoryDialogProps({ ...historyDialogProps, open: false })}
+        itemId={historyDialogProps.itemId}
+        itemName={historyDialogProps.itemName}
+        itemType="PRODUCT"
       />
 
       <SnackbarNotification

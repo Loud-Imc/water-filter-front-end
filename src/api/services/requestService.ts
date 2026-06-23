@@ -217,6 +217,23 @@ export const requestService = {
     return data;
   },
 
+  // ✅ ADD: Record freelancer work (Admin)
+  async recordFreelancerWork(
+    requestId: string,
+    data: {
+      startTime: string;
+      endTime: string;
+      notes?: string;
+      usedItems: any[];
+    }
+  ): Promise<any> {
+    const response = await axiosInstance.post(
+      `${API_ENDPOINTS.SERVICE_REQUESTS.BASE}/${requestId}/record-freelancer-work`,
+      data
+    );
+    return response.data;
+  },
+
   // Upload work media
   async uploadWorkMedia(requestId: string, file: File): Promise<any> {
     const formData = new FormData();

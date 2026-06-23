@@ -16,7 +16,7 @@ import {
   InputAdornment,
   MenuItem,
 } from '@mui/material';
-import type { Product, ProductCategory, CreateProductDto } from '../../../types';
+import type { Product, ProductCategory, CreateProductDto, Supplier } from '../../../types';
 
 interface ProductDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ interface ProductDialogProps {
   onSave: (data: CreateProductDto) => Promise<void>;
   product?: Product | null;
   categories: ProductCategory[];
+  suppliers: Supplier[];
 }
 
 const ProductDialog: React.FC<ProductDialogProps> = ({
@@ -32,6 +33,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   onSave,
   product,
   categories,
+  suppliers,
 }) => {
   const [formData, setFormData] = useState<CreateProductDto>({
     name: '',
@@ -44,6 +46,10 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     hasWarranty: false,
     warrantyMonths: undefined,
     warrantyYears: undefined,
+    costPrice: 0,
+    reorderLevel: 5,
+    taxRate: 18,
+    supplierId: null,
   });
   const [warrantyType, setWarrantyType] = useState<'months' | 'years'>('months');
   const [loading, setLoading] = useState(false);
@@ -53,6 +59,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     name?: string;
     price?: string;
     stock?: string;
+    costPrice?: string;
   }>({});
 
   useEffect(() => {
@@ -68,6 +75,10 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         hasWarranty: product.hasWarranty,
         warrantyMonths: product.warrantyMonths,
         warrantyYears: product.warrantyYears,
+        costPrice: product.costPrice || 0,
+        reorderLevel: product.reorderLevel || 5,
+        taxRate: product.taxRate || 18,
+        supplierId: product.supplierId || null,
       });
       if (product.warrantyYears) setWarrantyType('years');
     } else {
@@ -82,6 +93,10 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         hasWarranty: false,
         warrantyMonths: undefined,
         warrantyYears: undefined,
+        costPrice: 0,
+        reorderLevel: 5,
+        taxRate: 18,
+        supplierId: null,
       });
       setWarrantyType('months');
     }
@@ -94,6 +109,9 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (formData.price < 0) newErrors.price = 'Price cannot be negative';
     if (formData.stock < 0) newErrors.stock = 'Stock cannot be negative';
+    if (formData.costPrice !== undefined && formData.costPrice < 0) {
+      newErrors.costPrice = 'Cost cannot be negative';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -211,6 +229,57 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             helperText={errors.stock}
             inputProps={{ min: 1 }}
           />
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Buying Cost Price"
+              type="number"
+              value={formData.costPrice}
+              onChange={(e) => {
+                setFormData({ ...formData, costPrice: Number(e.target.value) });
+                setErrors((prev) => ({ ...prev, costPrice: undefined }));
+              }}
+              error={!!errors.costPrice}
+              helperText={errors.costPrice}
+              InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              fullWidth
+              label="Tax Rate (GST)"
+              type="number"
+              value={formData.taxRate}
+              onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
+              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+              inputProps={{ min: 0 }}
+            />
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Reorder Safety Level"
+              type="number"
+              value={formData.reorderLevel}
+              onChange={(e) => setFormData({ ...formData, reorderLevel: Number(e.target.value) })}
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              select
+              fullWidth
+              label="Default Supplier"
+              value={formData.supplierId || ''}
+              onChange={(e) => setFormData({ ...formData, supplierId: e.target.value || null })}
+            >
+              <MenuItem value="">None / Internal</MenuItem>
+              {suppliers.map((supplier) => (
+                <MenuItem key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
           <FormControlLabel
             control={

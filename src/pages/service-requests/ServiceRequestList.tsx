@@ -346,6 +346,7 @@ const ServiceRequestList: React.FC = () => {
                 sx={{ minWidth: isMobile ? "100%" : 200 }}
               >
                 <MenuItem value="ALL">All Status</MenuItem>
+                <MenuItem value="UNASSIGNED">Unassigned</MenuItem>
                 <MenuItem value="ASSIGNED">Assigned</MenuItem>
                 <MenuItem value="RE_ASSIGNED">Re-assigned</MenuItem>
                 <MenuItem value="IN_PROGRESS">In Progress</MenuItem>

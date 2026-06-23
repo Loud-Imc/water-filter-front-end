@@ -337,6 +337,34 @@ export const acknowledgeCompletion = createAsyncThunk(
   }
 );
 
+// ✅ ADD: Record freelancer work (Admin)
+export const recordFreelancerWork = createAsyncThunk(
+  "requests/recordFreelancerWork",
+  async (
+    {
+      requestId,
+      data,
+    }: {
+      requestId: string;
+      data: {
+        startTime: string;
+        endTime: string;
+        notes?: string;
+        usedItems: any[];
+      };
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await requestService.recordFreelancerWork(requestId, data);
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to record freelancer work"
+      );
+    }
+  }
+);
+
 const requestSlice = createSlice({
   name: "requests",
   initialState,
@@ -479,6 +507,17 @@ const requestSlice = createSlice({
 
     // Update request
     builder.addCase(updateRequest.fulfilled, (state, action) => {
+      const index = state.requests.findIndex((r) => r.id === action.payload.id);
+      if (index !== -1) {
+        state.requests[index] = action.payload;
+      }
+      if (state.selectedRequest?.id === action.payload.id) {
+        state.selectedRequest = action.payload;
+      }
+    });
+
+    // Record freelancer work
+    builder.addCase(recordFreelancerWork.fulfilled, (state, action) => {
       const index = state.requests.findIndex((r) => r.id === action.payload.id);
       if (index !== -1) {
         state.requests[index] = action.payload;

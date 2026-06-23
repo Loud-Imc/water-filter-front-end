@@ -10,6 +10,7 @@ import StockAlertBar from "../../components/dashboard/StockAlertBar";
 // import ExcelImportSection from "../../components/dashboard/ExcelImportSection"; // ✅ NEW
 import ReportsSection from "../../components/dashboard/ReportsSection";
 import MaintenanceAlertCard from "../../components/dashboard/MaintenanceAlertCard";
+import LowStockItemsCard from "../../components/dashboard/LowStockItemsCard";
 
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
@@ -128,6 +129,15 @@ const Dashboard: React.FC = () => {
           <RequestsByType data={stats.byType} />
         </Grid>
       </Grid>
+
+      {/* Low Stock Alerts (Only for Super Admin) */}
+      {isSuperAdmin && (
+        <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Grid size={{ xs: 12 }}>
+            <LowStockItemsCard />
+          </Grid>
+        </Grid>
+      )}
 
       {/* Reports Section (Only for Super Admin) */}
       {isSuperAdmin && <ReportsSection />}

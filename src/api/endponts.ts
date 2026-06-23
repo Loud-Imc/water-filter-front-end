@@ -127,10 +127,25 @@ export const API_ENDPOINTS = {
     COST_BREAKDOWN: (id: string) => `/assemblies/${id}/cost-breakdown`,
   },
 
+  SUPPLIERS: {
+    BASE: "/suppliers",
+    BY_ID: (id: string) => `/suppliers/${id}`,
+  },
+
   SYSTEM_SETTINGS: {
     BASE: '/system-settings',
     GET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
     SET_LOW_STOCK_THRESHOLD: '/products/low-stock-threshold',
+  },
+
+  INVOICES: {
+    BASE: '/invoices',
+    BY_ID: (id: string) => `/invoices/${id}`,
+    FROM_SERVICE_REQUEST: (id: string) => `/invoices/from-service-request/${id}`,
+  },
+
+  STOCK_LEDGER: {
+    BASE: '/stock-ledger',
   },
 
   //   SYSTEM_SETTINGS: {  

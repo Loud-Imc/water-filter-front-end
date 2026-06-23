@@ -7,6 +7,10 @@ import SparePartsTab from './tabs/SparePartsTab';
 import AssemblyTab from './tabs/AssemblyTab';
 import SettingsTab from './tabs/SettingsTab';
 import TechnicianStockTab from './tabs/TechnicianStockTab';
+import SuppliersTab from './tabs/SuppliersTab';
+import SupplierBillsTab from './tabs/SupplierBillsTab';
+import StockLedgerTab from './tabs/StockLedgerTab';
+import SalesInvoicesTab from './tabs/SalesInvoicesTab';
 import { useLocation } from 'react-router-dom';
 
 interface TabPanelProps {
@@ -41,6 +45,10 @@ const ProductManagement: React.FC = () => {
   // Build tabs dynamically to ensure correct indexing
   const tabs: { label: string; component: React.ReactNode }[] = [];
   if (canViewProducts) tabs.push({ label: 'Products', component: <ProductsTab /> });
+  if (canViewProducts) tabs.push({ label: 'Suppliers', component: <SuppliersTab /> }); // ✅ NEW
+  if (canViewStockHistory) tabs.push({ label: 'Supplier Bills', component: <SupplierBillsTab /> }); // ✅ NEW
+  if (canViewStockHistory) tabs.push({ label: 'Sales Invoices', component: <SalesInvoicesTab /> });
+  if (canViewStockHistory) tabs.push({ label: 'Stock Ledger', component: <StockLedgerTab /> }); // ✅ NEW
   if (canViewSpareParts) tabs.push({ label: 'Spare Parts', component: <SparePartsTab /> });
   if (canViewAssembly) tabs.push({ label: 'Assembly', component: <AssemblyTab /> });
   if (canViewStockHistory) tabs.push({ label: 'Technician Stock', component: <TechnicianStockTab /> }); // ✅ NEW
@@ -84,7 +92,17 @@ const ProductManagement: React.FC = () => {
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <Box 
+        sx={{ 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          position: 'sticky',
+          top: 64, // below the main app bar
+          zIndex: 10,
+          backgroundColor: 'background.default',
+          pt: 1 // padding top to look good
+        }}
+      >
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
